@@ -21,7 +21,7 @@ import (
 type NodeStatus struct {
 
 	// status
-	// Enum: ["running","stopped","starting","stopping","error"]
+	// Enum: ["on","off","bootstrapping","stopping","error"]
 	Status string `json:"status,omitempty"`
 }
 
@@ -43,7 +43,7 @@ var nodeStatusTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["running","stopped","starting","stopping","error"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["on","off","bootstrapping","stopping","error"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -53,14 +53,14 @@ func init() {
 
 const (
 
-	// NodeStatusStatusRunning captures enum value "running"
-	NodeStatusStatusRunning string = "running"
+	// NodeStatusStatusOn captures enum value "on"
+	NodeStatusStatusOn string = "on"
 
-	// NodeStatusStatusStopped captures enum value "stopped"
-	NodeStatusStatusStopped string = "stopped"
+	// NodeStatusStatusOff captures enum value "off"
+	NodeStatusStatusOff string = "off"
 
-	// NodeStatusStatusStarting captures enum value "starting"
-	NodeStatusStatusStarting string = "starting"
+	// NodeStatusStatusBootstrapping captures enum value "bootstrapping"
+	NodeStatusStatusBootstrapping string = "bootstrapping"
 
 	// NodeStatusStatusStopping captures enum value "stopping"
 	NodeStatusStatusStopping string = "stopping"

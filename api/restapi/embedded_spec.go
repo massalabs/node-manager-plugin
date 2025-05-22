@@ -39,6 +39,29 @@ func init() {
         }
       }
     },
+    "/api/nodeLogs": {
+      "get": {
+        "description": "Get the logs of the node",
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "GetNodeLogs",
+        "responses": {
+          "200": {
+            "description": "Logs retrieved successfully",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "500": {
+            "description": "Error retrieving logs",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/api/start": {
       "post": {
         "description": "Launch the massa node",
@@ -57,8 +80,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Node launched"
+          "200": {
+            "description": "massa node launched with success",
+            "schema": {
+              "$ref": "#/definitions/StartNodeResponse"
+            }
           },
           "500": {
             "description": "Error launching node",
@@ -73,14 +99,21 @@ func init() {
       "get": {
         "description": "Get massa node status",
         "produces": [
-          "application/json"
+          "text/event-stream"
         ],
         "operationId": "GetMassaNodeStatus",
         "responses": {
           "200": {
-            "description": "Current node status",
+            "description": "Stream of current node status",
             "schema": {
-              "$ref": "#/definitions/NodeStatus"
+              "type": "string",
+              "enum": [
+                "on",
+                "off",
+                "bootstrapping",
+                "stopping",
+                "error"
+              ]
             }
           }
         }
@@ -145,16 +178,12 @@ func init() {
     "Error": {
       "type": "object",
       "required": [
-        "code",
         "message"
       ],
       "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
         "message": {
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },
@@ -164,9 +193,9 @@ func init() {
         "status": {
           "type": "string",
           "enum": [
-            "running",
-            "stopped",
-            "starting",
+            "on",
+            "off",
+            "bootstrapping",
             "stopping",
             "error"
           ]
@@ -179,6 +208,15 @@ func init() {
         "useBuildnet": {
           "description": "Whether to launch the node in buildnet mode or not",
           "type": "boolean"
+        }
+      }
+    },
+    "StartNodeResponse": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "The version of the launched node",
+          "type": "string"
         }
       }
     }
@@ -206,6 +244,29 @@ func init() {
         }
       }
     },
+    "/api/nodeLogs": {
+      "get": {
+        "description": "Get the logs of the node",
+        "produces": [
+          "application/json"
+        ],
+        "operationId": "GetNodeLogs",
+        "responses": {
+          "200": {
+            "description": "Logs retrieved successfully",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "500": {
+            "description": "Error retrieving logs",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
     "/api/start": {
       "post": {
         "description": "Launch the massa node",
@@ -224,8 +285,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "Node launched"
+          "200": {
+            "description": "massa node launched with success",
+            "schema": {
+              "$ref": "#/definitions/StartNodeResponse"
+            }
           },
           "500": {
             "description": "Error launching node",
@@ -240,14 +304,21 @@ func init() {
       "get": {
         "description": "Get massa node status",
         "produces": [
-          "application/json"
+          "text/event-stream"
         ],
         "operationId": "GetMassaNodeStatus",
         "responses": {
           "200": {
-            "description": "Current node status",
+            "description": "Stream of current node status",
             "schema": {
-              "$ref": "#/definitions/NodeStatus"
+              "type": "string",
+              "enum": [
+                "on",
+                "off",
+                "bootstrapping",
+                "stopping",
+                "error"
+              ]
             }
           }
         }
@@ -312,16 +383,12 @@ func init() {
     "Error": {
       "type": "object",
       "required": [
-        "code",
         "message"
       ],
       "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
         "message": {
-          "type": "string"
+          "type": "string",
+          "x-nullable": false
         }
       }
     },
@@ -331,9 +398,9 @@ func init() {
         "status": {
           "type": "string",
           "enum": [
-            "running",
-            "stopped",
-            "starting",
+            "on",
+            "off",
+            "bootstrapping",
             "stopping",
             "error"
           ]
@@ -346,6 +413,15 @@ func init() {
         "useBuildnet": {
           "description": "Whether to launch the node in buildnet mode or not",
           "type": "boolean"
+        }
+      }
+    },
+    "StartNodeResponse": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "The version of the launched node",
+          "type": "string"
         }
       }
     }

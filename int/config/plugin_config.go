@@ -84,7 +84,7 @@ func RetrieveConfig() (PluginConfig, error) {
 				return PluginConfig{}, fmt.Errorf("marshaling default config to YAML: %w", err)
 			}
 
-			err = os.WriteFile(configFilePath, data, 0644)
+			err = os.WriteFile(configFilePath, data, 0o644)
 			if err != nil {
 				return PluginConfig{}, fmt.Errorf("writing default config to file: %w", err)
 			}

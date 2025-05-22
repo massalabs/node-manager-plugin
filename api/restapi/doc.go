@@ -18,6 +18,7 @@
 //	  - text/html
 //	  - text/javascript
 //	  - application/json
+//	  - text/event-stream
 //	  - text/webp
 //
 // swagger:meta

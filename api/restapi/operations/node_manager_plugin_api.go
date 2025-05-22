@@ -52,6 +52,9 @@ func NewNodeManagerPluginAPI(spec *loads.Document) *NodeManagerPluginAPI {
 			return errors.NotImplemented("js producer has not yet been implemented")
 		}),
 		JSONProducer: runtime.JSONProducer(),
+		TextEventStreamProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+			return errors.NotImplemented("textEventStream producer has not yet been implemented")
+		}),
 		TextWebpProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
 			return errors.NotImplemented("textWebp producer has not yet been implemented")
 		}),
@@ -61,6 +64,9 @@ func NewNodeManagerPluginAPI(spec *loads.Document) *NodeManagerPluginAPI {
 		}),
 		GetMassaNodeStatusHandler: GetMassaNodeStatusHandlerFunc(func(params GetMassaNodeStatusParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetMassaNodeStatus has not yet been implemented")
+		}),
+		GetNodeLogsHandler: GetNodeLogsHandlerFunc(func(params GetNodeLogsParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetNodeLogs has not yet been implemented")
 		}),
 		PluginWebAppHandler: PluginWebAppHandlerFunc(func(params PluginWebAppParams) middleware.Responder {
 			return middleware.NotImplemented("operation PluginWebApp has not yet been implemented")
@@ -118,6 +124,9 @@ type NodeManagerPluginAPI struct {
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
+	// TextEventStreamProducer registers a producer for the following mime types:
+	//   - text/event-stream
+	TextEventStreamProducer runtime.Producer
 	// TextWebpProducer registers a producer for the following mime types:
 	//   - text/webp
 	TextWebpProducer runtime.Producer
@@ -126,6 +135,8 @@ type NodeManagerPluginAPI struct {
 	DefaultPageHandler DefaultPageHandler
 	// GetMassaNodeStatusHandler sets the operation handler for the get massa node status operation
 	GetMassaNodeStatusHandler GetMassaNodeStatusHandler
+	// GetNodeLogsHandler sets the operation handler for the get node logs operation
+	GetNodeLogsHandler GetNodeLogsHandler
 	// PluginWebAppHandler sets the operation handler for the plugin web app operation
 	PluginWebAppHandler PluginWebAppHandler
 	// StartNodeHandler sets the operation handler for the start node operation
@@ -220,6 +231,9 @@ func (o *NodeManagerPluginAPI) Validate() error {
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
+	if o.TextEventStreamProducer == nil {
+		unregistered = append(unregistered, "TextEventStreamProducer")
+	}
 	if o.TextWebpProducer == nil {
 		unregistered = append(unregistered, "TextWebpProducer")
 	}
@@ -229,6 +243,9 @@ func (o *NodeManagerPluginAPI) Validate() error {
 	}
 	if o.GetMassaNodeStatusHandler == nil {
 		unregistered = append(unregistered, "GetMassaNodeStatusHandler")
+	}
+	if o.GetNodeLogsHandler == nil {
+		unregistered = append(unregistered, "GetNodeLogsHandler")
 	}
 	if o.PluginWebAppHandler == nil {
 		unregistered = append(unregistered, "PluginWebAppHandler")
@@ -295,6 +312,8 @@ func (o *NodeManagerPluginAPI) ProducersFor(mediaTypes []string) map[string]runt
 			result["text/javascript"] = o.JsProducer
 		case "application/json":
 			result["application/json"] = o.JSONProducer
+		case "text/event-stream":
+			result["text/event-stream"] = o.TextEventStreamProducer
 		case "text/webp":
 			result["text/webp"] = o.TextWebpProducer
 		}
@@ -345,6 +364,10 @@ func (o *NodeManagerPluginAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/status"] = NewGetMassaNodeStatus(o.context, o.GetMassaNodeStatusHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/nodeLogs"] = NewGetNodeLogs(o.context, o.GetNodeLogsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

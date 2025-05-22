@@ -13,29 +13,49 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/models"
 )
 
-// StartNodeNoContentCode is the HTTP code returned for type StartNodeNoContent
-const StartNodeNoContentCode int = 204
+// StartNodeOKCode is the HTTP code returned for type StartNodeOK
+const StartNodeOKCode int = 200
 
 /*
-StartNodeNoContent Node launched
+StartNodeOK massa node launched with success
 
-swagger:response startNodeNoContent
+swagger:response startNodeOK
 */
-type StartNodeNoContent struct {
+type StartNodeOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.StartNodeResponse `json:"body,omitempty"`
 }
 
-// NewStartNodeNoContent creates StartNodeNoContent with default headers values
-func NewStartNodeNoContent() *StartNodeNoContent {
+// NewStartNodeOK creates StartNodeOK with default headers values
+func NewStartNodeOK() *StartNodeOK {
 
-	return &StartNodeNoContent{}
+	return &StartNodeOK{}
+}
+
+// WithPayload adds the payload to the start node o k response
+func (o *StartNodeOK) WithPayload(payload *models.StartNodeResponse) *StartNodeOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the start node o k response
+func (o *StartNodeOK) SetPayload(payload *models.StartNodeResponse) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *StartNodeNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *StartNodeOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(204)
+	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 // StartNodeInternalServerErrorCode is the HTTP code returned for type StartNodeInternalServerError

@@ -11,16 +11,10 @@ import (
 )
 
 func main() {
-	pluginConfig, err := config.RetrieveConfig()
-	if err != nil {
-		log.Fatalf("failed to load node manager configuration : %v", err)
-	}
-
 	pluginDir, err := config.PluginDir()
 	if err != nil {
 		log.Fatalf("failed to get plugin directory: %v", err)
 	}
-
 	logPath := filepath.Join(pluginDir, "./node-manager-plugin.log")
 
 	err = logger.InitializeGlobal(logPath)
@@ -28,9 +22,15 @@ func main() {
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
 
+	logger.Infof("retrieving node manager plugin configuration")
+	pluginConfig, err := config.RetrieveConfig()
+	if err != nil {
+		log.Fatalf("failed to load node manager configuration : %v", err)
+	}
+
 	// Create and start the API with the plugin directory
-	api.NewAPI(pluginConfig)
-	// apiInstance.Start()
+	nodePlugin := api.NewAPI(pluginConfig)
+	nodePlugin.Start()
 
 	logger.Warnf("node manager plugin stopped")
 }

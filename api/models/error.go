@@ -19,22 +19,14 @@ import (
 // swagger:model Error
 type Error struct {
 
-	// code
-	// Required: true
-	Code *int32 `json:"code"`
-
 	// message
 	// Required: true
-	Message *string `json:"message"`
+	Message string `json:"message"`
 }
 
 // Validate validates this error
 func (m *Error) Validate(formats strfmt.Registry) error {
 	var res []error
-
-	if err := m.validateCode(formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.validateMessage(formats); err != nil {
 		res = append(res, err)
@@ -46,18 +38,9 @@ func (m *Error) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Error) validateCode(formats strfmt.Registry) error {
-
-	if err := validate.Required("code", "body", m.Code); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (m *Error) validateMessage(formats strfmt.Registry) error {
 
-	if err := validate.Required("message", "body", m.Message); err != nil {
+	if err := validate.RequiredString("message", "body", m.Message); err != nil {
 		return err
 	}
 

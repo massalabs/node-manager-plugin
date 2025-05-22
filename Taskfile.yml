@@ -1,5 +1,12 @@
 version: "3"
 
+vars:
+  APP_NAME: node-manager-plugin
+  BIN_DIR: build
+  MAINNET_VERSION: "MAIN.2.5"
+  BUILDNET_VERSION: "DEVN.28.3"
+  NODE_MASSA_DIR: '{{.BIN_DIR}}/node-massa'
+
 tasks:
   install:
     cmds:
@@ -9,33 +16,64 @@ tasks:
     cmds:
       - cmd: mkdir -p ./build
       - cmd: go generate ./...
+      - task: setup-node-folder
 
-  setup-node-folder:windows:
+  setup-node-folder:
+    cmds:
+      - cmd: mkdir -p {{.NODE_MASSA_DIR}}
+      - task: setup-node-folder:windows
+      - task: setup-node-folder:linux
+      - task: setup-node-folder:macos 
+
+  setup-node-folder:windows: # TODO: check it work on window
+    internal: true
+    platforms: [windows]
+    dir: '{{.NODE_MASSA_DIR}}'
+    cmds:
+      - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
+      - cmd: mkdir {{.MAINNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.MAINNET_NODEBIN}} -DestinationPath {{.MAINNET_VERSION}}; Remove-Item {{.MAINNET_NODEBIN}}"
+      - cmd: curl.exe -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
+      - cmd: mkdir {{.BUILDNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.BUILDNET_NODEBIN}} -DestinationPath {{.BUILDNET_VERSION}}; Remove-Item {{.BUILDNET_NODEBIN}}"
+    vars:
+      MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_windows.zip"
+      BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_windows.zip"
 
   setup-node-folder:linux:
-
-  setup-node-folder:darwin:
-
-  setup-node-folder::
+    platforms: [linux]
     cmds:
-      - task: setup-node-folder:windows
-        platforms: [windows]
-      - task: setup-node-folder:linux
-        platforms: [linux]
-      - task: setup-node-folder:darwin
-        platforms: [darwin]
+      - task: setup-node-folder:unix
+        vars:
+          UNIX_OS: "linux"
 
+  setup-node-folder:macos:
+    platforms: [darwin]
+    cmds:
+      - task: setup-node-folder:unix
+        vars:
+          UNIX_OS: "macos"
+
+  setup-node-folder:unix:
+    internal: true
+    platforms: [linux, darwin]
+    dir: '{{.NODE_MASSA_DIR}}'
+    cmds:
+      - cmd: curl -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
+      - cmd: mkdir -p {{.MAINNET_VERSION}} && tar -xzf {{.MAINNET_NODEBIN}} -C {{.MAINNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.MAINNET_NODEBIN}}
+      - cmd: curl -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
+      - cmd: mkdir -p {{.BUILDNET_VERSION}} && tar -xzf {{.BUILDNET_NODEBIN}} -C {{.BUILDNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.BUILDNET_NODEBIN}} 
+    vars:
+      MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_{{.UNIX_OS}}.tar.gz"
+      BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_{{.UNIX_OS}}.tar.gz"
   
   run:
     cmds:
       - cmd: ./build/node-manager-plugin
+    env:
+      STANDALONE: 1
 
   build:
     cmds:
       - task: build:internal
-        vars:
-          APP_NAME: node-manager-plugin
-          BIN_DIR: build
 
   build:internal:
     build:
@@ -48,7 +86,7 @@ tasks:
         silent: true
       - cmd: 'echo Version: {{.VERSION | default "Development"}}'
         silent: true
-      - cmd: go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/node-manager-{{.APP_NAME}}{{.BIN_EXT}} ./main.go
+      - cmd: go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}{{.BIN_EXT}} ./main.go
     vars:
       # We need this check for nil and empty string because a simple check for empty string doesn't work as expected
       VERSION_FLAG: '{{if ne .VERSION nil}}{{if ne .VERSION ""}}-X github.com/massalabs/node-manager-plugin/int/config.Version=v{{.VERSION}}{{end}}{{end}}'

@@ -9,15 +9,13 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
-	"github.com/massalabs/node-manager-plugin/api/models"
 )
 
 // GetMassaNodeStatusOKCode is the HTTP code returned for type GetMassaNodeStatusOK
 const GetMassaNodeStatusOKCode int = 200
 
 /*
-GetMassaNodeStatusOK Current node status
+GetMassaNodeStatusOK Stream of current node status
 
 swagger:response getMassaNodeStatusOK
 */
@@ -26,7 +24,7 @@ type GetMassaNodeStatusOK struct {
 	/*
 	  In: Body
 	*/
-	Payload *models.NodeStatus `json:"body,omitempty"`
+	Payload string `json:"body,omitempty"`
 }
 
 // NewGetMassaNodeStatusOK creates GetMassaNodeStatusOK with default headers values
@@ -36,13 +34,13 @@ func NewGetMassaNodeStatusOK() *GetMassaNodeStatusOK {
 }
 
 // WithPayload adds the payload to the get massa node status o k response
-func (o *GetMassaNodeStatusOK) WithPayload(payload *models.NodeStatus) *GetMassaNodeStatusOK {
+func (o *GetMassaNodeStatusOK) WithPayload(payload string) *GetMassaNodeStatusOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the get massa node status o k response
-func (o *GetMassaNodeStatusOK) SetPayload(payload *models.NodeStatus) {
+func (o *GetMassaNodeStatusOK) SetPayload(payload string) {
 	o.Payload = payload
 }
 
@@ -50,10 +48,8 @@ func (o *GetMassaNodeStatusOK) SetPayload(payload *models.NodeStatus) {
 func (o *GetMassaNodeStatusOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
+	payload := o.Payload
+	if err := producer.Produce(rw, payload); err != nil {
+		panic(err) // let the recovery middleware deal with this
 	}
 }
