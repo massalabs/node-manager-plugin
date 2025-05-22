@@ -1,9 +1,7 @@
 package nodeManager
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +10,8 @@ import (
 	"time"
 
 	"github.com/massalabs/station/pkg/logger"
+	"github.com/massalabs/station/pkg/node"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type NodeInfos struct {
@@ -30,6 +30,7 @@ type NodeManager struct {
 }
 
 const (
+	nodeURL                = "http://localhost:33035"
 	bootstrapCompleteStr   = "massa_bootstrap::client: Successful bootstrap"
 	nodeStdoutReadInterval = 5 * time.Second
 	statusChanCapacity     = 100 // To make sure the channel will not be blocking
@@ -76,6 +77,8 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get node binary path: %v", err)
 	}
+
+	// store node version
 	nm.nodeInfos.version = version
 
 	logger.Infof("Starting node process at %s", nodeBinPath)
@@ -95,12 +98,10 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 	}
 	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of massa node binary
 
-	cmd.Stderr = os.Stderr
+	nodeLogger := lumberjack.Logger{} // TODO
 
-	stdOut, err := cmd.StdoutPipe() // retrieve the stdout reader for monitoring
-	if err != nil {
-		return "", fmt.Errorf("Failed to get node process stdout pipe: %v", err)
-	}
+	cmd.Stdout = &nodeLogger
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("Failed to start massa node: %v", err)
@@ -108,7 +109,7 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 
 	logger.Infof("Node process started with PID: %d", cmd.Process.Pid)
 
-	go nm.monitorBootstrapping(stdOut)
+	go nm.monitorBootstrapping()
 	go nm.handleNodeStoped(cmd)
 
 	nm.serverProcess = cmd.Process
@@ -116,7 +117,11 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 	return version, nil
 }
 
-func (nm *NodeManager) GetStatus() (NodeStatus, chan NodeStatus) {
+/*
+Return the current status and an unidirectional buffered channel that return
+the new status when it has been updated/
+*/
+func (nm *NodeManager) GetStatus() (NodeStatus, <-chan NodeStatus) {
 	return nm.status, nm.statusChan
 }
 
@@ -131,7 +136,6 @@ func (nm *NodeManager) StopNode() error {
 	nm.mu.Lock()
 	if nm.status == NodeStatusBootstrapping {
 		nm.closeBootstrapMonitorChan <- struct{}{}
-		logger.Infof("Node stoped signal sent")
 	}
 	nm.status = NodeStatusStopping
 	nm.statusChan <- NodeStatusStopping
@@ -170,48 +174,56 @@ Then it Read from the massa node's stdout and wait for the
 "massa_bootstrap::client: Successful bootstrap" text to be printed.
 Then it updates the node status from "bootstrapping" to "on" and return
 */
-func (nm *NodeManager) monitorBootstrapping(stdOut io.ReadCloser) {
-	defer stdOut.Close()
-
+func (nm *NodeManager) monitorBootstrapping() {
 	nm.setStatus(NodeStatusBootstrapping)
+
+	logger.Info("Bootstrap started...")
 
 	ticker := time.NewTicker(nodeStdoutReadInterval)
 	defer ticker.Stop()
 
-	buffer := make([]byte, stdoutReadBufferSize)
-	output := []byte{}
-	bootstrapCompleteByte := []byte(bootstrapCompleteStr)
+	client := node.NewClient(nodeURL)
 	for {
 		select {
 		case <-nm.closeBootstrapMonitorChan:
-			logger.Infof("Node stoped signal received")
+			logger.Debug("Stop bootstrap monitor goroutine because received stop chan signal")
 			return
 		case <-ticker.C:
-			logger.Infof("monitor stdout, NodeStatus: %s", nm.status)
 			if nm.status == NodeStatusOn {
 				return
 			}
-			n, err := stdOut.Read(buffer)
+
+			/*Check if the node has finished bootstrapping by sending a request to it's api
+			If the request fails, it means that the node is still bootstrapping*/
+			logger.Debug("Send a get_status request to the node to check if it has bootstrapped")
+			_, err := node.Status(client)
 			if err != nil {
-				logger.Errorf("could not read from stdout, got error: %v", err)
+				if connRefused(err) {
+					logger.Debug("Connection refused, the node is still bootstrapping")
+					continue
+				}
 				nm.setStatus(NodeManagerErrorStatus)
+				logger.Errorf("attempted to retrieve the status of the massa node but got error: %w", err)
 				continue
 			}
-			if n > 0 {
-				output = append(output, buffer[:n]...)
-			}
-			if bytes.Contains(output, bootstrapCompleteByte) {
-				nm.setStatus(NodeStatusOn)
-				/*Don't return here because a msg migth have been sent
-				through the closeBootstrapMonitorChan while we were reading the stdout.
-				If we return here, closeBootstrapMonitorChan sender migth be blocked.
-				This way we avoid locking with mutex all the "case <-ticker.C" logic.
-				*/
-			}
+
+			logger.Info("Bootstrap completed ! \n Node is Up")
+
+			nm.setStatus(NodeStatusOn)
+			/*Don't return here because a msg migth have been sent
+			through the closeBootstrapMonitorChan while we were reading the stdout.
+			If we return here, closeBootstrapMonitorChan sender migth be blocked.
+			This way we avoid locking with mutex all the "case <-ticker.C" logic.
+			*/
 		}
 	}
 }
 
+/*
+handleNodeStoped wait for the node process to exit.
+If the process has exited with error, it handle this.
+It update the status to off or error
+*/
 func (nm *NodeManager) handleNodeStoped(cmd *exec.Cmd) {
 	err := cmd.Wait() // Wait for the command to exit
 	status := NodeStatusOff

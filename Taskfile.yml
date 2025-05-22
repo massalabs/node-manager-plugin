@@ -42,7 +42,7 @@ tasks:
         platforms: [windows]
 
       # move buildnet and mainnet bin into the NODE_MASSA_DIR directory.
-      - cmd: mv {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}} && mv {{.MAINNET_VERSION}} {{.NODE_MASSA_DIR}}
+      - cmd: rm -rf {{.NODE_MASSA_DIR}}/* && mv {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}} && mv {{.MAINNET_VERSION}} {{.NODE_MASSA_DIR}}
 
     vars:
       NODE_MASSA_DIR: '{{.BIN_DIR}}/node-massa'
@@ -97,6 +97,7 @@ tasks:
       - cmd: ./build/node-manager-plugin
     env:
       STANDALONE: 1
+      LOG_LEVEL: DEBUG
 
   build:
     cmds:
