@@ -5,7 +5,6 @@ vars:
   BIN_DIR: build
   MAINNET_VERSION: "MAIN.2.5"
   BUILDNET_VERSION: "DEVN.28.3"
-  NODE_MASSA_DIR: '{{.BIN_DIR}}/node-massa'
 
 tasks:
   install:
@@ -20,10 +19,38 @@ tasks:
 
   setup-node-folder:
     cmds:
-      - cmd: mkdir -p {{.NODE_MASSA_DIR}}
-      - task: setup-node-folder:windows
-      - task: setup-node-folder:linux
-      - task: setup-node-folder:macos 
+      - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
+
+      # linux and darwin
+      - cmd: curl -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
+        platforms: [linux, darwin]
+      - cmd: mkdir -p {{.MAINNET_VERSION}} && tar -xzf {{.MAINNET_NODEBIN}} -C {{.MAINNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.MAINNET_NODEBIN}}
+        platforms: [linux, darwin]
+      - cmd: curl -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
+        platforms: [linux, darwin]
+      - cmd: mkdir -p {{.BUILDNET_VERSION}} && tar -xzf {{.BUILDNET_NODEBIN}} -C {{.BUILDNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.BUILDNET_NODEBIN}} 
+        platforms: [linux, darwin]
+
+      # window
+      - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
+        platforms: [windows]
+      - cmd: mkdir {{.MAINNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.MAINNET_NODEBIN}} -DestinationPath {{.MAINNET_VERSION}}; Remove-Item {{.MAINNET_NODEBIN}}"
+        platforms: [windows]
+      - cmd: curl.exe -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
+        platforms: [windows]
+      - cmd: mkdir {{.BUILDNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.BUILDNET_NODEBIN}} -DestinationPath {{.BUILDNET_VERSION}}; Remove-Item {{.BUILDNET_NODEBIN}}"
+        platforms: [windows]
+
+      # move buildnet and mainnet bin into the NODE_MASSA_DIR directory.
+      - cmd: mv {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}} && mv {{.MAINNET_VERSION}} {{.NODE_MASSA_DIR}}
+
+    vars:
+      NODE_MASSA_DIR: '{{.BIN_DIR}}/node-massa'
+      OS_NAME: '{{if eq OS "darwin"}}macos{{else}}{{OS}}{{end}}'
+      ARCHIVE_EXT: '{{if eq OS "windows"}}zip{{else}}tar.gz{{end}}'
+      MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"
+      BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"
+
 
   setup-node-folder:windows: # TODO: check it work on window
     internal: true

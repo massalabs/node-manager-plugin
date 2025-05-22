@@ -8,8 +8,6 @@
 *.so
 *.dylib
 
-# Massa nodes binaries
-node-bin
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -28,3 +26,13 @@ go.work.sum
 .DS_Store
 
 *.log
+
+# openapi swagger generated files
+api/models/
+api/restapi/operations/
+api/restapi/embedded_spec.go
+api/restapi/server.go
+api/restapi/doc.go
+
+# node manager plugin executable and massa node binaries
+build
