@@ -1,0 +1,259 @@
+{
+  "menu": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "stacking": "Staking"
+  },
+  "index": {
+    "title-first-part": "Welcome on",
+    "title-second-part": "Massa",
+    "title-third-part": "wallet"
+  },
+  "home": {
+    "title-select-network": "Select a network",
+    "title-account-address": "Account address",
+    "button": {
+      "on": "ON",
+      "off": "OFF"
+    },
+    "auto-restart": {
+      "label": "Auto Restart:",
+      "description": "Automatically restart the node if it crash or desync"     
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "add": "Add token",
+    "delete": {
+      "title": "Remove a token",
+      "subtitle": "You are about to delete a token, please enter 'DELETE' in the field below to confirm",
+      "placeholder": "enter 'DELETE'",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "no-value": "You must enter 'DELETE' to confirm",
+      "wrong-value": "You must fill with 'DELETE' to confirm.",
+      "success": "Token successfully deleted.",
+      "bad-request": "Something went wrong while deleting the token.",
+      "invalid-address": "Something went wrong with the token address, please try again.",
+      "internal-server-error": "Something went wrong while deleting the token.",
+      "unknown-error": "Something went wrong while deleting the token. Please try again."
+    },
+    "import": {
+      "add": "Add token",
+      "placeholder": "Token Address",
+      "import-button": "Import token",
+      "import-title": "Import a Fungible Token",
+      "import-subtitle": "Input the MRC20 token’s address",
+      "success": "Token successfully added",
+      "success-screen": {
+        "success-message": "{name} ({symbol}) token is added to your wallet.",
+        "success-address": "Smart contract address: {address}"
+      },
+      "failure-screen": {
+        "wrong-format": "Invalid asset address format. It must start with 'AS' followed by alphanumeric characters.",
+        "no-input": "Please input an address",
+        "bad-request": "This asset has already been imported.",
+        "invalid-address": "The provided address is not valid.",
+        "not-found": "The asset with the provided address was not found in the network.",
+        "internal-server-error": "An error occurred while trying to add the asset. Please try again later.",
+        "unknown-error": "Oops, an unknown error occurred. Please try again later."
+      }
+    }
+  },
+  "account": {
+    "header": {
+      "title": "Hey!"
+    },
+    "create": {
+      "title": "Create an account",
+      "step1": {
+        "title": "Account name"
+      },
+      "step2": {
+        "title": "Password",
+        "description": "Now, define your password. To maximize security, a pop up will open directly on your device via MassaStation."
+      },
+      "step3": {
+        "title": "Backup",
+        "description": "Security is very important, we recommend backing up your account using a key pair or a .yaml file. Would you like to do it now or later?"
+      },
+      "buttons": {
+        "define_password": "Define a password",
+        "next": "Next",
+        "backup": "Back up",
+        "skip": "Skip"
+      },
+      "input": {
+        "nickname": "Enter an account name"
+      }
+    },
+    "import": "Import an existing account",
+    "add": "Add an account",
+    "select": "Select an account",
+    "corrupted-account": "Your wallet file: {account} is found, but its format is unknown. Import account to use it.",
+    "corrupted-accounts": "Your wallet files: {accounts} are found, but their format is unknown. Import accounts to use them."
+  },
+  "settings": {
+    "title-profile": "Account profile",
+    "title-security": "Account security",
+    "title-global": "Global settings",
+    "title-sign-rules": "Sign Rules",
+    "sign-rules": {
+      "description": "Sign Rules allow you to sign operations in a simpler way by defining rules specific to a Smart Contract.",
+      "contract-address": "Contract address",
+      "rule-type": "Type",
+      "name": "Name",
+      "add": "Add",
+      "actions": "Actions",
+      "auto-sign": "Auto Sign",
+      "auto-sign-short": "Auto",
+      "disable-password-prompt": "Disable Password Prompt",
+      "disable-password-prompt-short": "No Password",
+      "auto-sign-tooltip": "This will automatically sign operations coming from the linked contract address, without asking for your password nor your confirmation.",
+      "disable-password-prompt-tooltip": "This will disable the password prompt for operations coming from the linked contract address, but will still require your confirmation.",
+      "errors": {
+        "add": "An error occurred while adding the sign rule",
+        "already-exist": "A similar rule already exists for account",
+        "delete": "An error occurred while deleting the sign rule",
+        "update": "An error occurred while updating the sign rule",
+        "toggle": "An error occurred while toggling the sign rule",
+        "invalid-contract-address": "The provided contract address is not valid.",
+        "all-and-auto-sign-error": "Auto sign cannot be applied to all contracts for security reasons."
+      },
+      "success": {
+        "add": "Sign rule added",
+        "toggle": "Sign rule toggled",
+        "update": "Sign rule updated",
+        "delete": "Sign rule deleted"
+      },
+      "modals": {
+        "edit-title": "Edit sign rule",
+        "add-title": "Add sign rule",
+        "name-placeholder": "Enter a name",
+        "contract-placeholder": "Enter a contract address",
+        "apply-to-all-contracts": "Apply to all contracts",
+        "rule-type": "Rule type",
+        "auto-sign": "Auto sign",
+        "disable-password-prompt": "Disable password prompt",
+        "update": "Update",
+        "add": "Add"
+      }
+    },
+    "inputs": {
+      "nickname": "Account name"
+    },
+    "buttons": {
+      "update": "Update",
+      "delete": "Delete account",
+      "backup": "Back up account"
+    }
+  },
+  "account-create": {
+    "title": "Add an account",
+    "buttons": {
+      "create": "Create an account",
+      "import": "Import an existing account"
+    }
+  },
+  "success": {
+    "copied": " Copied!",
+    "send-coins": {
+      "sent": "Yah! You just had sent {amount} to {recipient}"
+    }
+  },
+  "errors": {
+    "no-content-to-copy": "There's no content to be copied",
+    "nickname-required": "Nickname is required",
+    "account-invalid-format": "The account name can't contain any special characters, and 32 characters max.",
+    "unexpected-error": {
+      "title": "Oops!",
+      "description": "An unexpected error has occurred",
+      "link": "Go back to the Welcome page!"
+    },
+    "send-coins": {
+      "invalid-amount": "Invalid amount",
+      "amount-to-high": "Insufficient funds",
+      "amount-plus-fees-to-high": "Insufficient funds to pay fees",
+      "amount-to-low": "Amount must be greater than zero",
+      "fees-to-low": "Fees must be greater than or equal to zero",
+      "no-fees": "Fees are required",
+      "no-address": "Recipient is required",
+      "invalid-address": "Recipient address is not a valid Massa address",
+      "sent": "Oops! Something went wrong in your transfer. Please, try again later..."
+    },
+    "receive-coins": {
+      "no-link": "there's no link to copy. Please, generate one!"
+    },
+    "invalid-nickname": "Invalid nickname",
+    "invalid-password": "Wrong password",
+    "invalid-private-key": "Invalid private key",
+    "no-file": "No file selected",
+    "invalid-file": "Unsupported file format. Please, try another file or import the account by providing private keys.",
+    "invalid-file-format": "Invalid account file format",
+    "unknown": "Unknown error, try again",
+    "duplicate-key": "Private key already exists",
+    "duplicate-nickname": "This account name already exists",
+    "timeout": "Timeout error",
+    "invalid-prompt-input": "Invalid user input",
+    "action-canceled": "Action canceled",
+    "password-required": "Password is required",
+    "dollar-value": "Error retrieving dollar value"
+  },
+  "transfer-coins": {
+    "send-tab": "Send",
+    "receive-tab": "Receive"
+  },
+  "send-coins": {
+    "balance": "Balance",
+    "send-action": "Send Token",
+    "available-balance": "Available: ",
+    "recipient": "to:",
+    "transfer-between-acc": "Transfer between my accounts",
+    "advanced": "Advanced",
+    "send": "Send",
+    "back-to-sending": "Back to Sending page",
+    "send-message": "You're going to send:",
+    "mas-gas": " MAS + gas fee ",
+    "preset": "Preset:",
+    "custom-fees": "Custom fees",
+    "confirm-sign": "Confirm and sign with password",
+    "advanced-message": "You pay gas fees to reward block validators and maximize your chances to see your transaction validated. It is a tip for people that support the blockchain network.",
+    "confirm-fees": "Confirm fees ",
+    "fee-info": "{feeType} gas fees are {fee} MAS, to set custom fees head to the Advanced section on the previous step.",
+    "account-fee-alert": "If this account is new you'll be charged 0.001 MAS for blockchain storage cost.",
+    "fee-standard": "Standard",
+    "fee-low": "Low",
+    "fee-high": "High",
+    "fee-custom": "Custom",
+    "fee": "Fees",
+    "amount-to-send": "Amount to send",
+    "steps": {
+      "ft-transfer-pending": "Transfer in progress...",
+      "ft-transfer-success": "Successfully transfered",
+      "ft-transfer-failed": "Transfer failed",
+      "failed-timeout": "Operation failed due to timeout, please retry with more fees."
+    },
+    "mns": {
+      "mns-correlation": "{mns} correlates with the following address: {address}"
+    }
+  },
+  "receive-coins": {
+    "generate-link": "Generate a link",
+    "coins": "Coins",
+    "account-address": "Account address: ",
+    "amount-to-ask": "Amount to ask",
+    "recipient": "Recipient",
+    "provider": "Provider (optional):",
+    "provider-description": "Address to withdraw",
+    "link-to-share": "Link to share",
+    "copied": ", copied!"
+  },
+  "placeholder": {
+    "teaser-banner": "Our new feature is coming soon",
+    "teaser-transaction-page": "If you're here, it's because you wanted to see your transactions! Don't panic, you'll be able to consult them in a few months!",
+    "teaser-contacts-page": "Managing your contact list for a smoother transaction management."
+  },
+  "toast": {
+    "explorer": "view in explorer"
+  } 
+}
