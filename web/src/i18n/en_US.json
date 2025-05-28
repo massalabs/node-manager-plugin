@@ -162,6 +162,10 @@
     }
   },
   "errors": {
+    "node-status": {
+      "title": "Node status error",
+      "description": "Got error while listening for node status update via server sent event. Got error: {error}"
+    },
     "no-content-to-copy": "There's no content to be copied",
     "nickname-required": "Nickname is required",
     "account-invalid-format": "The account name can't contain any special characters, and 32 characters max.",

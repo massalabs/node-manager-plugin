@@ -51,4 +51,5 @@ func DefaultRedirectHandler(_ operations.DefaultPageParams) middleware.Responder
 // AppendEndpoints appends web endpoints to the API.
 func AppendEndpoints(api *operations.NodeManagerPluginAPI) {
 	api.DefaultPageHandler = operations.DefaultPageHandlerFunc(DefaultRedirectHandler)
+	api.PluginWebAppHandler = operations.PluginWebAppHandlerFunc(HandleWebApp)
 }

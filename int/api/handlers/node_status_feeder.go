@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-openapi/runtime"
@@ -14,6 +15,7 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 	return func(params operations.GetMassaNodeStatusParams) middleware.Responder {
 		return middleware.ResponderFunc(
 			func(w http.ResponseWriter, _ runtime.Producer) {
+				logger.Info("Call GET api/status")
 				// Set SSE headers
 				w.Header().Set("Content-Type", "text/event-stream")
 				w.Header().Set("Cache-Control", "no-cache")
@@ -37,9 +39,6 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 }
 
 func flush(w http.ResponseWriter, status nodeManager.NodeStatus) {
-	_, err := w.Write([]byte(status))
-	if err != nil {
-		logger.Errorf("Failed to write status to response: %v", err)
-	}
+	fmt.Fprintf(w, "data: %s\n\n", status)
 	w.(http.Flusher).Flush()
 }

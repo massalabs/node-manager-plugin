@@ -10,6 +10,7 @@ import Intl from '@/i18n/i18n';
 import { Path, routeFor } from '@/utils/routes';
 import { useTheme } from '@/hooks/useTheme';
 import { NodeStatusDisplay } from '@/components/NodeStatusDisplay';
+import { useNodeStatus } from '@/hooks/useNodeStatus';
 
 function isActive(path: Path) {
   const location = useLocation();
@@ -21,6 +22,8 @@ function Base() {
   const { theme, themeIcon, themeLabel, handleSetTheme } = useTheme();
   const navigate = useNavigate();
   const context = { themeLabel, themeIcon, theme, handleSetTheme };
+
+  useNodeStatus().startListeningStatus();
 
   let menuConf = {
     title: 'Massa Node Manager',

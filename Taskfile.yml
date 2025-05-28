@@ -99,14 +99,9 @@ tasks:
       STANDALONE: 1
       LOG_LEVEL: DEBUG
 
-  build:
-    cmds:
-      - task: build:internal
-
-  build:internal:
+  build-backend:
     build:
     desc: Internal build task
-    internal: true
     cmds:
       - cmd: echo Building node-manager {{.APP_NAME}} for {{.OS | default OS}}/{{.ARCH | default ARCH}}
         silent: true
@@ -126,6 +121,27 @@ tasks:
       PRODUCTION: '{{.PRODUCTION | default "false"}}'
       VERSION: "{{.VERSION | default nil}}"
 
+  build-frontend:
+    dir: web
+    cmds:
+      - cmd: npm run build{{.BUILD_MODE}}
+    vars:
+      BUILD_MODE: '{{if eq .STANDALONE 1}}:standalone{{end}}'
+  
+  build:
+    cmds:
+      - task: build-frontend
+      - task: build-backend
+    
+
+  build-standalone:
+    cmds:
+      - task: build-frontend
+        vars:
+          STANDALONE: 1
+      - task: build-backend
+      
+          
   clean:
     cmds:
       - cmd: rm -rf build

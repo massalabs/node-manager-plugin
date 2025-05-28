@@ -52,51 +52,51 @@ func NewNodeManager() (*NodeManager, error) {
 	}, nil
 }
 
-// StartNode starts the node process
-func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
-	nm.mu.Lock()
-	defer nm.mu.Unlock()
+// StartNode starts the nodeMana process
+func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
+	nodeMana.mu.Lock()
+	defer nodeMana.mu.Unlock()
 
-	if IsRunning(nm.status) {
-		logger.Infof("Node is already running")
-		return "", fmt.Errorf("node is already running")
+	if IsRunning(nodeMana.status) {
+		logger.Infof("nodeMana is already running")
+		return "", fmt.Errorf("nodeMana is already running")
 	}
 
-	// set node network
-	nm.nodeInfos.isMainnet = isMainnet
-	nodeArgs := []string{"-p", pwd} // args for node
+	// set nodeMana network
+	nodeMana.nodeInfos.isMainnet = isMainnet
+	nodeArgs := []string{"-p", pwd} // args for nodeMana
 	networkName := "buildnet"
 	if isMainnet {
 		networkName = "mainnet"
 		nodeArgs = append(nodeArgs, "-a")
 	}
-	logger.Infof("Starting node in %s mode", networkName)
+	logger.Infof("Starting nodeMana in %s mode", networkName)
 
-	// Retrieve the massa node binary and version corresponding to selected network (defined by isMainnet param)
-	nodeBinPath, version, err := nm.massaNodeDirManager.getNodeBinAndVersion(isMainnet)
+	// Retrieve the massa nodeMana binary and version corresponding to selected network (defined by isMainnet param)
+	nodeBinPath, version, err := nodeMana.massaNodeDirManager.getNodeBinAndVersion(isMainnet)
 	if err != nil {
-		return "", fmt.Errorf("failed to get node binary path: %v", err)
+		return "", fmt.Errorf("failed to get nodeMana binary path: %v", err)
 	}
 
-	// store node version
-	nm.nodeInfos.version = version
+	// store nodeMana version
+	nodeMana.nodeInfos.version = version
 
-	logger.Infof("Starting node process at %s", nodeBinPath)
+	logger.Infof("Starting nodeMana process at %s", nodeBinPath)
 
 	cmd := exec.Command(nodeBinPath, nodeArgs...)
 	/* to run child process in a new process group.
-	By default, node-manager-plugin process and it's massa node subprocess
+	By default, nodeMana-manager-plugin process and it's massa nodeMana subprocess
 	are in the same process group which means that all signals that are sent
 	to one of them are also sent to the other one.
-	This means that if the node-mananger-plugin is closed with ctrl-c from the terminal
-	The massa node subprocess will also be closed independently from it's parent process.
+	This means that if the nodeMana-mananger-plugin is closed with ctrl-c from the terminal
+	The massa nodeMana subprocess will also be closed independently from it's parent process.
 	For clean shuttdown, we want the child process to be closed by it's parent, thus we
 	launch it in it's own process group.
 	*/
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true, // pgid: process group id.
 	}
-	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of massa node binary
+	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of massa nodeMana binary
 
 	nodeLogger := lumberjack.Logger{} // TODO
 
@@ -104,15 +104,15 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		return "", fmt.Errorf("Failed to start massa node: %v", err)
+		return "", fmt.Errorf("Failed to start massa nodeMana: %v", err)
 	}
 
-	logger.Infof("Node process started with PID: %d", cmd.Process.Pid)
+	logger.Infof("nodeMana process started with PID: %d", cmd.Process.Pid)
 
-	go nm.monitorBootstrapping()
-	go nm.handleNodeStoped(cmd)
+	go nodeMana.monitorBootstrapping()
+	go nodeMana.handleNodeStoped(cmd)
 
-	nm.serverProcess = cmd.Process
+	nodeMana.serverProcess = cmd.Process
 
 	return version, nil
 }
@@ -121,61 +121,59 @@ func (nm *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
 Return the current status and an unidirectional buffered channel that return
 the new status when it has been updated/
 */
-func (nm *NodeManager) GetStatus() (NodeStatus, <-chan NodeStatus) {
-	return nm.status, nm.statusChan
+func (nodeMana *NodeManager) GetStatus() (NodeStatus, <-chan NodeStatus) {
+	return nodeMana.status, nodeMana.statusChan
 }
 
-func (nm *NodeManager) StopNode() error {
-	if !IsRunning(nm.status) {
-		logger.Infof("Node is already stopped")
+func (nodeMana *NodeManager) StopNode() error {
+	if !IsRunning(nodeMana.status) {
+		logger.Infof("nodeMana is already stopped")
 		return nil
 	}
 
-	logger.Infof("Stopping Massa node process...")
+	logger.Infof("Stopping Massa nodeMana process...")
 
-	nm.mu.Lock()
-	if nm.status == NodeStatusBootstrapping {
-		nm.closeBootstrapMonitorChan <- struct{}{}
+	if nodeMana.status == NodeStatusBootstrapping {
+		nodeMana.closeBootstrapMonitorChan <- struct{}{}
 	}
-	nm.status = NodeStatusStopping
-	nm.statusChan <- NodeStatusStopping
-	nm.mu.Unlock()
+	nodeMana.status = NodeStatusStopping
+	nodeMana.statusChan <- NodeStatusStopping
 
 	// Send a SIGTERM signal to gracefully shut down
-	if err := nm.serverProcess.Signal(syscall.SIGTERM); err != nil {
+	if err := nodeMana.serverProcess.Signal(syscall.SIGTERM); err != nil {
 		logger.Errorf("Failed to send SIGTERM: %v", err)
 
 		// Force kill as a fallback
-		if err = nm.serverProcess.Kill(); err != nil {
+		if err = nodeMana.serverProcess.Kill(); err != nil {
 			return err
 		}
 	}
 
 	// Wait for the process to exit
 	timeout := time.Now().Add(5 * time.Second)
-	for time.Now().Before(timeout) && IsRunning(nm.status) {
+	for time.Now().Before(timeout) && IsRunning(nodeMana.status) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
 	// If still running after timeout, force kill
-	if IsRunning(nm.status) {
-		_ = nm.serverProcess.Kill()
+	if IsRunning(nodeMana.status) {
+		_ = nodeMana.serverProcess.Kill()
 	}
 	return nil
 }
 
-func (nm *NodeManager) Logs() (string, error) {
+func (nodeMana *NodeManager) Logs() (string, error) {
 	return "not implemented", nil
 }
 
 /*
 Firsteval, it set the status to "bootstrapping"
-Then it Read from the massa node's stdout and wait for the
+Then it Read from the massa nodeMana's stdout and wait for the
 "massa_bootstrap::client: Successful bootstrap" text to be printed.
-Then it updates the node status from "bootstrapping" to "on" and return
+Then it updates the nodeMana status from "bootstrapping" to "on" and return
 */
-func (nm *NodeManager) monitorBootstrapping() {
-	nm.setStatus(NodeStatusBootstrapping)
+func (nodeMana *NodeManager) monitorBootstrapping() {
+	nodeMana.setStatus(NodeStatusBootstrapping)
 
 	logger.Info("Bootstrap started...")
 
@@ -185,33 +183,33 @@ func (nm *NodeManager) monitorBootstrapping() {
 	client := node.NewClient(nodeURL)
 	for {
 		select {
-		case <-nm.closeBootstrapMonitorChan:
-			logger.Debug("Stop bootstrap monitor goroutine because received stop chan signal")
+		case <-nodeMana.closeBootstrapMonitorChan:
+			logger.Debug("Stop bootstrap monitor goroutine because received closeBootstrapMonitor chan signal")
 			return
 		case <-ticker.C:
-			if nm.status == NodeStatusOn {
+			if nodeMana.status == NodeStatusOn {
 				return
 			}
 
-			/*Check if the node has finished bootstrapping by sending a request to it's api
-			If the request fails, it means that the node is still bootstrapping*/
-			logger.Debug("Send a get_status request to the node to check if it has bootstrapped")
+			/*Check if the nodeMana has finished bootstrapping by sending a request to it's api
+			If the request fails, it means that the nodeMana is still bootstrapping*/
+			logger.Debug("Send a get_status request to the nodeMana to check if it has bootstrapped")
 			_, err := node.Status(client)
 			if err != nil {
 				if connRefused(err) {
-					logger.Debug("Connection refused, the node is still bootstrapping")
+					logger.Debug("Connection refused, the nodeMana is still bootstrapping")
 					continue
 				}
-				nm.setStatus(NodeManagerErrorStatus)
-				logger.Errorf("attempted to retrieve the status of the massa node but got error: %w", err)
+				nodeMana.setStatus(NodeManagerErrorStatus)
+				logger.Errorf("attempted to retrieve the status of the massa nodeMana but got error: %w", err)
 				continue
 			}
 
-			logger.Info("Bootstrap completed ! \n Node is Up")
+			logger.Info("Bootstrap completed ! \n nodeMana is Up")
 
-			nm.setStatus(NodeStatusOn)
+			nodeMana.setStatus(NodeStatusOn)
 			/*Don't return here because a msg migth have been sent
-			through the closeBootstrapMonitorChan while we were reading the stdout.
+			through the closeBootstrapMonitorChan while we were checking if node had bootstrapped.
 			If we return here, closeBootstrapMonitorChan sender migth be blocked.
 			This way we avoid locking with mutex all the "case <-ticker.C" logic.
 			*/
@@ -220,37 +218,42 @@ func (nm *NodeManager) monitorBootstrapping() {
 }
 
 /*
-handleNodeStoped wait for the node process to exit.
+handleNodeStoped wait for the nodeMana process to exit.
 If the process has exited with error, it handle this.
 It update the status to off or error
 */
-func (nm *NodeManager) handleNodeStoped(cmd *exec.Cmd) {
+func (nodeMana *NodeManager) handleNodeStoped(cmd *exec.Cmd) {
 	err := cmd.Wait() // Wait for the command to exit
 	status := NodeStatusOff
 
 	if err != nil && !isUserIntterupted(err) {
-		logger.Errorf("massa node process exited with error: %v", err)
+		logger.Errorf("massa nodeMana process exited with error: %v", err)
 		status = NodeStatusError
+
+		// if we are in bootstrapping phase, we need to close bootstrap monitor goroutine
+		if nodeMana.status == NodeStatusBootstrapping {
+			nodeMana.closeBootstrapMonitorChan <- struct{}{}
+		}
 	}
 
-	nm.mu.Lock()
-	nm.status = status
-	nm.statusChan <- status
-	nm.serverProcess = nil
-	nm.mu.Unlock()
+	nodeMana.mu.Lock()
+	nodeMana.status = status
+	nodeMana.statusChan <- status
+	nodeMana.serverProcess = nil
+	nodeMana.mu.Unlock()
 
-	logger.Infof("massa node process exited")
+	logger.Infof("massa nodeMana process exited")
 }
 
 /*
 set a new status and send it through the status channel.
 Should not be called inside the nodeManager's mutext
 */
-func (nm *NodeManager) setStatus(status NodeStatus) {
-	nm.mu.Lock()
-	nm.status = status
-	nm.statusChan <- status
-	nm.mu.Unlock()
+func (nodeMana *NodeManager) setStatus(status NodeStatus) {
+	nodeMana.mu.Lock()
+	nodeMana.status = status
+	nodeMana.statusChan <- status
+	nodeMana.mu.Unlock()
 }
 
 // isUserIntterupted checks if the error is due to user interruption SIGTERM or SIGKILL

@@ -10,7 +10,7 @@ export default ({ mode }) => {
 
   return defineConfig({
     plugins: [react()],
-    //base: process.env.VITE_BASE_APP,
+    base: process.env.VITE_BASE_APP,
     build: {
       outDir: '../int/api/html/dist',
       emptyOutDir: true,
