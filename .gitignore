@@ -8,8 +8,6 @@
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
-*.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -23,3 +21,18 @@ go.work.sum
 
 # env file
 .env
+
+# MacOS
+.DS_Store
+
+*.log
+
+# openapi swagger generated files
+api/models/
+api/restapi/operations/
+api/restapi/embedded_spec.go
+api/restapi/server.go
+api/restapi/doc.go
+
+# node manager plugin executable and massa node binaries
+build

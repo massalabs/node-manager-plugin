@@ -1,0 +1,138 @@
+swagger: "2.0"
+info:
+  title: Node Manager Plugin API
+  description: API for handling local Massa node via Node Manager Plugin in MassaStation
+  version: 0.0.1
+
+schemes:
+  - http
+
+paths:
+  /web/{resource}:
+    get:
+      description: Plugin Frontend router.
+      operationId: PluginWebApp
+      produces:
+        - application/json
+        - text/javascript
+        - text/html
+        - text/css
+        - text/webp
+        - image/png
+      parameters:
+        - in: path
+          name: resource
+          required: true
+          type: string
+          description: Website resource.
+      responses:
+        "200":
+          description: Page found
+        "404":
+          description: Resource not found.
+          schema:
+            $ref: "#/definitions/Error"
+
+  /:
+    get:
+      description: Handle the default page of the plugin
+      operationId: DefaultPage
+      responses:
+        "302":
+          description: Redirect to /web
+
+  /api/status:
+    get:
+      description: Get massa node status
+      operationId: GetMassaNodeStatus
+      produces:
+        - text/event-stream
+      responses:
+        "200":
+          description: Stream of current node status
+          schema:
+            type: string
+            enum: [on, off, bootstrapping, stopping, error]
+
+  /api/start:
+    post:
+      description: Launch the massa node
+      operationId: StartNode
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/StartNodeBody"
+      responses:
+        "200":
+          description: massa node launched with success
+          schema:
+            $ref: "#/definitions/StartNodeResponse"
+          
+        "500":
+          description: Error launching node
+          schema:
+            $ref: "#/definitions/Error"
+
+  /api/stop:
+    post:
+      description: Stop the massa node
+      operationId: StopNode
+      produces:
+        - application/json
+      responses:
+        "204":
+        "500":
+          description: Error stopping node
+          schema:
+            $ref: "#/definitions/Error"
+  
+  /api/nodeLogs:
+    get:
+      description: Get the logs of the node
+      operationId: GetNodeLogs
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Logs retrieved successfully
+          schema:
+            type: string
+        "500":
+          description: Error retrieving logs
+          schema:
+            $ref: "#/definitions/Error"
+  
+definitions:
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
+        x-nullable: false
+    required:
+      - message
+
+  StartNodeBody:
+    type: object
+    properties:
+      useBuildnet:
+        type: boolean
+        description: Whether to launch the node in buildnet mode or not
+
+  StartNodeResponse:
+    type: object
+    properties:
+      version:
+        type: string
+        description: The version of the launched node
+
+  NodeStatus:
+    type: object
+    properties:
+      status:
+          type: string
+          enum: [on, off, bootstrapping, stopping, error]
