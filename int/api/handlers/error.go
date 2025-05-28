@@ -6,6 +6,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/models"
+	"github.com/massalabs/station/pkg/logger"
 )
 
 // Create an error response with the given status code and message
@@ -28,6 +29,6 @@ type customErrorResponder struct {
 func (r *customErrorResponder) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 	rw.WriteHeader(r.statusCode)
 	if err := producer.Produce(rw, r.payload); err != nil {
-		panic(err)
+		logger.Errorf("Failed to produce error response: %v", err)
 	}
 }

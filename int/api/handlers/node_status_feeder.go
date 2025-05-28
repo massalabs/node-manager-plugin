@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	nodeManager "github.com/massalabs/node-manager-plugin/int/node-manager"
+	"github.com/massalabs/station/pkg/logger"
 )
 
 func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operations.GetMassaNodeStatusParams) middleware.Responder {
@@ -38,7 +39,7 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 func flush(w http.ResponseWriter, status nodeManager.NodeStatus) {
 	_, err := w.Write([]byte(status))
 	if err != nil {
-		panic(err)
+		logger.Errorf("Failed to write status to response: %v", err)
 	}
 	w.(http.Flusher).Flush()
 }
