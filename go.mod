@@ -14,6 +14,7 @@ require (
 	github.com/massalabs/station v0.6.9
 	github.com/massalabs/station-massa-hello-world v0.0.11-0.20240503070604-6b14a27fcdff
 	github.com/massalabs/station-massa-wallet v0.5.1
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.35.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0

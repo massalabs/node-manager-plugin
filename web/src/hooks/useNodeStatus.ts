@@ -1,6 +1,8 @@
-import { useRef } from 'react';
-import { useNodeStore, NodeStatus } from '@/store/nodeStore';
+import { useEffect, useRef } from 'react';
+import { useNodeStore } from '@/store/nodeStore';
 import { useNavigate } from 'react-router-dom';
+import {getErrorPath, NodeStatus} from '@/utils'
+
 import intl from '@/i18n/i18n';
 
 export function useNodeStatus() {
@@ -23,8 +25,9 @@ export function useNodeStatus() {
         };
 
         eventSource.onerror = (err) => {
+            console.error('node status retrieving SSE error:', err);
             eventSource.close();
-            navigate('/error', {
+            navigate(getErrorPath(), {
                 state: {
                     error: {
                         title: intl.t('errors.node-status.title'),
@@ -35,8 +38,22 @@ export function useNodeStatus() {
                 },
             });
         };
+
         eventSourceRef.current = eventSource;
     };
+
+    useEffect(() => {
+        // Cleanup on unmount
+        return () => {
+            console.log('Component unmounting, cleaning up EventSource connection');
+
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+                eventSourceRef.current = null;
+            }
+        };
+    }, []);
+
 
     return { startListeningStatus, isListening: !!eventSourceRef.current};
 }

@@ -8,7 +8,7 @@ import axios, { AxiosResponse } from 'axios';
 
 export function useResource<T>(
   resource: string,
-  refetchOnWindowFocus?: boolean,
+  enableRefetchOnMount?: boolean,
 ): UseQueryResult<T, undefined> {
   const url = `${import.meta.env.VITE_BASE_API}/${resource}`;
 
@@ -18,6 +18,6 @@ export function useResource<T>(
       const { data } = await axios.get<T, AxiosResponse<T>>(url);
       return data;
     },
-    refetchOnWindowFocus,
+    enabled: enableRefetchOnMount,
   });
 }

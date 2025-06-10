@@ -16,13 +16,14 @@ const (
 
 type PluginConfig struct {
 	NodeLogPath    string `yaml:"log_path"`
-	NodeLogMaxSize uint   `yaml:"log_max_size"`
+	NodeLogMaxSize int    `yaml:"log_max_size"`
+	MaxLogBackups  int    `yaml:"max_log_backups"`
 	Password       string `yaml:"password"`
 }
 
 func defaultPluginConfig() PluginConfig {
 	return PluginConfig{
-		NodeLogPath:    "./node.log",
+		NodeLogPath:    "./nodeLogs",
 		NodeLogMaxSize: 10,
 		Password:       generateRandomPassword(7),
 	}

@@ -4,6 +4,7 @@ export enum Path {
   home = 'home',
   dashboard = 'dashboard',
   stacking = 'stacking',
+  error = 'error',
 }
 
 export function routeFor(path: string) {

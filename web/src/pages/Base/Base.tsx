@@ -1,5 +1,6 @@
 import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   FiHome,
 } from 'react-icons/fi';
@@ -23,8 +24,13 @@ function Base() {
   const navigate = useNavigate();
   const context = { themeLabel, themeIcon, theme, handleSetTheme };
 
-  useNodeStatus().startListeningStatus();
+  const { startListeningStatus } = useNodeStatus();
 
+  useEffect(() => {
+    startListeningStatus();
+    // Optionally, add cleanup logic here if needed
+  }, []);
+  
   let menuConf = {
     title: 'Massa Node Manager',
     logo: <MassaLogo/>,
@@ -87,7 +93,7 @@ function Base() {
         </div>
       </div>
 
-      <Toast />
+      <Toast durationMs={5000}/>
     </div>
   );
 }

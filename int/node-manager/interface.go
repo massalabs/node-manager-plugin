@@ -5,4 +5,5 @@ type INodeManager interface {
 	StopNode() error
 	Logs() (string, error)
 	GetStatus() (NodeStatus, <-chan NodeStatus)
+	SetAutoRestart(autoRestart bool)
 }

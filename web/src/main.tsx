@@ -32,7 +32,11 @@ const router = createBrowserRouter(
 
       {/* routes for errors */}
       <Route path={"error"} element={<Error />} />
-      <Route path="*" element={<Error />} />
+      <Route path="*" element={
+        <Navigate 
+          to={baseURL + "/" + Path.error} 
+          state={{error: {title: '404 page not found', message:"This page doesn't exist"}}} />
+        } />
     </Route>,
   ),
 );

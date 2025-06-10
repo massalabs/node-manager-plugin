@@ -105,6 +105,26 @@ paths:
           description: Error retrieving logs
           schema:
             $ref: "#/definitions/Error"
+
+  /api/autoRestart:
+    post:
+      description: Set the auto-restart option
+      operationId: SetAutoRestart
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/SetAutoRestart"
+      responses:
+        "204":
+          description: Auto-restart option set successfully
+        "500":
+          description: Error setting auto-restart option
+          schema:
+            $ref: "#/definitions/Error"
   
 definitions:
   Error:
@@ -124,7 +144,9 @@ definitions:
         description: Whether to launch the node in buildnet mode or not
 
   StartNodeResponse:
-    type: object
+    tyautoRestart:
+        type: boolean
+        description: Whether to auto-restart the node or not whenpe: object
     properties:
       version:
         type: string
@@ -136,3 +158,10 @@ definitions:
       status:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
+  
+  SetAutoRestart:
+    type: object
+    properties:
+      autoRestart:
+        type: boolean
+        description: Whether to auto-restart the node or not when there is a crash/desync

@@ -1,16 +1,6 @@
 import { create } from 'zustand';
 import { networks } from '@/utils/const';
-
-export enum NodeStatus {
-    ON = 'on',
-    OFF = 'off',
-    BOOTSTRAPPING = 'bootstrapping',
-    STOPPING = 'stopping',
-    CRASHED = 'crashed',
-    DESYNCED = 'desynced',
-    PLUGINERROR = 'pluginError',
-}
-
+import { NodeStatus } from '@/utils';
 export interface NodeStoreState {
     status: NodeStatus;
     network: networks;
@@ -20,10 +10,9 @@ export interface NodeStoreState {
     setNetwork: (network: networks) => void;
     setVersion: (version: string) => void;
     setAutoRestart: (autoRestart: boolean) => void;
-    isRunning: () => boolean;
 }
 
-export const useNodeStore = create<NodeStoreState>((set, get) => ({
+export const useNodeStore = create<NodeStoreState>((set) => ({
     status: NodeStatus.OFF,
     network: networks.mainnet,
     version: '',
@@ -40,9 +29,5 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
     setAutoRestart: (autoRestart: boolean) => {
         set({ autoRestart });
     },
-    isRunning: () => {
-        const { status } = get();
-        return status !== NodeStatus.OFF &&
-        status !== NodeStatus.CRASHED
-    }
+    
 }));

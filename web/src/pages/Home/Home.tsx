@@ -3,10 +3,10 @@ import Intl from '@/i18n/i18n';
 import {SelectNetwork} from '@/components/SelectNetwork';
 import OnOffBtn from '@/components/OnOffBtn';
 import AutoRestart from '@/components/AutoRestart';
+import LogsLoader from '@/components/LogsLoader';
 
 export default function Home() {
 // const {status, network} = useNodeStore();
-
 
   return (
     <>
@@ -30,9 +30,7 @@ export default function Home() {
           </div>
 
           <div className="bg-secondary rounded-2xl w-full max-w-lg p-10">
-            <p className="mas-body text-f-primary mb-2">
-              {Intl.t('home.title-account-balance')}
-            </p>
+            <LogsLoader />
           </div>
         </div>
       {/* )} */}

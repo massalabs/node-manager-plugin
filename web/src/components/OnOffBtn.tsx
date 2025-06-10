@@ -4,15 +4,20 @@ import { startNodeBody, startNodeReponse } from '@/models/nodeInfos';
 import Intl from '@/i18n/i18n';
 import { toast } from '@massalabs/react-ui-kit';
 import { usePost } from '@/hooks/api/usePost';
+import { isRunning, networks } from '@/utils';
 
 const OnOffBtn: React.FC = () => {
-    const { isRunning, setVersion } = useNodeStore();
-    const nodeRunning = isRunning();
+    const setVersion = useNodeStore(state => state.setVersion);
+    const status = useNodeStore(state => state.status);
+    const network = useNodeStore(state => state.network);
+    const nodeRunning = isRunning(status);
     const { mutate: startMutate, isLoading: isStarting } = usePost<startNodeReponse>('start') as ReturnType<typeof usePost<startNodeReponse>>;
     const { mutate: stopMutate, isLoading: isStopping } = usePost<unknown>('stop') as ReturnType<typeof usePost<unknown>>;
 
     const handleStart = () => {
-        const payload: startNodeBody = { useBuildnet: true };
+        const payload: startNodeBody = {
+            useBuildnet: network === networks.buildnet,
+        };
         startMutate(
             payload as unknown as startNodeReponse,
             {
@@ -20,10 +25,11 @@ const OnOffBtn: React.FC = () => {
                     if (data && data.version) {
                         setVersion(data.version);
                     }
-                    toast.success(Intl.t('home.button.startSuccess'));
+                    toast.success(Intl.t('home.startSuccess'));
                 },
-                onError: () => {
-                    toast.error(Intl.t('home.button.startError'));
+                onError: (err) => {
+                    console.error('Error starting node:', err);
+                    toast.error(Intl.t('home.startError'));
                 },
             }
         );
@@ -34,10 +40,10 @@ const OnOffBtn: React.FC = () => {
             undefined,
             {
                 onSuccess: () => {
-                    toast.success(Intl.t('home.button.stopSuccess'));
+                    toast.success(Intl.t('home.stopSuccess'));
                 },
                 onError: () => {
-                    toast.error(Intl.t('home.button.stopError'));
+                    toast.error(Intl.t('home.stopError'));
                 },
             }
         );

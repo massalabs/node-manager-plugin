@@ -5,7 +5,7 @@ import { routeFor, ErrorData } from '@/utils';
 
 export default function Error() {
   const location = useLocation();
-  const errorData: ErrorData = location.state?.error
+  const errorData: ErrorData = location.state?.error || null;
   return (
       <div
         id="error-page"

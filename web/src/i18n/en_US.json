@@ -16,9 +16,19 @@
       "on": "ON",
       "off": "OFF"
     },
+    "startSuccess": "Massa node started successfully",
+    "startError": "Error while starting the massa node",
+    "stopSuccess": "Massa node stopped successfully",
+    "stopError": "Error while stopping the massa node",
     "auto-restart": {
       "label": "Auto Restart:",
-      "description": "Automatically restart the node if it crash or desync"     
+      "description": "Automatically restart the node if it crash or desync", 
+      "enabled": "Auto restart enabled",
+      "disabled": "Auto restart disabled"
+    },
+    "logs": {
+      "download": "Download logs",
+      "loading": "Loading logs..."
     }
   },
   "assets": {

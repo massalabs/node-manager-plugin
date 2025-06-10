@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNodeStore, NodeStatus } from '@/store/nodeStore';
+import { useNodeStore } from '@/store/nodeStore';
+import { NodeStatus} from '@/utils';
 
 export const NodeStatusDisplay: React.FC = () => {
   const status = useNodeStore((state) => state.status);

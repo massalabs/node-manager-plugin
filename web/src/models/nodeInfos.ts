@@ -5,3 +5,7 @@ export interface startNodeReponse {
 export interface startNodeBody  {
     useBuildnet: boolean;
 };
+
+export interface autoRestartBody {
+    autoRestart: boolean;
+};
