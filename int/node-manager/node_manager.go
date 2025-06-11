@@ -79,7 +79,7 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	// Set node parameters
 	nodeMana.nodeInfos.isMainnet = isMainnet
 	nodeMana.nodeInfos.pwd = pwd
-	nodeArgs := []string{"-p", pwd} // args for massnodeManaa node process
+	nodeArgs := []string{"-p", pwd} // args for massa node process
 	networkName := "buildnet"
 	if isMainnet {
 		networkName = "mainnet"
@@ -104,10 +104,10 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 
 	cmd := exec.CommandContext(ctx, nodeBinPath, nodeArgs...)
 	/* to run child process in a new process group.
-	By default, nodeMana-manager-plugin process and it's massa node subprocess
+	By default, node-manager-plugin process and it's massa node subprocess
 	are in the same process group which means that all signals that are sent
 	to one of them are also sent to the other one.
-	This means that if the nodeMana-mananger-plugin is closed with ctrl-c from the terminal
+	This means that if the node-manager-plugin is closed with ctrl-c from the terminal
 	The massa node subprocess will also be closed independently from it's parent process.
 	For clean shuttdown, we want the child process to be closed by it's parent, thus we
 	launch it in it's own process group.
@@ -130,7 +130,7 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	logger.Infof("massa node process started with PID: %d", cmd.Process.Pid)
 
 	go nodeMana.monitorBootstrapping(ctx)
-	go nodeMana.handleNodeStoped(cmd)
+	go nodeMana.handleNodeStopped(cmd)
 
 	nodeMana.nodeProcess = cmd.Process
 
@@ -283,7 +283,7 @@ handleNodeStoped wait for the massa node process to exit.
 If the process has exited with error, it handle this.
 It update the status to off or error
 */
-func (nodeMana *NodeManager) handleNodeStoped(cmd *exec.Cmd) {
+func (nodeMana *NodeManager) handleNodeStopped(cmd *exec.Cmd) {
 	err := cmd.Wait() // Wait for the command to exit
 	status := NodeStatusOff
 
