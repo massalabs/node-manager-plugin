@@ -11,8 +11,10 @@ const (
 	NodeStatusOff           NodeStatus = "off"
 	NodeStatusBootstrapping NodeStatus = "bootstrapping"
 	NodeStatusStopping      NodeStatus = "stopping"
-	NodeStatusError         NodeStatus = "error"
-	NodeManagerErrorStatus  NodeStatus = "nodeManagerError"
+	NodeStatusCrashed       NodeStatus = "crashed"
+	NodeStatusDesynced      NodeStatus = "desynced"
+	NodeStatusRestarting    NodeStatus = "restarting"
+	NodeStatusPluginError   NodeStatus = "pluginError"
 )
 
 type NodeStatusHandler struct {

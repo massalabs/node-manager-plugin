@@ -32,7 +32,7 @@ func NewAPI(config config.PluginConfig) *API {
 	apiServer := restapi.NewServer(nodeManagerAPI)
 
 	// create the node manager instance
-	nodeManager, err := nodeManagerPkg.NewNodeManager()
+	nodeManager, err := nodeManagerPkg.NewNodeManager(config)
 	if err != nil {
 		logger.Fatalf("could not create a node manager instance, got : %s", err)
 	}
@@ -100,6 +100,8 @@ func (a API) registerHandlers() {
 	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(&a.nodeManager))
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(&a.nodeManager))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
+	a.api.SetConfigHandler = operations.SetConfigHandlerFunc(handlers.HandleSetConfig(&a.nodeManager))
+	a.api.GetConfigHandler = operations.GetConfigHandlerFunc(handlers.HandleGetConfig(&a.nodeManager))
 }
 
 func (a *API) Cleanup() {

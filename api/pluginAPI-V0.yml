@@ -105,6 +105,40 @@ paths:
           description: Error retrieving logs
           schema:
             $ref: "#/definitions/Error"
+
+  /api/config:
+    post:
+      description: Set the plugin config
+      operationId: SetConfig
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/Config"
+      responses:
+        "204":
+          description: Plugin config set successfully
+        "500":
+          description: Error setting plugin config
+          schema:
+            $ref: "#/definitions/Error"
+    get:  
+      description: Get the plugin config
+      operationId: GetConfig
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Plugin config retrieved successfully 
+          schema:
+            $ref: "#/definitions/Config"
+        "500":
+          description: Error retrieving plugin config
+          schema:
+            $ref: "#/definitions/Error"
   
 definitions:
   Error:
@@ -136,3 +170,10 @@ definitions:
       status:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
+  
+  Config:
+    type: object
+    properties:
+      autoRestart:
+        type: boolean
+        description: Whether to auto-restart the node or not when there is a crash/desync

@@ -15,6 +15,10 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Generated files
+int/api/html/dist/
+
+
 # Go workspace file
 go.work
 go.work.sum
