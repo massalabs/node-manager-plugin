@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	"github.com/massalabs/station/pkg/logger"
 	"github.com/massalabs/station/pkg/node"
@@ -187,6 +188,12 @@ func (nodeMana *NodeManager) SetAutoRestart(autoRestart bool) {
 	nodeMana.autoRestart = autoRestart
 }
 
+func (nodeMana *NodeManager) GetNodeManagerConfig() models.Config {
+	return models.Config{
+		AutoRestart: nodeMana.autoRestart,
+	}
+}
+
 /*
 First, it set the status to "bootstrapping"
 Then it call the massa node api on get_status endpoint to check if the node has bootstrapped.
@@ -227,6 +234,7 @@ func (nodeMana *NodeManager) monitorBootstrapping(ctx context.Context) {
 			go nodeMana.handleNodeDesync(ctx)
 
 			nodeMana.setStatus(NodeStatusOn)
+			return
 		}
 	}
 }

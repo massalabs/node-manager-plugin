@@ -21,7 +21,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "cypress", "cypress-wait-until"],
-  "exclude": ["cypress.config.ts", "node_modules"],
+  "include": ["src"],
+  "exclude": ["node_modules"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

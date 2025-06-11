@@ -6,6 +6,6 @@ export interface startNodeBody {
   useBuildnet: boolean;
 }
 
-export interface autoRestartBody {
+export interface configBody {
   autoRestart: boolean;
 }

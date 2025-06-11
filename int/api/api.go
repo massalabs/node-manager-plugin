@@ -100,7 +100,8 @@ func (a API) registerHandlers() {
 	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(&a.nodeManager))
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(&a.nodeManager))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
-	a.api.SetAutoRestartHandler = operations.SetAutoRestartHandlerFunc(handlers.HandleSetAutoRestart(&a.nodeManager))
+	a.api.SetConfigHandler = operations.SetConfigHandlerFunc(handlers.HandleSetConfig(&a.nodeManager))
+	a.api.GetConfigHandler = operations.GetConfigHandlerFunc(handlers.HandleGetConfig(&a.nodeManager))
 }
 
 func (a *API) Cleanup() {
