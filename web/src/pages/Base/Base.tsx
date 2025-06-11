@@ -1,23 +1,16 @@
-import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import {
-  FiHome,
-} from 'react-icons/fi';
-import { AiOutlineDashboard } from 'react-icons/ai';
-import { GrMoney } from "react-icons/gr";
 
-import Intl from '@/i18n/i18n';
-import { Path, routeFor } from '@/utils/routes';
-import { useTheme } from '@/hooks/useTheme';
+import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
+import { AiOutlineDashboard } from 'react-icons/ai';
+import { FiHome } from 'react-icons/fi';
+import { GrMoney } from 'react-icons/gr';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+
 import { NodeStatusDisplay } from '@/components/NodeStatusDisplay';
 import { useNodeStatus } from '@/hooks/useNodeStatus';
-
-function isActive(path: Path) {
-  const location = useLocation();
-  return location.pathname.endsWith(path);
-}
-
+import { useTheme } from '@/hooks/useTheme';
+import Intl from '@/i18n/i18n';
+import { Path, routeFor } from '@/utils/routes';
 
 function Base() {
   const { theme, themeIcon, themeLabel, handleSetTheme } = useTheme();
@@ -26,14 +19,19 @@ function Base() {
 
   const { startListeningStatus } = useNodeStatus();
 
+  const location = useLocation();
+
+  function isActive(path: Path) {
+    return location.pathname.endsWith(path);
+  }
+
   useEffect(() => {
     startListeningStatus();
-    // Optionally, add cleanup logic here if needed
-  }, []);
-  
+  }, [startListeningStatus]);
+
   let menuConf = {
     title: 'Massa Node Manager',
-    logo: <MassaLogo/>,
+    logo: <MassaLogo />,
     fullMode: true,
   };
 
@@ -43,23 +41,21 @@ function Base() {
       icon: <FiHome data-testid="side-menu-home-icon" />,
       active: isActive(Path.home),
       footer: false,
-      onClickItem: () => navigate(routeFor(Path.home))
+      onClickItem: () => navigate(routeFor(Path.home)),
     },
     {
       label: Intl.t('menu.dashboard'),
       icon: <AiOutlineDashboard data-testid="side-menu-dashboard-icon" />,
       active: isActive(Path.dashboard),
       footer: false,
-      onClickItem: () =>
-        navigate(routeFor(Path.dashboard)),
+      onClickItem: () => navigate(routeFor(Path.dashboard)),
     },
     {
       label: Intl.t('menu.stacking'),
       icon: <GrMoney data-testid="side-menu-stacking-icon" />,
       active: isActive(Path.stacking),
       footer: false,
-      onClickItem: () =>
-        navigate(routeFor(Path.stacking)),
+      onClickItem: () => navigate(routeFor(Path.stacking)),
     },
     {
       label: themeLabel,
@@ -87,13 +83,11 @@ function Base() {
           </div>
         </div>
         <div className="absolute top-0 right-0 p-6">
-          <div className="w-64">
-            VERSION TODO
-          </div>
+          <div className="w-64">VERSION TODO</div>
         </div>
       </div>
 
-      <Toast durationMs={5000}/>
+      <Toast durationMs={5000} />
     </div>
   );
 }

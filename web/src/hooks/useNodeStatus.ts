@@ -1,59 +1,59 @@
 import { useEffect, useRef } from 'react';
-import { useNodeStore } from '@/store/nodeStore';
+
 import { useNavigate } from 'react-router-dom';
-import {getErrorPath, NodeStatus} from '@/utils'
 
 import intl from '@/i18n/i18n';
+import { useNodeStore } from '@/store/nodeStore';
+import { getErrorPath, NodeStatus } from '@/utils';
 
 export function useNodeStatus() {
-    const eventSourceRef = useRef<EventSource | null>(null);
-    const setStatus = useNodeStore((state) => state.setStatus);
-    const navigate = useNavigate();
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const setStatus = useNodeStore((state) => state.setStatus);
+  const navigate = useNavigate();
 
-    const startListeningStatus = () => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-        }
+  const startListeningStatus = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
 
-        const baseApi = import.meta.env.VITE_BASE_API || '/api';
-        const eventSource = new EventSource(`${baseApi}/status`);
+    const baseApi = import.meta.env.VITE_BASE_API || '/api';
+    const eventSource = new EventSource(`${baseApi}/status`);
 
-        eventSource.onmessage = (event) => {
-            console.log('\n\n Node status update received:', event.data);
-            const status = event.data as NodeStatus;
-            setStatus(status);
-        };
-
-        eventSource.onerror = (err) => {
-            console.error('node status retrieving SSE error:', err);
-            eventSource.close();
-            navigate(getErrorPath(), {
-                state: {
-                    error: {
-                        title: intl.t('errors.node-status.title'),
-                        message: intl.t('errors.node-status.description', {
-                            error: err instanceof Error ? err.message : String(err)
-                        }),
-                    },
-                },
-            });
-        };
-
-        eventSourceRef.current = eventSource;
+    eventSource.onmessage = (event) => {
+      console.log('\n\n Node status update received:', event.data);
+      const status = event.data as NodeStatus;
+      setStatus(status);
     };
 
-    useEffect(() => {
-        // Cleanup on unmount
-        return () => {
-            console.log('Component unmounting, cleaning up EventSource connection');
+    eventSource.onerror = (err) => {
+      console.error('node status retrieving SSE error:', err);
+      eventSource.close();
+      navigate(getErrorPath(), {
+        state: {
+          error: {
+            title: intl.t('errors.node-status.title'),
+            message: intl.t('errors.node-status.description', {
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          },
+        },
+      });
+    };
 
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-                eventSourceRef.current = null;
-            }
-        };
-    }, []);
+    eventSourceRef.current = eventSource;
+  };
 
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      console.log('Component unmounting, cleaning up EventSource connection');
 
-    return { startListeningStatus, isListening: !!eventSourceRef.current};
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, []);
+
+  return { startListeningStatus, isListening: !!eventSourceRef.current };
 }

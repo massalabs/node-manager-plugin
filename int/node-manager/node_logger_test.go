@@ -85,7 +85,7 @@ func TestNodeLogger(t *testing.T) {
 		for _, tf := range testFiles {
 			filePath := filepath.Join(logger.logFilesFolder, tf.name)
 			// 0644 represents read/write for owner, read-only for group and others
-			err := os.WriteFile(filePath, []byte(tf.content), 0644)
+			err := os.WriteFile(filePath, []byte(tf.content), 0o644)
 			require.NoError(t, err)
 		}
 
@@ -122,7 +122,7 @@ func TestNodeLogger(t *testing.T) {
 
 		// Create a file with invalid name
 		invalidFilePath := filepath.Join(logger.logFilesFolder, "invalid.log")
-		err = os.WriteFile(invalidFilePath, []byte("Invalid content\n"), 0644)
+		err = os.WriteFile(invalidFilePath, []byte("Invalid content\n"), 0o644)
 		require.NoError(t, err)
 
 		// Try to get logs

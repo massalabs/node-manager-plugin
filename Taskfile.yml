@@ -186,3 +186,4 @@ tasks:
       - cmd: gofumpt -l -w .
       - cmd: gci write . --skip-generated
       - cmd: golangci-lint run --fix
+      - cmd: cd web && npm run fmt

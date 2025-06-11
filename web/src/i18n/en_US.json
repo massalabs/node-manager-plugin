@@ -22,7 +22,7 @@
     "stopError": "Error while stopping the massa node",
     "auto-restart": {
       "label": "Auto Restart:",
-      "description": "Automatically restart the node if it crash or desync", 
+      "description": "Automatically restart the node if it crash or desync",
       "enabled": "Auto restart enabled",
       "disabled": "Auto restart disabled"
     },
@@ -269,5 +269,5 @@
   },
   "toast": {
     "explorer": "view in explorer"
-  } 
+  }
 }

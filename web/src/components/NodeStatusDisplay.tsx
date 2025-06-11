@@ -1,6 +1,7 @@
 import React from 'react';
+
 import { useNodeStore } from '@/store/nodeStore';
-import { NodeStatus} from '@/utils';
+import { NodeStatus } from '@/utils';
 
 export const NodeStatusDisplay: React.FC = () => {
   const status = useNodeStore((state) => state.status);
@@ -8,23 +9,25 @@ export const NodeStatusDisplay: React.FC = () => {
   const getStatusColor = (status: NodeStatus) => {
     switch (status) {
       case NodeStatus.ON:
-      return 'bg-green-500'; // Green for active/on
+        return 'bg-green-500'; // Green for active/on
       case NodeStatus.OFF:
-      return 'bg-gray-500'; // Gray for inactive/off
-      case NodeStatus.CRASHED, NodeStatus.DESYNCED, NodeStatus.PLUGINERROR:
-      return 'bg-red-500'; // Red for crashed/error
+        return 'bg-gray-500'; // Gray for inactive/off
+      case (NodeStatus.CRASHED, NodeStatus.DESYNCED, NodeStatus.PLUGINERROR):
+        return 'bg-red-500'; // Red for crashed/error
       case NodeStatus.STOPPING:
-      return 'bg-yellow-500'; // Yellow for starting
+        return 'bg-yellow-500'; // Yellow for starting
       case NodeStatus.BOOTSTRAPPING:
-      return 'bg-blue-500'; // Blue for updating
+        return 'bg-blue-500'; // Blue for updating
       default:
-      return 'bg-gray-400'; // Light gray for unknown status
+        return 'bg-gray-400'; // Light gray for unknown status
     }
   };
 
   return (
     <div
-      className={`p-4 rounded shadow ${getStatusColor(status)} w-36 text-center opacity-70`}
+      className={`p-4 rounded shadow ${getStatusColor(
+        status,
+      )} w-36 text-center opacity-70`}
     >
       <span className="font-bold text-white">{status}</span>
     </div>

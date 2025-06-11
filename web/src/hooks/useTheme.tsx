@@ -1,6 +1,6 @@
+import { Theme } from '@massalabs/react-ui-kit';
 import { useLocalStorage } from '@massalabs/react-ui-kit/src/lib/util/hooks/useLocalStorage';
 import { FiSun, FiMoon } from 'react-icons/fi';
-import {Theme} from '@massalabs/react-ui-kit'
 
 const THEME_STORAGE_KEY = 'massa-node-manager-theme';
 

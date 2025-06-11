@@ -279,7 +279,7 @@ func (nodeMana *NodeManager) handleNodeStoped(cmd *exec.Cmd) {
 	err := cmd.Wait() // Wait for the command to exit
 	status := NodeStatusOff
 
-	if true || err != nil && !isUserIntterupted(err) {
+	if err != nil && !isUserIntterupted(err) {
 		logger.Errorf("massa node process exited with error: %v", err)
 		status = NodeStatusCrashed
 

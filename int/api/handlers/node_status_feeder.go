@@ -36,7 +36,6 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 
 				// retrieve the current status and the channel to listen for updates
 				currentStatus, statusChan := (*nodeManager).GetStatus()
-				logger.Infof("Initial status sent: %s", currentStatus)
 				flush(w, flusher, currentStatus)
 
 				lastFlushTime := time.Now()
@@ -82,5 +81,4 @@ func flush(w http.ResponseWriter, flusher http.Flusher, status nodeManager.NodeS
 		return
 	}
 	flusher.Flush()
-
 }

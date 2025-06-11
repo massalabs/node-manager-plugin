@@ -1,11 +1,11 @@
 export interface startNodeReponse {
-    version: string;
-};
+  version: string;
+}
 
-export interface startNodeBody  {
-    useBuildnet: boolean;
-};
+export interface startNodeBody {
+  useBuildnet: boolean;
+}
 
 export interface autoRestartBody {
-    autoRestart: boolean;
-};
+  autoRestart: boolean;
+}
