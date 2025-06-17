@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useNodeStore } from '@/store/nodeStore';
 import { NodeStatus } from '@/utils';
+import { Spinner } from '@massalabs/react-ui-kit';
 
 export const NodeStatusDisplay: React.FC = () => {
   const status = useNodeStore((state) => state.status);
@@ -9,27 +10,40 @@ export const NodeStatusDisplay: React.FC = () => {
   const getStatusColor = (status: NodeStatus) => {
     switch (status) {
       case NodeStatus.ON:
-        return 'bg-green-500'; // Green for active/on
+        return 'bg-green-500';
       case NodeStatus.OFF:
-        return 'bg-gray-500'; // Gray for inactive/off
-      case (NodeStatus.CRASHED, NodeStatus.DESYNCED, NodeStatus.PLUGINERROR):
-        return 'bg-red-500'; // Red for crashed/error
+        return 'bg-gray-500';
+      case NodeStatus.CRASHED:
+      case NodeStatus.DESYNCED:
+        return 'bg-red-500';
       case NodeStatus.STOPPING:
-        return 'bg-yellow-500'; // Yellow for starting
+        return 'bg-yellow-500';
+      case NodeStatus.STARTING:
+        return 'bg-blue-300';
       case NodeStatus.BOOTSTRAPPING:
-        return 'bg-blue-500'; // Blue for updating
+        return 'bg-blue-500';
       default:
         return 'bg-gray-400'; // Light gray for unknown status
     }
   };
 
   return (
-    <div
-      className={`p-4 rounded shadow ${getStatusColor(
-        status,
-      )} w-36 text-center opacity-70`}
-    >
-      <span className="font-bold text-white">{status}</span>
-    </div>
+    <>
+      <div
+        className={`relative p-4 rounded shadow ${getStatusColor(
+          status,
+        )} w-36 text-center opacity-70`}
+        style={{ minHeight: '64px' }} // Ensure enough height for centering
+      >
+        {(status === NodeStatus.STOPPING || status === NodeStatus.BOOTSTRAPPING || status === NodeStatus.STARTING) && (
+          <div className="absolute inset-0 flex items-center justify-center z-20">
+            <Spinner />
+          </div>
+        )}
+        <span className="font-bold text-white z-10 opacity-50 absolute inset-0 flex items-center justify-center pointer-events-none">
+          {status}
+        </span>
+      </div>
+    </>
   );
 };

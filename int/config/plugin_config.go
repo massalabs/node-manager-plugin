@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,21 +17,14 @@ type PluginConfig struct {
 	NodeLogPath    string `yaml:"log_path"`
 	NodeLogMaxSize int    `yaml:"log_max_size"`
 	MaxLogBackups  int    `yaml:"max_log_backups"`
-	Password       string `yaml:"password"`
 }
 
 func defaultPluginConfig() PluginConfig {
 	return PluginConfig{
 		NodeLogPath:    "./nodeLogs",
-		NodeLogMaxSize: 10,
-		Password:       generateRandomPassword(7),
+		NodeLogMaxSize: 1,
+		MaxLogBackups:  10,
 	}
-}
-
-func generateRandomPassword(n int) string {
-	text := rand.Text()
-
-	return text[:n]
 }
 
 /*

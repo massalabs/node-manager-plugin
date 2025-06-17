@@ -14,6 +14,13 @@ func TestNodeLogger(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := t.TempDir()
 
+	createTestLogFolder := func(t *testing.T, folderName string) string {
+		logDir := filepath.Join(tempDir, folderName)
+		err := os.MkdirAll(logDir, 0o755)
+		require.NoError(t, err)
+		return logDir
+	}
+
 	// Create test configuration
 	testConfig := config.PluginConfig{
 		NodeLogPath:    tempDir,
@@ -29,28 +36,32 @@ func TestNodeLogger(t *testing.T) {
 		assert.NotNil(t, logger.re)
 	})
 
-	// Test Init
-	t.Run("Init", func(t *testing.T) {
+	// Test newLogger
+	t.Run("newLogger", func(t *testing.T) {
 		logger, err := NewNodeLogger(testConfig)
 		require.NoError(t, err)
 
 		version := "test-version"
-		logger.Init(version)
+		lumberjackLogger := logger.newLogger(version)
 
-		expectedLogPath := filepath.Join(tempDir, version)
-		assert.Equal(t, expectedLogPath, logger.logFilesFolder)
+		// Check if the logger was created with correct settings
+		assert.NotNil(t, lumberjackLogger)
+		assert.Equal(t, filepath.Join(tempDir, version, NodeLogFileBaseName+NodeLogFileExtension), lumberjackLogger.Filename)
+		assert.Equal(t, testConfig.NodeLogMaxSize, lumberjackLogger.MaxSize)
+		assert.Equal(t, testConfig.MaxLogBackups, lumberjackLogger.MaxBackups)
 
 		// Check if directory was created
+		expectedLogPath := filepath.Join(tempDir, version)
 		_, err = os.Stat(expectedLogPath)
 		assert.NoError(t, err)
 
-		// write in the current log file
-		_, err = logger.getLogger().Write([]byte("test"))
+		// Write some test content
+		_, err = lumberjackLogger.Write([]byte("test log content\n"))
 		assert.NoError(t, err)
 
-		// Check if current log file was created
-		currentLogPath := filepath.Join(expectedLogPath, NodeLogFileBaseName+NodeLogFileExtension)
-		_, err = os.Stat(currentLogPath)
+		// Check if log file was created
+		logFilePath := filepath.Join(expectedLogPath, NodeLogFileBaseName+NodeLogFileExtension)
+		_, err = os.Stat(logFilePath)
 		assert.NoError(t, err)
 	})
 
@@ -59,8 +70,8 @@ func TestNodeLogger(t *testing.T) {
 		logger, err := NewNodeLogger(testConfig)
 		require.NoError(t, err)
 
-		version := "test-version"
-		logger.Init(version)
+		logFolderTest := "test-version"
+		logDir := createTestLogFolder(t, logFolderTest)
 
 		// Create test log files with different timestamps
 		testFiles := []struct {
@@ -83,14 +94,13 @@ func TestNodeLogger(t *testing.T) {
 
 		// Create test files
 		for _, tf := range testFiles {
-			filePath := filepath.Join(logger.logFilesFolder, tf.name)
-			// 0644 represents read/write for owner, read-only for group and others
+			filePath := filepath.Join(logDir, tf.name)
 			err := os.WriteFile(filePath, []byte(tf.content), 0o644)
 			require.NoError(t, err)
 		}
 
 		// Get logs
-		logs, err := logger.getLogs()
+		logs, err := logger.getLogs(logFolderTest)
 		require.NoError(t, err)
 
 		// Verify the content is concatenated in the correct order
@@ -103,11 +113,11 @@ func TestNodeLogger(t *testing.T) {
 		logger, err := NewNodeLogger(testConfig)
 		require.NoError(t, err)
 
-		version := "empty-version"
-		logger.Init(version)
+		logFolderTest := "empty-folder"
+		createTestLogFolder(t, logFolderTest)
 
 		// Try to get logs from empty directory
-		_, err = logger.getLogs()
+		_, err = logger.getLogs(logFolderTest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no log files found")
 	})
@@ -117,16 +127,16 @@ func TestNodeLogger(t *testing.T) {
 		logger, err := NewNodeLogger(testConfig)
 		require.NoError(t, err)
 
-		version := "invalid-version"
-		logger.Init(version)
+		logFolderTest := "invalid-log-content"
+		invalidLogDir := createTestLogFolder(t, logFolderTest)
 
 		// Create a file with invalid name
-		invalidFilePath := filepath.Join(logger.logFilesFolder, "invalid.log")
+		invalidFilePath := filepath.Join(invalidLogDir, "invalid.log")
 		err = os.WriteFile(invalidFilePath, []byte("Invalid content\n"), 0o644)
 		require.NoError(t, err)
 
 		// Try to get logs
-		_, err = logger.getLogs()
+		_, err = logger.getLogs(logFolderTest)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no log files found")
 	})

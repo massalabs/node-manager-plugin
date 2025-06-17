@@ -18,31 +18,28 @@ import (
 
 type NodeInfos struct {
 	isMainnet bool
-	version   string
 	pwd       string
 }
 
 type NodeManager struct {
-	mu sync.Mutex
-
-	statusChan          chan NodeStatus
-	nodeInfos           NodeInfos
-	status              NodeStatus
-	massaNodeDirManager nodeDirManager
-	autoRestart         bool
-	nodeLogger          *NodeLogger
-	cancelAsyncTask     context.CancelFunc // cancel function to stop all concurrent tasks
-	nodeProcess         *os.Process        // store the node process
+	mu                     sync.Mutex
+	statusChan             chan NodeStatus
+	nodeInfos              NodeInfos
+	status                 NodeStatus
+	massaNodeDirManager    nodeDirManager
+	nodeMonitor            *NodeMonitor
+	autoRestart            bool
+	nodeLogger             *NodeLogger
+	cancelNodeAndAsyncTask context.CancelFunc // cancel function to stop node subprocess and all concurrent tasks
+	nodeProcess            *os.Process        // store the node process
 }
 
 const (
 	nodeURL                = "http://localhost:33035"
-	bootstrapCompleteStr   = "massa_bootstrap::client: Successful bootstrap"
-	nodeStdoutReadInterval = 5 * time.Second
+	bootstrapCheckInterval = 5 * time.Second
 	statusChanCapacity     = 100              // To make sure the channel will not be blocking
-	stdoutReadBufferSize   = 512              // Same size used in io.ReadAll
 	desyncCheckInterval    = 30 * time.Second // Interval for desync check
-	restartWaitTime        = 3 * time.Second  // Time to wait before restarting the node
+	restartCooldown        = 5 * time.Second  // Time to wait before restarting the node
 )
 
 // NewNodeManager creates a new NodeManager instance
@@ -62,19 +59,22 @@ func NewNodeManager(config config.PluginConfig) (*NodeManager, error) {
 		statusChan:          make(chan NodeStatus, statusChanCapacity),
 		massaNodeDirManager: nodeDirManag,
 		nodeLogger:          nodeLogger,
+		nodeMonitor:         NewNodeMonitor(),
 	}, nil
 }
 
 // StartNode starts the massa node process
 func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
+	nodeMana.mu.Lock()
+	defer nodeMana.mu.Unlock()
+
 	if IsRunning(nodeMana.status) {
 		logger.Infof("massa node is already running")
 		return "", fmt.Errorf("massa node is already running")
 	}
 
-	// Create a new context for this node instance
-	ctx, cancel := context.WithCancel(context.Background())
-	nodeMana.cancelAsyncTask = cancel
+	nodeMana.status = NodeStatusStarting
+	nodeMana.statusChan <- NodeStatusStarting
 
 	// Set node parameters
 	nodeMana.nodeInfos.isMainnet = isMainnet
@@ -93,16 +93,15 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 		return "", fmt.Errorf("failed to get massa node binary path: %v", err)
 	}
 
-	// store massa node version
-	nodeMana.nodeInfos.version = version
-
-	// Initialize the node logger
-	nodeMana.nodeLogger.Init(version)
-
 	// Prepare the node subprocess
 	logger.Infof("Starting massa node process at %s", nodeBinPath)
 
+	// Create a new context for this node instance
+	ctx, cancel := context.WithCancel(context.Background())
+	nodeMana.cancelNodeAndAsyncTask = cancel
+
 	cmd := exec.CommandContext(ctx, nodeBinPath, nodeArgs...)
+
 	/* to run child process in a new process group.
 	By default, node-manager-plugin process and it's massa node subprocess
 	are in the same process group which means that all signals that are sent
@@ -118,7 +117,9 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of massa node binary
 
 	// Set the node logger as the stdout and stderr of the node process
-	nodeLogger := nodeMana.nodeLogger.getLogger()
+	nodeLogger := nodeMana.nodeLogger.newLogger(version)
+
+	nodeLogger.Write([]byte(fmt.Sprintf("\n \n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
 	cmd.Stdout = nodeLogger
 	cmd.Stderr = nodeLogger
 
@@ -129,7 +130,10 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 
 	logger.Infof("massa node process started with PID: %d", cmd.Process.Pid)
 
+	// launch bootstrap monitor goroutine
 	go nodeMana.monitorBootstrapping(ctx)
+
+	// launch node stopped monitor goroutine
 	go nodeMana.handleNodeStopped(cmd)
 
 	nodeMana.nodeProcess = cmd.Process
@@ -146,42 +150,33 @@ func (nodeMana *NodeManager) GetStatus() (NodeStatus, <-chan NodeStatus) {
 }
 
 func (nodeMana *NodeManager) StopNode() error {
+	nodeMana.mu.Lock()
+	defer nodeMana.mu.Unlock()
+
 	if !IsRunning(nodeMana.status) {
 		logger.Infof("massa node process is already stopped")
-		return nil
+		return fmt.Errorf("massa node process is already stopped")
 	}
-	logger.Debug("Cancel goroutine concurrent tasks before stopping node")
-	nodeMana.cancelAsyncTask()
+
+	if nodeMana.status == NodeStatusStopping {
+		logger.Infof("massa node process is already stopping")
+		return fmt.Errorf("massa node process is already stopping")
+	}
+
+	nodeMana.status = NodeStatusStopping
+	nodeMana.statusChan <- NodeStatusStopping
 
 	logger.Infof("Stopping Massa node process...")
-
-	nodeMana.setStatus(NodeStatusStopping)
-
-	// Send a SIGTERM signal to gracefully shut down
-	if err := nodeMana.nodeProcess.Signal(syscall.SIGTERM); err != nil {
-		logger.Errorf("Failed to send SIGTERM: %v", err)
-
-		// Force kill as a fallback
-		if err = nodeMana.nodeProcess.Kill(); err != nil {
-			return err
-		}
-	}
-
-	// Wait for the process to exit
-	timeout := time.Now().Add(5 * time.Second)
-	for time.Now().Before(timeout) && IsRunning(nodeMana.status) {
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	// If still running after timeout, force kill
-	if IsRunning(nodeMana.status) {
-		_ = nodeMana.nodeProcess.Kill()
-	}
+	nodeMana.cancelNodeAndAsyncTask()
 	return nil
 }
 
-func (nodeMana *NodeManager) Logs() (string, error) {
-	return nodeMana.nodeLogger.getLogs()
+func (nodeMana *NodeManager) Logs(isMainnet bool) (string, error) {
+	_, version, err := nodeMana.massaNodeDirManager.getNodeBinAndVersion(isMainnet)
+	if err != nil {
+		return "", fmt.Errorf("failed to get massa node binary path: %v", err)
+	}
+	return nodeMana.nodeLogger.getLogs(version)
 }
 
 func (nodeMana *NodeManager) SetAutoRestart(autoRestart bool) {
@@ -204,14 +199,14 @@ func (nodeMana *NodeManager) monitorBootstrapping(ctx context.Context) {
 
 	logger.Info("Bootstrap started...")
 
-	ticker := time.NewTicker(nodeStdoutReadInterval)
+	ticker := time.NewTicker(bootstrapCheckInterval)
 	defer ticker.Stop()
 
 	client := node.NewClient(nodeURL)
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("Stop bootstrap monitor goroutine because received cancelAsyncTask signal")
+			logger.Debug("Stop bootstrap monitor goroutine because received close node sub process signal")
 			return
 		case <-ticker.C:
 			/*Check if the massa node process has finished bootstrapping by sending a request to it's api
@@ -223,9 +218,14 @@ func (nodeMana *NodeManager) monitorBootstrapping(ctx context.Context) {
 					logger.Debug("Connection refused, the massa node is still bootstrapping")
 					continue
 				}
-				nodeMana.setStatus(NodeStatusPluginError)
 				logger.Errorf("attempted to retrieve the status of the massa node but got error: %w", err)
 				continue
+			}
+
+			nodeMana.mu.Lock()
+			defer nodeMana.mu.Unlock()
+			if IsClosedOrClosing(nodeMana.status) {
+				return
 			}
 
 			logger.Info("Bootstrap completed ! \n Massa Node is Up")
@@ -233,14 +233,19 @@ func (nodeMana *NodeManager) monitorBootstrapping(ctx context.Context) {
 			// Start desync monitor goroutine after bootstrapping
 			go nodeMana.handleNodeDesync(ctx)
 
-			nodeMana.setStatus(NodeStatusOn)
+			nodeMana.status = NodeStatusOn
+			nodeMana.statusChan <- NodeStatusOn
 			return
 		}
 	}
 }
 
-// handleNodeDesync monitors the node for desync and restarts if needed
+// handleNodeDesync monitors the node for desync and restarts if autoRestart is enabled
 func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
+	if nodeMana.status != NodeStatusOn {
+		logger.Errorf("handleNodeDesync: node is not running, cannot monitor desync")
+		return
+	}
 	ticker := time.NewTicker(desyncCheckInterval)
 	defer ticker.Stop()
 
@@ -249,29 +254,34 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 		case <-ctx.Done():
 			logger.Debug("Stop desync monitor goroutine because context was cancelled")
 			return
-		case <-ticker.C:
-			if !IsRunning(nodeMana.status) {
+		case <-nodeMana.nodeMonitor.MonitorDesync(ctx, desyncCheckInterval):
+			logger.Warn("Node is desynced")
+
+			nodeMana.mu.Lock()
+			if IsClosedOrClosing(nodeMana.status) {
+				nodeMana.mu.Unlock()
 				return
 			}
+			nodeMana.status = NodeStatusDesynced
+			nodeMana.statusChan <- NodeStatusDesynced
+			nodeMana.mu.Unlock()
 
-			// TODO: Implement desync detection logic
-			isDesynced := false // Placeholder
+			if nodeMana.autoRestart {
+				logger.Info("Auto-restarting node due to desync")
+				if err := nodeMana.StopNode(); err != nil {
+					logger.Errorf("Failed to stop node for auto-restart: %v", err)
+					continue
+				}
 
-			if isDesynced {
-				logger.Warn("Node is desynced")
-				nodeMana.setStatus(NodeStatusDesynced)
-
-				if nodeMana.autoRestart {
-					logger.Info("Auto-restarting node due to desync")
-					if err := nodeMana.StopNode(); err != nil {
-						logger.Errorf("Failed to stop node for auto-restart: %v", err)
-						continue
-					}
+				// Wait for the node to stop
+				for IsRunning(nodeMana.status) {
+					logger.Debug("Waiting for node to stop")
 					time.Sleep(5 * time.Second)
-					_, err := nodeMana.StartNode(nodeMana.nodeInfos.isMainnet, "")
-					if err != nil {
-						logger.Errorf("Failed to restart node: %v", err)
-					}
+				}
+
+				_, err := nodeMana.StartNode(nodeMana.nodeInfos.isMainnet, "")
+				if err != nil {
+					logger.Errorf("Failed to restart node: %v", err)
 				}
 			}
 		}
@@ -291,15 +301,14 @@ func (nodeMana *NodeManager) handleNodeStopped(cmd *exec.Cmd) {
 		logger.Errorf("massa node process exited with error: %v", err)
 		status = NodeStatusCrashed
 
-		// close all concurrent tasks
-		nodeMana.cancelAsyncTask()
+		// // close all concurrent tasks
+		// nodeMana.cancelAsyncTask()
 
 		// if auto-restart option is enabled, restart the node
 		if nodeMana.autoRestart {
 			logger.Info("Auto-restarting node due to error")
 			nodeMana.setStatus(status)
-			time.Sleep(restartWaitTime)
-			nodeMana.setStatus(NodeStatusRestarting)
+			time.Sleep(restartCooldown)
 			_, err := nodeMana.StartNode(nodeMana.nodeInfos.isMainnet, nodeMana.nodeInfos.pwd)
 			if err != nil {
 				logger.Errorf("Failed to restart node: %v", err)

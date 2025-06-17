@@ -1,17 +1,21 @@
-import { useResource } from '@/hooks/api/useResource';
-import Intl from '@/i18n/i18n';
+import axios from 'axios';
+import { useState } from 'react';
+
 import { useNodeStore } from '@/store/nodeStore';
-import { isRunning } from '@/utils';
+import Intl from '@/i18n/i18n';
+import { networks } from '@/utils/const';
 
 export default function LogsLoader() {
-  const status = useNodeStore((state) => state.status);
-  const nodeRunning = isRunning(status);
-  const { refetch, isRefetching } = useResource<string>('nodeLogs', false);
+  const [isLoading, setIsLoading] = useState(false);
+  const network = useNodeStore((state) => state.network);
 
   const handleDownload = async () => {
     try {
-      const result = await refetch();
-      const logs = result.data;
+      setIsLoading(true);
+      const baseApi = import.meta.env.VITE_BASE_API || '/api';
+      const response = await axios.get(`${baseApi}/nodeLogs?isMainnet=${network === networks.mainnet}`);
+
+      const logs = response.data;
 
       if (logs) {
         // Create an invisible download link
@@ -19,23 +23,27 @@ export default function LogsLoader() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `massa-node-${new Date().toISOString()}.log`;
+        a.download = `massa-node-${network}-${new Date().toISOString()}.log`;
         document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
       }
     } catch (error) {
       console.error('Error downloading logs:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <button
       onClick={handleDownload}
-      disabled={isRefetching || !nodeRunning}
+      disabled={isLoading}
       className="w-full px-4 py-2 bg-primary text-white rounded-lg
        hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
     >
-      {isRefetching ? (
+      {isLoading ? (
         <>
           <svg
             className="animate-spin h-5 w-5 text-white"

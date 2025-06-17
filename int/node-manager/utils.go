@@ -3,7 +3,11 @@ package nodeManager
 import "strings"
 
 func IsRunning(nodeStatus NodeStatus) bool {
-	return nodeStatus == NodeStatusOn || nodeStatus == NodeStatusBootstrapping || nodeStatus == NodeStatusStopping
+	return nodeStatus != NodeStatusOff && nodeStatus != NodeStatusCrashed
+}
+
+func IsClosedOrClosing(nodeStatus NodeStatus) bool {
+	return !IsRunning(nodeStatus) || nodeStatus == NodeStatusStopping
 }
 
 func connRefused(err error) bool {

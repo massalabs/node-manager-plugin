@@ -7,7 +7,7 @@ import (
 	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
 )
 
-func HandleStartNode(nodeManager *nodeManagerPkg.INodeManager, password string) func(operations.StartNodeParams) middleware.Responder {
+func HandleStartNode(nodeManager *nodeManagerPkg.INodeManager) func(operations.StartNodeParams) middleware.Responder {
 	return func(params operations.StartNodeParams) middleware.Responder {
 		// Check if the node is already running
 		status, _ := (*nodeManager).GetStatus()
@@ -15,7 +15,7 @@ func HandleStartNode(nodeManager *nodeManagerPkg.INodeManager, password string) 
 			return createErrorResponse(400, "Node is already running")
 		}
 
-		version, err := (*nodeManager).StartNode(!params.Body.UseBuildnet, password)
+		version, err := (*nodeManager).StartNode(!params.Body.UseBuildnet, params.Body.Password)
 		if err != nil {
 			return operations.NewStartNodeInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),

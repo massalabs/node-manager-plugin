@@ -1,0 +1,146 @@
+name: Release workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Version to produce"
+        required: true
+      draft:
+        description: "Draft"
+        required: true
+        type: boolean
+        default: true
+      prerelease:
+        description: "Pre-release"
+        required: true
+        type: boolean
+        default: false
+      generate_release_notes:
+        description: "Generate release notes"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  check-manifest:
+    name: Check the Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check the manifest version
+        if: ${{ inputs.tag_name != '' }}
+        run: |
+          sudo apt-get install -y jq
+          version=$(jq -r '.version' manifest.json)
+          tag_name=${{ inputs.tag_name }}
+          tag_name_without_v=${tag_name#v}
+          if [[ $version != $tag_name_without_v ]]; then
+            echo "The manifest version is not equal to the tag version"
+            exit 1
+          fi
+  
+  build-plugin:
+    name: Build node manager plugin
+    uses: ./.github/workflows/build.yml
+    with:
+      tag_name: ${{ github.event.inputs.tag_name }}
+
+  zip-package:
+    name: Create zip
+    needs: build-plugin
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            target: windows
+            ext: .exe
+            arch: amd64
+          - os: ubuntu-22.04
+            target: linux
+            arch: amd64
+          - os: macos-13
+            target: darwin
+            arch: [amd64, arm64]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Load Node bin folders
+        run: |
+          task load-node-folder
+
+      - name: Download plugin binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'node-manager-plugin_${{matrix.target}}*'
+
+      - name : zip package
+        if: ${{ matrix.target != 'darwin' }}
+        run: |
+          TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
+          zip -r ${TARGET_NAME}.zip ${TARGET_NAME}${{ matrix.ext }} node-manager.svg manifest.json node-massa
+
+      - name : zip package for darwin
+        if: ${{ matrix.target == 'darwin' }}
+        run: |
+          for arch in ${{ matrix.arch }}; do
+            TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${arch}
+            zip -r ${TARGET_NAME}.zip ${TARGET_NAME}${{ matrix.ext }} node-manager.svg manifest.json node-massa
+          done
+
+      - name: Upload zip package
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-manager-plugin_${{ matrix.target }}
+          path: |
+            node-manager-plugin_${{ matrix.target }}*
+
+          
+  create-release:
+    name: Create release
+    needs: [check-manifest, zip-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download zip package
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*.zip'
+          merge-multiple: true
+    
+      - name: Create release and upload binaries
+        uses: softprops/action-gh-release@v1
+        with:
+          target_commitish: ${{ github.sha }}
+          tag_name: ${{ inputs.tag_name }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: ${{ inputs.generate_release_notes }}
+          files: |
+            *.zip
+  
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-3
+          aws-access-key-id: ${{ secrets.MS_S3_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.MS_S3_SECRET_ACCESS_KEY }}
+  
+      - name: s3 Upload
+        env:
+          AWS3: ${{ vars.MS_S3_BUCKET }}
+          TAG: ${{ inputs.tag_name }}
+        run: |
+          for file in *.zip; do
+            echo "Uploading $file to s3://${AWS3}/plugins/node-manager/${TAG}/"
+            aws s3 cp "$file" s3://${AWS3}/plugins/node-manager/${TAG}/
+          done
+  

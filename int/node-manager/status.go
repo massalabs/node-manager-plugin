@@ -9,12 +9,11 @@ type NodeStatus string
 const (
 	NodeStatusOn            NodeStatus = "on"
 	NodeStatusOff           NodeStatus = "off"
+	NodeStatusStarting      NodeStatus = "starting"
 	NodeStatusBootstrapping NodeStatus = "bootstrapping"
 	NodeStatusStopping      NodeStatus = "stopping"
 	NodeStatusCrashed       NodeStatus = "crashed"
 	NodeStatusDesynced      NodeStatus = "desynced"
-	NodeStatusRestarting    NodeStatus = "restarting"
-	NodeStatusPluginError   NodeStatus = "pluginError"
 )
 
 type NodeStatusHandler struct {

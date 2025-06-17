@@ -1,0 +1,9 @@
+{
+    "author": "Massa Labs",
+    "name": "Node Manager",
+    "description": "Massa blockchain official node manager",
+    "logo": "favicon.ico",
+    "home": "",
+    "version": "0.1.0",
+    "apispec": ""
+  }

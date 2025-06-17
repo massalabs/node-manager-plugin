@@ -96,6 +96,12 @@ paths:
       operationId: GetNodeLogs
       produces:
         - application/json
+      parameters:
+        - in: query
+          name: isMainnet
+          required: true
+          type: boolean
+          description: Whether the node we want to get the logs from is running on mainnet or not
       responses:
         "200":
           description: Logs retrieved successfully
@@ -139,6 +145,23 @@ paths:
           description: Error retrieving plugin config
           schema:
             $ref: "#/definitions/Error"
+
+  /api/version:
+    get:
+      description: Get the version of the plugin
+      operationId: GetPluginVersion
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Plugin version retrieved successfully
+          schema:
+            type: string
+        "500":
+          description: Error retrieving plugin version
+          schema:
+            $ref: "#/definitions/Error"
+
   
 definitions:
   Error:
@@ -156,7 +179,9 @@ definitions:
       useBuildnet:
         type: boolean
         description: Whether to launch the node in buildnet mode or not
-
+      password:
+        type: string
+        description: The password to launch the node
   StartNodeResponse:
     type: object
     properties:

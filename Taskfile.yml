@@ -3,7 +3,7 @@ version: "3"
 vars:
   APP_NAME: node-manager-plugin
   BIN_DIR: build
-  MAINNET_VERSION: "MAIN.2.5"
+  MAINNET_VERSION: "MAIN.3.0"
   BUILDNET_VERSION: "DEVN.28.3"
 
 tasks:
@@ -15,7 +15,6 @@ tasks:
     cmds:
       - cmd: mkdir -p ./build
       - cmd: go generate ./...
-      - task: setup-node-folder
 
   setup-node-folder:
     cmds:
@@ -111,14 +110,13 @@ tasks:
         silent: true
       - cmd: go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}{{.BIN_EXT}} ./main.go
     vars:
-      # We need this check for nil and empty string because a simple check for empty string doesn't work as expected
+      PRODUCTION: '{{if ne .VERSION nil}}{{if ne .VERSION ""}}true{{end}}{{end}}'
       VERSION_FLAG: '{{if ne .VERSION nil}}{{if ne .VERSION ""}}-X github.com/massalabs/node-manager-plugin/int/config.Version=v{{.VERSION}}{{end}}{{end}}'
       BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production {{end}}-ldflags="{{.VERSION_FLAG}}{{if eq .PRODUCTION "true"}} -w -s{{end}}"'
       BIN_EXT: '{{if eq .OS "windows"}}.exe{{end}}'
     env:
       GOOS: "{{.OS | default OS}}"
       GOARCH: "{{.ARCH | default ARCH}}"
-      PRODUCTION: '{{.PRODUCTION | default "false"}}'
       VERSION: "{{.VERSION | default nil}}"
 
   build-frontend:
@@ -152,19 +150,22 @@ tasks:
         platforms: [linux, darwin]
       - cmd: cp build/node-manager-plugin /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
-
-      - cmd: cp favicon.png /usr/local/share/massastation/plugins/node-manager-plugin
+      - cmd: cp web/public/favicon.ico /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
       - cmd: cp manifest.json /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
+      - cmd: cp -r build/node-massa /usr/local/share/massastation/plugins/node-manager-plugin
+        platforms: [linux, darwin]
+
       - cmd: mkdir -p "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]
       - cmd: cp build/node-manager-plugin.exe "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]
-   
-      - cmd: cp favicon.png "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: cp web/public/favicon.ico "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]
       - cmd: cp manifest.json "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+        platforms: [windows]
+      - cmd: robocopy build/node-massa "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin/node-massa" /E
         platforms: [windows]
 
   test:
