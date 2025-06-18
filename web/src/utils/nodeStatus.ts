@@ -1,12 +1,11 @@
 export enum NodeStatus {
   ON = 'on',
   OFF = 'off',
+  STARTING = 'starting',
   BOOTSTRAPPING = 'bootstrapping',
   STOPPING = 'stopping',
   CRASHED = 'crashed',
   DESYNCED = 'desynced',
-  RESTARTING = 'restarting',
-  PLUGINERROR = 'pluginError',
 }
 
 // When the node process is running

@@ -1,0 +1,73 @@
+name: Build
+
+on:
+  push:
+
+  workflow_call:
+    inputs:
+      tag_name:
+        type: string
+
+jobs:
+  build:
+    name: build
+    # The build job has a matrix strategy, which means it will run multiple times with different combinations of the os, arch, and target variables.
+    strategy:
+      # When fail-fast is set to false, GitHub Actions will continue running the remaining jobs in the matrix
+      # even if one of the jobs fails. This is useful when you want to see all possible failures across
+      # different platforms/architectures rather than stopping at the first failure.
+      fail-fast: false
+      matrix:
+        include:
+          # The first combination is Ubuntu running on an AMD64 processor, building for Windows.
+          - os: ubuntu-22.04
+            arch: amd64
+            target: windows
+            ext: .exe
+
+          # The second combination is Ubuntu running on an AMD64 processor, building for Linux.
+          - os: ubuntu-22.04
+            arch: amd64
+            target: linux
+
+          # The third combination is macOS running on an AMD64 processor, building for Darwin (macOS).
+          - os: macos-13
+            arch: amd64
+            target: darwin
+
+          # The fourth combination is macOS running on an ARM64 processor, building for Darwin (macOS).
+          - os: macos-13
+            arch: arm64
+            target: darwin
+
+    # The build job runs on the specified operating system.
+    runs-on: ${{ matrix.os }}
+    env:
+      TARGET_NAME: node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install
+        with:
+          os: ${{ matrix.os }}
+
+      - name: Build Plugin
+        shell: bash
+        run: task build
+        env:
+          OS: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
+          VERSION: ${{ inputs.tag_name }}
+      
+      - name: Rename Plugin artifact
+        run: mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TARGET_NAME }}
+          path: |
+            ${{ env.TARGET_NAME }}${{ matrix.ext }}
+     

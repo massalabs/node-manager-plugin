@@ -1,8 +1,9 @@
 package api
 
 import (
-	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-openapi/loads"
 	"github.com/massalabs/node-manager-plugin/api/restapi"
@@ -46,8 +47,6 @@ func NewAPI(config config.PluginConfig) *API {
 }
 
 func (a *API) Start() {
-	defer a.Cleanup()
-
 	if os.Getenv("STANDALONE") == "1" {
 		// If the plugin is run without being linked to Massa Station
 		a.apiServer.Port = 8080
@@ -73,10 +72,20 @@ func (a *API) Start() {
 
 	logger.Infof("Starting node manager plugin API on port %d", a.apiServer.Port)
 
-	// launch the plugin API
-	if err := a.apiServer.Serve(); err != nil {
-		logger.Fatalf("Failed to start node manager plugin: %v", err)
-	}
+	// Gracefuly shutdown the node manager plugin on SIGTERM and SIGINT
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		// launch the plugin API
+		if err := a.apiServer.Serve(); err != nil {
+			logger.Fatalf("Failed to start node manager plugin: %v", err)
+		}
+	}()
+
+	sig := <-sigChan
+	logger.Debugf("Node manager plugin received closing signal: %v", sig)
+	a.Cleanup()
 }
 
 // createAPI creates a new NodeManagerPluginAPI instance and loads the Swagger specification
@@ -96,7 +105,7 @@ func (a API) registerHandlers() {
 	html.AppendEndpoints(a.api)
 
 	// Set API handlers
-	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(&a.nodeManager, a.config.Password))
+	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(&a.nodeManager))
 	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(&a.nodeManager))
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(&a.nodeManager))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
@@ -105,18 +114,10 @@ func (a API) registerHandlers() {
 }
 
 func (a *API) Cleanup() {
-	// Shutdown the server manager if it is running
-	if a.nodeManager != nil && isRunning(a.nodeManager) {
-		if err := a.nodeManager.StopNode(); err != nil {
-			log.Fatalln(err)
-		}
+	if err := a.nodeManager.Close(); err != nil {
+		logger.Errorf("Failed to cleanup node manager: %v", err)
 	}
 
+	logger.Debug("Closing plugin logger")
 	logger.Close()
-}
-
-// isRunning checks if the node manager is running
-func isRunning(nodeManager nodeManagerPkg.INodeManager) bool {
-	status, _ := nodeManager.GetStatus()
-	return nodeManagerPkg.IsRunning(status)
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -12,7 +11,7 @@ import (
 
 func HandleGetNodeLogs(nodeManager *nodeManagerPkg.INodeManager) func(operations.GetNodeLogsParams) middleware.Responder {
 	return func(params operations.GetNodeLogsParams) middleware.Responder {
-		logs, err := (*nodeManager).Logs()
+		logs, err := (*nodeManager).Logs(params.IsMainnet)
 		if err != nil {
 			return operations.NewGetNodeLogsInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),
@@ -21,7 +20,6 @@ func HandleGetNodeLogs(nodeManager *nodeManagerPkg.INodeManager) func(operations
 
 		// Remove all ANSI escape sequences
 		cleanLogs := removeAnsiCodes(logs)
-		fmt.Println(cleanLogs)
 
 		return operations.NewGetNodeLogsOK().WithPayload(cleanLogs)
 	}

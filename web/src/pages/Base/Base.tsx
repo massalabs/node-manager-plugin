@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 
 import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
-import { AiOutlineDashboard } from 'react-icons/ai';
+// import { AiOutlineDashboard } from 'react-icons/ai';
 import { FiHome } from 'react-icons/fi';
-import { GrMoney } from 'react-icons/gr';
+// import { GrMoney } from 'react-icons/gr';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 import { NodeStatusDisplay } from '@/components/NodeStatusDisplay';
@@ -43,27 +43,27 @@ function Base() {
       footer: false,
       onClickItem: () => navigate(routeFor(Path.home)),
     },
-    {
-      label: Intl.t('menu.dashboard'),
-      icon: <AiOutlineDashboard data-testid="side-menu-dashboard-icon" />,
-      active: isActive(Path.dashboard),
-      footer: false,
-      onClickItem: () => navigate(routeFor(Path.dashboard)),
-    },
-    {
-      label: Intl.t('menu.stacking'),
-      icon: <GrMoney data-testid="side-menu-stacking-icon" />,
-      active: isActive(Path.stacking),
-      footer: false,
-      onClickItem: () => navigate(routeFor(Path.stacking)),
-    },
-    {
-      label: themeLabel,
-      icon: themeIcon,
-      active: false,
-      footer: true,
-      onClickItem: () => handleSetTheme(),
-    },
+    // {
+    //   label: Intl.t('menu.dashboard'),
+    //   icon: <AiOutlineDashboard data-testid="side-menu-dashboard-icon" />,
+    //   active: isActive(Path.dashboard),
+    //   footer: false,
+    //   onClickItem: () => navigate(routeFor(Path.dashboard)),
+    // },
+    // {
+    //   label: Intl.t('menu.stacking'),
+    //   icon: <GrMoney data-testid="side-menu-stacking-icon" />,
+    //   active: isActive(Path.stacking),
+    //   footer: false,
+    //   onClickItem: () => navigate(routeFor(Path.stacking)),
+    // },
+    // {
+    //   label: themeLabel,
+    //   icon: themeIcon,
+    //   active: false,
+    //   footer: true,
+    //   onClickItem: () => handleSetTheme(),
+    // },
   ];
 
   return (
@@ -82,12 +82,9 @@ function Base() {
             <Outlet context={context} />
           </div>
         </div>
-        <div className="absolute top-0 right-0 p-6">
-          <div className="w-64">VERSION TODO</div>
-        </div>
       </div>
 
-      <Toast durationMs={5000} />
+      <Toast durationMs={1000} />
     </div>
   );
 }

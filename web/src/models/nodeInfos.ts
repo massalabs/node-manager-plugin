@@ -4,6 +4,7 @@ export interface startNodeReponse {
 
 export interface startNodeBody {
   useBuildnet: boolean;
+  password: string;
 }
 
 export interface configBody {

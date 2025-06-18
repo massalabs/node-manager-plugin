@@ -14,11 +14,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type NodeLogger struct {
-	config         config.PluginConfig
-	logger         lumberjack.Logger
-	logFilesFolder string
-	re             *regexp.Regexp
+type NodeLogManager struct {
+	config        config.PluginConfig
+	re            *regexp.Regexp
+	currentLogger *lumberjack.Logger
 }
 
 type logFile struct {
@@ -31,44 +30,48 @@ const (
 	NodeLogFileExtension = ".log"
 )
 
-func NewNodeLogger(config config.PluginConfig) (*NodeLogger, error) {
+func NewNodeLogManager(config config.PluginConfig) (*NodeLogManager, error) {
 	// Exemple : node-2024-06-07T12-34-56.789.log
 	re, err := regexp.Compile(regexp.QuoteMeta(NodeLogFileBaseName) + `-(\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}\\.\\d{3})` + regexp.QuoteMeta(NodeLogFileExtension))
 	if err != nil {
 		return nil, err
 	}
-	return &NodeLogger{
+	return &NodeLogManager{
 		config: config,
 		re:     re,
 	}, nil
 }
 
-func (nodeLog *NodeLogger) Init(version string) {
-	nodeLog.logFilesFolder = filepath.Join(nodeLog.config.NodeLogPath, version)
+func (nodeLog *NodeLogManager) newLogger(logDirName string) *lumberjack.Logger {
+	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
-	// Create the log files folder if it doesn't exist
-	if _, err := os.Stat(nodeLog.logFilesFolder); os.IsNotExist(err) {
-		if err := os.MkdirAll(nodeLog.logFilesFolder, 0o755); err != nil {
+	// Create the log files folder for the given logDirName if it doesn't exist
+	if _, err := os.Stat(logFilesFolderPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(logFilesFolderPath, 0o755); err != nil {
 			logger.Error("Failed to create log files folder: %v", err)
 		}
 	}
 
-	nodeLog.logger = lumberjack.Logger{
-		Filename:   filepath.Join(nodeLog.logFilesFolder, NodeLogFileBaseName+NodeLogFileExtension),
+	nodeLog.currentLogger = &lumberjack.Logger{
+		Filename:   filepath.Join(logFilesFolderPath, NodeLogFileBaseName+NodeLogFileExtension),
 		MaxSize:    nodeLog.config.NodeLogMaxSize, // megabytes
 		MaxBackups: nodeLog.config.MaxLogBackups,
 	}
+
+	return nodeLog.currentLogger
 }
 
-func (nodeLog *NodeLogger) getLogger() *lumberjack.Logger {
-	return &nodeLog.logger
+func (nodeLog *NodeLogManager) getCurrentLogger() *lumberjack.Logger {
+	return nodeLog.currentLogger
 }
 
-func (nodeLog *NodeLogger) getLogs() (string, error) {
+func (nodeLog *NodeLogManager) getLogs(logDirName string) (string, error) {
+	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
+
 	// Get all log files in the directory
-	files, err := os.ReadDir(nodeLog.logFilesFolder)
+	files, err := os.ReadDir(logFilesFolderPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to read log files folder %v: %w", nodeLog.logFilesFolder, err)
+		return "", fmt.Errorf("failed to read log files folder %v: %w", logFilesFolderPath, err)
 	}
 
 	// Filter only log files and sort them by modification time
@@ -78,7 +81,7 @@ func (nodeLog *NodeLogger) getLogs() (string, error) {
 		if file.IsDir() || !strings.HasPrefix(fileName, NodeLogFileBaseName) || !strings.HasSuffix(fileName, NodeLogFileExtension) {
 			continue
 		}
-		fullPath := filepath.Join(nodeLog.logFilesFolder, fileName)
+		fullPath := filepath.Join(logFilesFolderPath, fileName)
 		matches := nodeLog.re.FindStringSubmatch(fileName)
 		if len(matches) == 2 {
 			// Parse the timestamp
@@ -93,7 +96,7 @@ func (nodeLog *NodeLogger) getLogs() (string, error) {
 	}
 
 	if len(logFiles) == 0 {
-		return "", fmt.Errorf("no log files found in %v", nodeLog.logFilesFolder)
+		return "", fmt.Errorf("no log files found in %v", logFilesFolderPath)
 	}
 
 	// If there's only one file, read it directly
