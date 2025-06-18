@@ -10,11 +10,15 @@ tasks:
   install:
     cmds:
       - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+      - cmd: echo "PATH=$PATH"
+      - cmd: echo "GOPATH=$GOPATH"
 
   generate:
     cmds:
       - cmd: mkdir -p ./build
-      - cmd: go generate ./...
+      - cmd: go generate -x -v ./...
+      - cmd: echo "PATH=$PATH"
+      - cmd: echo "GOPATH=$GOPATH"
 
   setup-node-folder:
     cmds:
