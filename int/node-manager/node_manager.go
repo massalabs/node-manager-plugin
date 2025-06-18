@@ -3,7 +3,6 @@ package nodeManager
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -29,9 +28,8 @@ type NodeManager struct {
 	massaNodeDirManager    nodeDirManager
 	nodeMonitor            *NodeMonitor
 	autoRestart            bool
-	nodeLogger             *NodeLogger
+	NodeLogManager         *NodeLogManager
 	cancelNodeAndAsyncTask context.CancelFunc // cancel function to stop node subprocess and all concurrent tasks
-	nodeProcess            *os.Process        // store the node process
 }
 
 const (
@@ -49,7 +47,7 @@ func NewNodeManager(config config.PluginConfig) (*NodeManager, error) {
 		return nil, err
 	}
 
-	nodeLogger, err := NewNodeLogger(config)
+	nodeLogManager, err := NewNodeLogManager(config)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +56,7 @@ func NewNodeManager(config config.PluginConfig) (*NodeManager, error) {
 		status:              NodeStatusOff,
 		statusChan:          make(chan NodeStatus, statusChanCapacity),
 		massaNodeDirManager: nodeDirManag,
-		nodeLogger:          nodeLogger,
+		NodeLogManager:      nodeLogManager,
 		nodeMonitor:         NewNodeMonitor(),
 	}, nil
 }
@@ -102,22 +100,10 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 
 	cmd := exec.CommandContext(ctx, nodeBinPath, nodeArgs...)
 
-	/* to run child process in a new process group.
-	By default, node-manager-plugin process and it's massa node subprocess
-	are in the same process group which means that all signals that are sent
-	to one of them are also sent to the other one.
-	This means that if the node-manager-plugin is closed with ctrl-c from the terminal
-	The massa node subprocess will also be closed independently from it's parent process.
-	For clean shuttdown, we want the child process to be closed by it's parent, thus we
-	launch it in it's own process group.
-	*/
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true, // pgid: process group id.
-	}
 	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of massa node binary
 
 	// Set the node logger as the stdout and stderr of the node process
-	nodeLogger := nodeMana.nodeLogger.newLogger(version)
+	nodeLogger := nodeMana.NodeLogManager.newLogger(version)
 
 	_, err = nodeLogger.Write([]byte(fmt.Sprintf("\n \n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
 	if err != nil {
@@ -139,8 +125,6 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 
 	// launch node stopped monitor goroutine
 	go nodeMana.handleNodeStopped(cmd)
-
-	nodeMana.nodeProcess = cmd.Process
 
 	return version, nil
 }
@@ -180,7 +164,7 @@ func (nodeMana *NodeManager) Logs(isMainnet bool) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get massa node binary path: %v", err)
 	}
-	return nodeMana.nodeLogger.getLogs(version)
+	return nodeMana.NodeLogManager.getLogs(version)
 }
 
 func (nodeMana *NodeManager) SetAutoRestart(autoRestart bool) {
@@ -301,6 +285,10 @@ func (nodeMana *NodeManager) handleNodeStopped(cmd *exec.Cmd) {
 	err := cmd.Wait() // Wait for the command to exit
 	status := NodeStatusOff
 
+	if err := nodeMana.NodeLogManager.getCurrentLogger().Close(); err != nil {
+		logger.Errorf("Failed to close node log manager: %v", err)
+	}
+
 	if err != nil && !isUserIntterupted(err) {
 		logger.Errorf("massa node process exited with error: %v", err)
 		status = NodeStatusCrashed
@@ -321,13 +309,34 @@ func (nodeMana *NodeManager) handleNodeStopped(cmd *exec.Cmd) {
 		}
 	}
 
-	nodeMana.mu.Lock()
-	nodeMana.status = status
-	nodeMana.statusChan <- status
-	nodeMana.nodeProcess = nil
-	nodeMana.mu.Unlock()
+	nodeMana.setStatus(status)
 
 	logger.Infof("massa node process exited")
+}
+
+// cleanup
+func (nodeMana *NodeManager) Close() error {
+	logger.Debug("Node manager cleanup")
+
+	if nodeMana.cancelNodeAndAsyncTask != nil {
+		logger.Debug("Cancelling node and async task")
+		nodeMana.cancelNodeAndAsyncTask()
+
+		// wait a little to let the time to subprocess to close.
+		if IsRunning(nodeMana.status) {
+			time.Sleep(3 * time.Second)
+		}
+	}
+
+	nodeLogger := nodeMana.NodeLogManager.getCurrentLogger()
+	if nodeLogger != nil {
+		logger.Debug("Closing node logger")
+		if err := nodeLogger.Close(); err != nil {
+			return fmt.Errorf("Failed to close node log manager: %v", err)
+		}
+	}
+
+	return nil
 }
 
 /*

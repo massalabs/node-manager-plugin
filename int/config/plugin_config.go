@@ -19,12 +19,16 @@ type PluginConfig struct {
 	MaxLogBackups  int    `yaml:"max_log_backups"`
 }
 
-func defaultPluginConfig() PluginConfig {
+func defaultPluginConfig() (PluginConfig, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return PluginConfig{}, fmt.Errorf("failed to get executable path: %v", err)
+	}
 	return PluginConfig{
-		NodeLogPath:    "./nodeLogs",
+		NodeLogPath:    filepath.Join(execPath, "./nodeLogs"),
 		NodeLogMaxSize: 1,
 		MaxLogBackups:  10,
-	}
+	}, nil
 }
 
 /*
@@ -71,7 +75,11 @@ func RetrieveConfig() (PluginConfig, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File doesn't exist, create it with default config
-			defaultConfig := defaultPluginConfig()
+			defaultConfig, err := defaultPluginConfig()
+			if err != nil {
+				return PluginConfig{}, fmt.Errorf("getting default config: %w", err)
+			}
+
 			data, err := yaml.Marshal(defaultConfig)
 			if err != nil {
 				return PluginConfig{}, fmt.Errorf("marshaling default config to YAML: %w", err)

@@ -14,9 +14,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type NodeLogger struct {
-	config config.PluginConfig
-	re     *regexp.Regexp
+type NodeLogManager struct {
+	config        config.PluginConfig
+	re            *regexp.Regexp
+	currentLogger *lumberjack.Logger
 }
 
 type logFile struct {
@@ -29,19 +30,19 @@ const (
 	NodeLogFileExtension = ".log"
 )
 
-func NewNodeLogger(config config.PluginConfig) (*NodeLogger, error) {
+func NewNodeLogManager(config config.PluginConfig) (*NodeLogManager, error) {
 	// Exemple : node-2024-06-07T12-34-56.789.log
 	re, err := regexp.Compile(regexp.QuoteMeta(NodeLogFileBaseName) + `-(\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}\\.\\d{3})` + regexp.QuoteMeta(NodeLogFileExtension))
 	if err != nil {
 		return nil, err
 	}
-	return &NodeLogger{
+	return &NodeLogManager{
 		config: config,
 		re:     re,
 	}, nil
 }
 
-func (nodeLog *NodeLogger) newLogger(logDirName string) *lumberjack.Logger {
+func (nodeLog *NodeLogManager) newLogger(logDirName string) *lumberjack.Logger {
 	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
 	// Create the log files folder for the given logDirName if it doesn't exist
@@ -51,14 +52,20 @@ func (nodeLog *NodeLogger) newLogger(logDirName string) *lumberjack.Logger {
 		}
 	}
 
-	return &lumberjack.Logger{
+	nodeLog.currentLogger = &lumberjack.Logger{
 		Filename:   filepath.Join(logFilesFolderPath, NodeLogFileBaseName+NodeLogFileExtension),
 		MaxSize:    nodeLog.config.NodeLogMaxSize, // megabytes
 		MaxBackups: nodeLog.config.MaxLogBackups,
 	}
+
+	return nodeLog.currentLogger
 }
 
-func (nodeLog *NodeLogger) getLogs(logDirName string) (string, error) {
+func (nodeLog *NodeLogManager) getCurrentLogger() *lumberjack.Logger {
+	return nodeLog.currentLogger
+}
+
+func (nodeLog *NodeLogManager) getLogs(logDirName string) (string, error) {
 	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
 	// Get all log files in the directory

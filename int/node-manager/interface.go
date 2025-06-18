@@ -9,4 +9,5 @@ type INodeManager interface {
 	GetStatus() (NodeStatus, <-chan NodeStatus)
 	GetNodeManagerConfig() models.Config
 	SetAutoRestart(autoRestart bool)
+	Close() error
 }

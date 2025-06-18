@@ -1,11 +1,9 @@
 package api
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/go-openapi/loads"
 	"github.com/massalabs/node-manager-plugin/api/restapi"
@@ -116,25 +114,10 @@ func (a API) registerHandlers() {
 }
 
 func (a *API) Cleanup() {
-	// Shutdown the server manager if it is running
-	if a.nodeManager != nil && isRunning(a.nodeManager) {
-		logger.Debug("Cleaning up running massa node")
-		if err := a.nodeManager.StopNode(); err != nil {
-			log.Fatalln(err)
-		}
-
-		// wait a little to let the time to subprocess to close.
-		if isRunning(a.nodeManager) {
-			time.Sleep(3 * time.Second)
-		}
+	if err := a.nodeManager.Close(); err != nil {
+		logger.Errorf("Failed to cleanup node manager: %v", err)
 	}
 
-	logger.Debug("Closing logger")
+	logger.Debug("Closing plugin logger")
 	logger.Close()
-}
-
-// isRunning checks if the node manager is running
-func isRunning(nodeManager nodeManagerPkg.INodeManager) bool {
-	status, _ := nodeManager.GetStatus()
-	return nodeManagerPkg.IsRunning(status)
 }

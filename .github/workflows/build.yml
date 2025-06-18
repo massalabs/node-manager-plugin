@@ -52,7 +52,6 @@ jobs:
       - uses: ./.github/actions/install
         with:
           os: ${{ matrix.os }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Plugin
         shell: bash
