@@ -13,6 +13,7 @@ jobs:
       - uses: ./.github/actions/install
         with:
           os: ubuntu-latest
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
         
       - name: run golangci-lint
         uses: golangci/golangci-lint-action@v6
