@@ -26,10 +26,10 @@ runs:
       run: |
         set -x
         echo "go bin before"
-        ls -la /Users/runner/go/bin
+        ls -laR $HOME/go/bin
         task install
         echo "go bin after"
-        ls -la /Users/runner/go/bin
+        ls -laR $HOME/go/bin
       shell: bash
 
     - name: build frontends and generate api files from spec
@@ -37,7 +37,7 @@ runs:
       run: |
         set -x
         echo "go bin before"
-        ls -la /Users/runner/go/bin
+        ls -laR $HOME/go/bin
         task generate
         echo "go bin after"
-        ls -la /Users/runner/go/bin
+        ls -laR $HOME/go/bin
