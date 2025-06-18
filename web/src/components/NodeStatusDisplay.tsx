@@ -1,8 +1,9 @@
 import React from 'react';
 
+import { Spinner } from '@massalabs/react-ui-kit';
+
 import { useNodeStore } from '@/store/nodeStore';
 import { NodeStatus } from '@/utils';
-import { Spinner } from '@massalabs/react-ui-kit';
 
 export const NodeStatusDisplay: React.FC = () => {
   const status = useNodeStore((state) => state.status);
@@ -35,12 +36,19 @@ export const NodeStatusDisplay: React.FC = () => {
         )} w-36 text-center opacity-70`}
         style={{ minHeight: '64px' }} // Ensure enough height for centering
       >
-        {(status === NodeStatus.STOPPING || status === NodeStatus.BOOTSTRAPPING || status === NodeStatus.STARTING) && (
+        {(status === NodeStatus.STOPPING ||
+          status === NodeStatus.BOOTSTRAPPING ||
+          status === NodeStatus.STARTING) && (
           <div className="absolute inset-0 flex items-center justify-center z-20">
             <Spinner />
           </div>
         )}
-        <span className="font-bold text-white z-10 opacity-50 absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span
+          className="
+          font-bold text-white z-10 opacity-50 absolute inset-0 flex items-center justify-center pointer-events-none
+          text-sm
+          "
+        >
           {status}
         </span>
       </div>

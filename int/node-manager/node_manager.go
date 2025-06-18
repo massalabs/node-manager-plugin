@@ -119,7 +119,11 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	// Set the node logger as the stdout and stderr of the node process
 	nodeLogger := nodeMana.nodeLogger.newLogger(version)
 
-	nodeLogger.Write([]byte(fmt.Sprintf("\n \n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
+	_, err = nodeLogger.Write([]byte(fmt.Sprintf("\n \n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
+	if err != nil {
+		return "", fmt.Errorf("failed to write to node logger: %v", err)
+	}
+
 	cmd.Stdout = nodeLogger
 	cmd.Stderr = nodeLogger
 

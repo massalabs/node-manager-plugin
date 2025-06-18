@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v5
+      - uses: ./.github/actions/install
         with:
-          go-version: 1.24
-          cache: true
+          os: ubuntu-latest
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run tests
         run: task test
 

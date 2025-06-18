@@ -1,13 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import { JsonRpcPublicProvider, PublicAPI, NodeStatusInfo} from '@massalabs/massa-web3';
 import { useEffect, useRef } from 'react';
 
-export const useFetchNodeInfo = (fetchInterval: number = 5000) => {
+import {
+  JsonRpcPublicProvider,
+  PublicAPI,
+  NodeStatusInfo,
+} from '@massalabs/massa-web3';
+import { useQuery } from '@tanstack/react-query';
+
+export const useFetchNodeInfo = (fetchInterval = 5000) => {
   const providerRef = useRef<JsonRpcPublicProvider | null>(null);
 
   useEffect(() => {
     providerRef.current = new JsonRpcPublicProvider(
-      new PublicAPI('http://localhost:33035')
+      new PublicAPI('http://localhost:33035'),
     );
   }, []);
 

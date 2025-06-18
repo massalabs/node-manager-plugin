@@ -1,8 +1,9 @@
-import axios from 'axios';
 import { useState } from 'react';
 
-import { useNodeStore } from '@/store/nodeStore';
+import axios from 'axios';
+
 import Intl from '@/i18n/i18n';
+import { useNodeStore } from '@/store/nodeStore';
 import { networks } from '@/utils/const';
 
 export default function LogsLoader() {
@@ -13,7 +14,9 @@ export default function LogsLoader() {
     try {
       setIsLoading(true);
       const baseApi = import.meta.env.VITE_BASE_API || '/api';
-      const response = await axios.get(`${baseApi}/nodeLogs?isMainnet=${network === networks.mainnet}`);
+      const response = await axios.get(
+        `${baseApi}/nodeLogs?isMainnet=${network === networks.mainnet}`,
+      );
 
       const logs = response.data;
 

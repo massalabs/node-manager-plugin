@@ -16,12 +16,6 @@ runs:
         go-version: 1.24
         cache: true
 
-    - name: Install Xcode
-      if: ${{ inputs.os == 'macos-13' }}
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
-
     - name: Install Task
       uses: arduino/setup-task@v1
       with:
@@ -29,9 +23,13 @@ runs:
         repo-token: ${{ inputs.repo-token }}
 
     - name: Install Dependencies
-      run: task install
+      run: |
+        set -x
+        task install
       shell: bash
 
-    - name: build frontends and generate api filesfrom spec
+    - name: build frontends and generate api files from spec
       shell: bash
-      run: task generate
+      run: |
+        set -x
+        task generate
