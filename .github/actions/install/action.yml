@@ -21,20 +21,11 @@ runs:
 
     - name: Install Dependencies
       run: |
-        set -x
-        echo "go bin before"
-        ls -laR $HOME/go/bin
         task install
-        echo "go bin after"
-        ls -laR $HOME/go/bin
       shell: bash
 
     - name: build frontends and generate api files from spec
       shell: bash
       run: |
-        set -x
-        echo "go bin before"
-        ls -laR $HOME/go/bin
         task generate
-        echo "go bin after"
-        ls -laR $HOME/go/bin
+

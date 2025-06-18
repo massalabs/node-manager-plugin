@@ -71,9 +71,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          version: 3.x
+
       - name: Load Node bin folders
         run: |
-          task load-node-folder
+          task setup-node-folder
 
       - name: Download plugin binary artifacts
         uses: actions/download-artifact@v4

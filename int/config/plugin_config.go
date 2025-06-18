@@ -25,7 +25,7 @@ func defaultPluginConfig() (PluginConfig, error) {
 		return PluginConfig{}, fmt.Errorf("failed to get executable path: %v", err)
 	}
 	return PluginConfig{
-		NodeLogPath:    filepath.Join(execPath, "./nodeLogs"),
+		NodeLogPath:    filepath.Join(filepath.Dir(execPath), "./nodeLogs"),
 		NodeLogMaxSize: 1,
 		MaxLogBackups:  10,
 	}, nil
