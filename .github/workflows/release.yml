@@ -87,16 +87,21 @@ jobs:
 
       - name : zip package
         if: ${{ matrix.target != 'darwin' }}
+        shell: bash
         run: |
           TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
-          zip -r ${TARGET_NAME}.zip ${TARGET_NAME}${{ matrix.ext }} node-manager.svg manifest.json node-massa
+          zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}${{ matrix.ext }}
+          cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
 
       - name : zip package for darwin
         if: ${{ matrix.target == 'darwin' }}
+        shell: bash
         run: |
           for arch in ${{ matrix.arch }}; do
             TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${arch}
-            zip -r ${TARGET_NAME}.zip ${TARGET_NAME}${{ matrix.ext }} node-manager.svg manifest.json node-massa
+            zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}${{ matrix.ext }}
+            cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
+
           done
 
       - name: Upload zip package
