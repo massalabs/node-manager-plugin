@@ -5,6 +5,7 @@ vars:
   BIN_DIR: build
   MAINNET_VERSION: "MAIN.3.0"
   BUILDNET_VERSION: "DEVN.28.3"
+  NODE_MASSA_DIR: "build/node-massa"
 
 tasks:
   install:
@@ -22,19 +23,14 @@ tasks:
 
   setup-node-folder:
     cmds:
-      - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
+      # - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
 
-      # linux and darwin
-      - cmd: curl -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
-        platforms: [linux, darwin]
-      - cmd: mkdir -p {{.MAINNET_VERSION}} && tar -xzf {{.MAINNET_NODEBIN}} -C {{.MAINNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.MAINNET_NODEBIN}}
-        platforms: [linux, darwin]
-      - cmd: curl -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
-        platforms: [linux, darwin]
-      - cmd: mkdir -p {{.BUILDNET_VERSION}} && tar -xzf {{.BUILDNET_NODEBIN}} -C {{.BUILDNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.BUILDNET_NODEBIN}} 
+      - cmd: scripts/setup-node-unix.sh {{.MAINNET_VERSION}} {{.BUILDNET_VERSION}} {{.MAINNET_NODEBIN}} {{.BUILDNET_NODEBIN}} {{.NODE_MASSA_DIR}}
         platforms: [linux, darwin]
 
       # window
+      - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
+        platforms: [windows]
       - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
         platforms: [windows]
       - cmd: mkdir {{.MAINNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.MAINNET_NODEBIN}} -DestinationPath {{.MAINNET_VERSION}}; Remove-Item {{.MAINNET_NODEBIN}}"
@@ -46,54 +42,23 @@ tasks:
 
       # move buildnet and mainnet bin into the NODE_MASSA_DIR directory.
       - cmd: rm -rf {{.NODE_MASSA_DIR}}/* && mv {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}} && mv {{.MAINNET_VERSION}} {{.NODE_MASSA_DIR}}
+        platforms: [windows]
 
     vars:
-      NODE_MASSA_DIR: '{{.BIN_DIR}}/node-massa'
       OS_NAME: '{{if eq OS "darwin"}}macos{{else}}{{OS}}{{end}}'
       ARCHIVE_EXT: '{{if eq OS "windows"}}zip{{else}}tar.gz{{end}}'
       MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"
       BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"
 
-
-  setup-node-folder:windows: # TODO: check it work on window
-    internal: true
-    platforms: [windows]
-    dir: '{{.NODE_MASSA_DIR}}'
+  # This task is used to setup windows node binaries in linux environment.
+  # It is used in github action workflow ci
+  ci-setup-windows-node-with-unix:
+    platforms: [linux]
     cmds:
-      - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
-      - cmd: mkdir {{.MAINNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.MAINNET_NODEBIN}} -DestinationPath {{.MAINNET_VERSION}}; Remove-Item {{.MAINNET_NODEBIN}}"
-      - cmd: curl.exe -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
-      - cmd: mkdir {{.BUILDNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.BUILDNET_NODEBIN}} -DestinationPath {{.BUILDNET_VERSION}}; Remove-Item {{.BUILDNET_NODEBIN}}"
+      - cmd: scripts/ci-setup-node-from-linux.sh {{.MAINNET_VERSION}} {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}}
     vars:
       MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_windows.zip"
       BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_windows.zip"
-
-  setup-node-folder:linux:
-    platforms: [linux]
-    cmds:
-      - task: setup-node-folder:unix
-        vars:
-          UNIX_OS: "linux"
-
-  setup-node-folder:macos:
-    platforms: [darwin]
-    cmds:
-      - task: setup-node-folder:unix
-        vars:
-          UNIX_OS: "macos"
-
-  setup-node-folder:unix:
-    internal: true
-    platforms: [linux, darwin]
-    dir: '{{.NODE_MASSA_DIR}}'
-    cmds:
-      - cmd: curl -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
-      - cmd: mkdir -p {{.MAINNET_VERSION}} && tar -xzf {{.MAINNET_NODEBIN}} -C {{.MAINNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.MAINNET_NODEBIN}}
-      - cmd: curl -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
-      - cmd: mkdir -p {{.BUILDNET_VERSION}} && tar -xzf {{.BUILDNET_NODEBIN}} -C {{.BUILDNET_VERSION}} massa/massa-node --strip-components=1 && rm {{.BUILDNET_NODEBIN}} 
-    vars:
-      MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_{{.UNIX_OS}}.tar.gz"
-      BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_{{.UNIX_OS}}.tar.gz"
   
   run:
     cmds:
