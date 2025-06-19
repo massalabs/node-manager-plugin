@@ -104,7 +104,7 @@ jobs:
       - name: Upload zip package
         uses: actions/upload-artifact@v4
         with:
-          name: node-manager-plugin_${{ matrix.target }}
+          name: node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
           path: |
             node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}.zip
 
