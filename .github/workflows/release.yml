@@ -105,7 +105,7 @@ jobs:
       - name: Upload zip package
         uses: actions/upload-artifact@v4
         with:
-          name: node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
+          name: release-zip-node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
           path: |
             node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}.zip
 
@@ -121,7 +121,7 @@ jobs:
       - name: Download zip package
         uses: actions/download-artifact@v4
         with:
-          pattern: 'node-manager-plugin_*'
+          pattern: 'release-zip-node-manager-plugin_*'
           merge-multiple: true
     
       - name: Create release and upload binaries
