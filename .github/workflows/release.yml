@@ -62,7 +62,11 @@ jobs:
             arch: amd64
           - os: macos-13
             target: darwin
-            arch: [amd64, arm64]
+            arch: amd64
+          - os: macos-13
+            target: darwin
+            arch: arm64
+
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -90,29 +94,19 @@ jobs:
           pattern: 'node-manager-plugin_${{matrix.target}}*'
 
       - name : zip package
-        if: ${{ matrix.target != 'darwin' }}
         shell: bash
         run: |
           TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
-          zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}${{ matrix.ext }}
-          cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
 
-      - name : zip package for darwin
-        if: ${{ matrix.target == 'darwin' }}
-        shell: bash
-        run: |
-          for arch in ${{ matrix.arch }}; do
-            TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${arch}
-            zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}${{ matrix.ext }}
-            cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
-          done
+          zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}/*
+          cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
 
       - name: Upload zip package
         uses: actions/upload-artifact@v4
         with:
           name: node-manager-plugin_${{ matrix.target }}
           path: |
-            node-manager-plugin_${{ matrix.target }}*
+            node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}.zip
 
           
   create-release:
@@ -126,7 +120,7 @@ jobs:
       - name: Download zip package
         uses: actions/download-artifact@v4
         with:
-          pattern: '*.zip'
+          pattern: 'node-manager-plugin_*'
           merge-multiple: true
     
       - name: Create release and upload binaries
