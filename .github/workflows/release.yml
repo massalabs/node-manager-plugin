@@ -96,7 +96,7 @@ jobs:
 
       - name: make bin executable
         run: |
-          chmod +x node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
+          chmod +x node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}/*
 
       - name : zip package
         shell: bash
