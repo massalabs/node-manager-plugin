@@ -20,7 +20,7 @@ export function useNodeStatus() {
     const eventSource = new EventSource(`${baseApi}/status`);
 
     eventSource.onmessage = (event) => {
-      console.log('\n\n Node status update received:', event.data);
+      console.log('Node status update received:', event.data);
       const status = event.data as NodeStatus;
       setStatus(status);
     };

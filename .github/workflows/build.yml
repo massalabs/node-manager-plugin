@@ -20,13 +20,13 @@ jobs:
       matrix:
         include:
           # The first combination is Ubuntu running on an AMD64 processor, building for Windows.
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             arch: amd64
             target: windows
             ext: .exe
 
           # The second combination is Ubuntu running on an AMD64 processor, building for Linux.
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             arch: amd64
             target: linux
 
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/install
         with:
-          os: ${{ matrix.os }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Plugin
         shell: bash
@@ -62,7 +62,8 @@ jobs:
           VERSION: ${{ inputs.tag_name }}
       
       - name: Rename Plugin artifact
-        run: mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
+        run: 
+          mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
