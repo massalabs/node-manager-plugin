@@ -45,8 +45,8 @@ curl -Ls -o "$MAINNET_NODEBIN" "https://github.com/massalabs/massa/releases/down
 echo "Extracting mainnet binary..."
 mkdir -p "$NODE_MASSA_DIR"/"$MAINNET_VERSION"
 tar -xzf "$MAINNET_NODEBIN"
-rm -rf "$NODE_MASSA_DIR"/"$MAINNET_VERSION"/*
-mv massa/* "$NODE_MASSA_DIR"/"$MAINNET_VERSION"
+rm -rf "$NODE_MASSA_DIR/$MAINNET_VERSION"/*
+mv massa/* "$NODE_MASSA_DIR/$MAINNET_VERSION"
 rm -r massa/ "$MAINNET_NODEBIN"
 
 # Download and extract buildnet binary
@@ -54,7 +54,8 @@ echo "Downloading buildnet binary..."
 curl -Ls -o "$BUILDNET_NODEBIN" "https://github.com/massalabs/massa/releases/download/$BUILDNET_VERSION/$BUILDNET_NODEBIN"
 
 echo "Extracting buildnet binary..."
-mkdir -p "$NODE_MASSA_DIR"/"$BUILDNET_VERSION"
+mkdir -p "$NODE_MASSA_DIR/$BUILDNET_VERSION"
 tar -xzf "$BUILDNET_NODEBIN"
-mv massa/* "$NODE_MASSA_DIR"/"$BUILDNET_VERSION"
+rm -rf "$NODE_MASSA_DIR/$BUILDNET_VERSION"/*
+mv massa/* "$NODE_MASSA_DIR/$BUILDNET_VERSION"
 rm -r massa/ "$BUILDNET_NODEBIN"

@@ -9,15 +9,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	"github.com/massalabs/station/pkg/logger"
 	"github.com/massalabs/station/pkg/node"
 )
 
 type NodeInfos struct {
-	isMainnet bool
-	pwd       string
+	Version     string
+	AutoRestart bool
+	pwd         string
 }
 
 type NodeManager struct {
@@ -27,7 +27,6 @@ type NodeManager struct {
 	status                 NodeStatus
 	massaNodeDirManager    nodeDirManager
 	nodeMonitor            *NodeMonitor
-	autoRestart            bool
 	NodeLogManager         *NodeLogManager
 	cancelNodeAndAsyncTask context.CancelFunc // cancel function to stop node subprocess and all concurrent tasks
 }
@@ -75,8 +74,6 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	nodeMana.statusChan <- NodeStatusStarting
 
 	// Set node parameters
-	nodeMana.nodeInfos.isMainnet = isMainnet
-	nodeMana.nodeInfos.pwd = pwd
 	nodeArgs := []string{"-p", pwd} // args for massa node process
 	networkName := "buildnet"
 	if isMainnet {
@@ -117,6 +114,9 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("Failed to start massa node: %v", err)
 	}
+
+	nodeMana.nodeInfos.pwd = pwd
+	nodeMana.nodeInfos.Version = version
 
 	logger.Infof("massa node process started with PID: %d", cmd.Process.Pid)
 
@@ -168,13 +168,11 @@ func (nodeMana *NodeManager) Logs(isMainnet bool) (string, error) {
 }
 
 func (nodeMana *NodeManager) SetAutoRestart(autoRestart bool) {
-	nodeMana.autoRestart = autoRestart
+	nodeMana.nodeInfos.AutoRestart = autoRestart
 }
 
-func (nodeMana *NodeManager) GetNodeManagerConfig() models.Config {
-	return models.Config{
-		AutoRestart: nodeMana.autoRestart,
-	}
+func (nodeMana *NodeManager) GetNodeInfos() NodeInfos {
+	return nodeMana.nodeInfos
 }
 
 /*
@@ -254,7 +252,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 			nodeMana.statusChan <- NodeStatusDesynced
 			nodeMana.mu.Unlock()
 
-			if nodeMana.autoRestart {
+			if nodeMana.nodeInfos.AutoRestart {
 				logger.Info("Auto-restarting node due to desync")
 				if err := nodeMana.StopNode(); err != nil {
 					logger.Errorf("Failed to stop node for auto-restart: %v", err)
@@ -267,7 +265,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 					time.Sleep(5 * time.Second)
 				}
 
-				_, err := nodeMana.StartNode(nodeMana.nodeInfos.isMainnet, "")
+				_, err := nodeMana.StartNode(isMainnetFromVersion(nodeMana.nodeInfos.Version), "")
 				if err != nil {
 					logger.Errorf("Failed to restart node: %v", err)
 				}
@@ -297,11 +295,14 @@ func (nodeMana *NodeManager) handleNodeStopped(cmd *exec.Cmd) {
 		// nodeMana.cancelAsyncTask()
 
 		// if auto-restart option is enabled, restart the node
-		if nodeMana.autoRestart {
+		if nodeMana.nodeInfos.AutoRestart {
 			logger.Info("Auto-restarting node due to error")
 			nodeMana.setStatus(status)
 			time.Sleep(restartCooldown)
-			_, err := nodeMana.StartNode(nodeMana.nodeInfos.isMainnet, nodeMana.nodeInfos.pwd)
+			_, err := nodeMana.StartNode(
+				isMainnetFromVersion(nodeMana.nodeInfos.Version),
+				nodeMana.nodeInfos.pwd,
+			)
 			if err != nil {
 				logger.Errorf("Failed to restart node: %v", err)
 			}

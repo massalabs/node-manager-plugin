@@ -68,6 +68,15 @@ func (nodeLog *NodeLogManager) getCurrentLogger() *lumberjack.Logger {
 func (nodeLog *NodeLogManager) getLogs(logDirName string) (string, error) {
 	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
+	// Check if the log files folder exists
+	if _, err := os.Stat(logFilesFolderPath); os.IsNotExist(err) {
+		// Create the log files folder for the given logDirName if it doesn't exist
+		if err := os.MkdirAll(logFilesFolderPath, 0o755); err != nil {
+			logger.Error("Failed to create log files folder: %v", err)
+		}
+		return "", nil
+	}
+
 	// Get all log files in the directory
 	files, err := os.ReadDir(logFilesFolderPath)
 	if err != nil {
@@ -96,7 +105,7 @@ func (nodeLog *NodeLogManager) getLogs(logDirName string) (string, error) {
 	}
 
 	if len(logFiles) == 0 {
-		return "", fmt.Errorf("no log files found in %v", logFilesFolderPath)
+		return "", nil
 	}
 
 	// If there's only one file, read it directly

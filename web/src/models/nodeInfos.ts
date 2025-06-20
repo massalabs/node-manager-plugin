@@ -7,6 +7,11 @@ export interface startNodeBody {
   password: string;
 }
 
-export interface configBody {
+export interface nodeInfosResponse {
+  autoRestart: boolean;
+  version: string;
+}
+
+export interface autoRestartBody {
   autoRestart: boolean;
 }
