@@ -62,7 +62,9 @@ jobs:
           VERSION: ${{ inputs.tag_name }}
       
       - name: Rename Plugin artifact
-        run: mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
+        run: 
+          mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
+          chmod +x ${{ env.TARGET_NAME }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
