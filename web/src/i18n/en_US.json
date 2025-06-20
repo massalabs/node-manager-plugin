@@ -19,11 +19,14 @@
       "label": "Auto Restart:",
       "description": "Automatically restart the node if it crash or desync",
       "enabled": "Auto restart enabled",
-      "disabled": "Auto restart disabled"
+      "disabled": "Auto restart disabled",
+      "error": "Error while setting auto-restart"
     },
     "logs": {
       "download": "Download logs",
-      "loading": "Loading logs..."
+      "loading": "Loading logs...",
+      "noLogs": "No logs found",
+      "error": "Error while downloading logs"
     },
     "nodePassword": {
       "title": "Enter Node Password",

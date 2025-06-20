@@ -5,28 +5,32 @@ import axios from 'axios';
 
 import { usePost } from '@/hooks/api/usePost';
 import Intl from '@/i18n/i18n';
-import { configBody } from '@/models/nodeInfos';
+import { autoRestartBody, nodeInfosResponse } from '@/models/nodeInfos';
 import { useNodeStore } from '@/store/nodeStore';
+import { networks } from '@/utils/const';
 
 const AutoRestart: React.FC = () => {
   const autoRestart = useNodeStore((state) => state.autoRestart);
   const setAutoRestart = useNodeStore((state) => state.setAutoRestart);
-  const { mutate: setAutoRestartMutate } = usePost<unknown>(
-    'config',
-  ) as ReturnType<typeof usePost<unknown>>;
+  const setNetwork = useNodeStore((state) => state.setNetwork);
+
+  const { mutate: setAutoRestartMutate } = usePost<autoRestartBody>(
+    'autoRestart',
+  ) as ReturnType<typeof usePost<autoRestartBody>>;
 
   /* retrieve AutoRestart from api when the component mount */
   useEffect(() => {
     axios
-      .get<configBody>(`${import.meta.env.VITE_BASE_API}/config`)
+      .get<nodeInfosResponse>(`${import.meta.env.VITE_BASE_API}/nodeInfos`)
       .then(({ data }) => {
         setAutoRestart(data.autoRestart ?? false);
+        setNetwork(getNetworkFromVersion(data.version));
       });
   }, [setAutoRestart]);
 
   const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
-    setAutoRestartMutate({ autoRestart: checked } as configBody, {
+    setAutoRestartMutate({ autoRestart: checked } as autoRestartBody, {
       onSuccess: () => {
         setAutoRestart(checked);
         if (checked) {
@@ -34,6 +38,9 @@ const AutoRestart: React.FC = () => {
         } else {
           toast.success(Intl.t('home.auto-restart.disabled'));
         }
+      },
+      onError: () => {
+        toast.error(Intl.t('home.auto-restart.error'));
       },
     });
   };
@@ -53,5 +60,12 @@ const AutoRestart: React.FC = () => {
     </div>
   );
 };
+
+function getNetworkFromVersion(version: string): networks  {
+  if (version.includes('mainnet')) {
+    return networks.mainnet;
+  }
+  return networks.buildnet;
+}
 
 export default AutoRestart;
