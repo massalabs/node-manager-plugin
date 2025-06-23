@@ -26,7 +26,7 @@ const AutoRestart: React.FC = () => {
         setAutoRestart(data.autoRestart ?? false);
         setNetwork(getNetworkFromVersion(data.version));
       });
-  }, [setAutoRestart]);
+  }, [setAutoRestart, setNetwork]);
 
   const handleToggleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
@@ -61,7 +61,7 @@ const AutoRestart: React.FC = () => {
   );
 };
 
-function getNetworkFromVersion(version: string): networks  {
+function getNetworkFromVersion(version: string): networks {
   if (version.includes('mainnet')) {
     return networks.mainnet;
   }

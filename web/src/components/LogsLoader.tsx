@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
+import { toast } from '@massalabs/react-ui-kit/src/components/Toast';
 import axios from 'axios';
 
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { networks } from '@/utils/const';
-import { toast } from '@massalabs/react-ui-kit/src/components/Toast';
 
 export default function LogsLoader() {
   const [isLoading, setIsLoading] = useState(false);

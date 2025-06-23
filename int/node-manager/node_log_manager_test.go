@@ -117,9 +117,9 @@ func TestNodeLogger(t *testing.T) {
 		createTestLogFolder(t, logFolderTest)
 
 		// Try to get logs from empty directory
-		_, err = logger.getLogs(logFolderTest)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "no log files found")
+		logs, err := logger.getLogs(logFolderTest)
+		assert.NoError(t, err)
+		assert.Empty(t, logs)
 	})
 
 	// Test getLogs with invalid file names
@@ -136,8 +136,8 @@ func TestNodeLogger(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to get logs
-		_, err = logger.getLogs(logFolderTest)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "no log files found")
+		logs, err := logger.getLogs(logFolderTest)
+		assert.NoError(t, err)
+		assert.Empty(t, logs)
 	})
 }
