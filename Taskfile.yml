@@ -4,7 +4,7 @@ vars:
   APP_NAME: node-manager-plugin
   BIN_DIR: build
   MAINNET_VERSION: "MAIN.3.0"
-  BUILDNET_VERSION: "DEVN.28.3"
+  BUILDNET_VERSION: "DEVN.28.16"
   NODE_MASSA_DIR: "build/node-massa"
 
 tasks:

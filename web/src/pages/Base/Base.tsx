@@ -10,6 +10,7 @@ import { NodeStatusDisplay } from '@/components/NodeStatusDisplay';
 import { useNodeStatus } from '@/hooks/useNodeStatus';
 import { useTheme } from '@/hooks/useTheme';
 import Intl from '@/i18n/i18n';
+import { useNodeStore } from '@/store/nodeStore';
 import { Path, routeFor } from '@/utils/routes';
 
 function Base() {
@@ -18,6 +19,8 @@ function Base() {
   const context = { themeLabel, themeIcon, theme, handleSetTheme };
 
   const { startListeningStatus } = useNodeStatus();
+
+  const nodeVersion = useNodeStore((state) => state.version);
 
   const location = useLocation();
 
@@ -75,8 +78,17 @@ function Base() {
           onClickLogo={() => navigate(routeFor(''))}
         />
         <div className="flex flex-col h-screen text-f-primary">
-          <div className="flex justify-center p-4">
-            <NodeStatusDisplay />
+          <div className="flex justify-between items-center p-4">
+            <div className="flex-1" />
+            <div className="flex-1 flex justify-center">
+              <NodeStatusDisplay />
+            </div>
+            {nodeVersion && (
+              <div className="flex-1 flex justify-end mr-4">
+                <span className="text-md text-white">{nodeVersion}</span>
+              </div>
+            )}
+            {!nodeVersion && <div className="flex-1" />}
           </div>
           <div className="flex flex-1 justify-center items-center">
             <Outlet context={context} />

@@ -9,6 +9,7 @@ import { getErrorPath, NodeStatus } from '@/utils';
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const setStatus = useNodeStore((state) => state.setStatus);
+
   const navigate = useNavigate();
 
   const startListeningStatus = () => {

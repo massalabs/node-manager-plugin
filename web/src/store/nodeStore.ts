@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { NodeStatus } from '@/utils';
+import { getPluginInfos, NodeStatus, getNetworkFromVersion } from '@/utils';
 import { networks } from '@/utils/const';
 export interface NodeStoreState {
   status: NodeStatus;
@@ -13,12 +13,32 @@ export interface NodeStoreState {
   setAutoRestart: (autoRestart: boolean) => void;
 }
 
-export const useNodeStore = create<NodeStoreState>((set) => ({
-  status: NodeStatus.OFF,
+export const useNodeStore = create<NodeStoreState>((set, get) => ({
+  status: NodeStatus.UNSET,
   network: networks.mainnet,
   version: '',
   autoRestart: false,
   setStatus: (status: NodeStatus) => {
+    /*
+    if the first status update is not off, it means that we have reloaded the page or something like that
+    This means that various store values are not default and we need to retrieve them.
+    */
+    if (status !== NodeStatus.OFF && get().status === NodeStatus.UNSET) {
+      getPluginInfos().then((data) => {
+        set({
+          autoRestart: data.autoRestart ?? false,
+          version: data.version,
+          network: getNetworkFromVersion(data.version),
+        });
+      });
+    }
+
+    // if the node is closed, don't display version
+    if (status === NodeStatus.OFF) {
+      set({
+        version: '',
+      });
+    }
     set({ status });
   },
   setNetwork: (network: networks) => {

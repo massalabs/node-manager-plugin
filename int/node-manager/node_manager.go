@@ -74,11 +74,10 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	nodeMana.statusChan <- NodeStatusStarting
 
 	// Set node parameters
-	nodeArgs := []string{"-p", pwd} // args for massa node process
+	nodeArgs := []string{"-p", pwd, "-a"} // args for massa node process
 	networkName := "buildnet"
 	if isMainnet {
 		networkName = "mainnet"
-		nodeArgs = append(nodeArgs, "-a")
 	}
 	logger.Infof("Starting massa node in %s mode", networkName)
 

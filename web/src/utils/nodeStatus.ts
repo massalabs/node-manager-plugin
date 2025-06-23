@@ -1,4 +1,5 @@
 export enum NodeStatus {
+  UNSET = 'unset',
   ON = 'on',
   OFF = 'off',
   STARTING = 'starting',
