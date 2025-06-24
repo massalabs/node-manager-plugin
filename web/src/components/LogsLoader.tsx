@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { toast } from '@massalabs/react-ui-kit/src/components/Toast';
 import axios from 'axios';
 
 import Intl from '@/i18n/i18n';
@@ -31,9 +32,12 @@ export default function LogsLoader() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+      } else {
+        toast(Intl.t('home.logs.noLogs'));
       }
     } catch (error) {
       console.error('Error downloading logs:', error);
+      toast.error(Intl.t('home.logs.error'));
     } finally {
       setIsLoading(false);
     }

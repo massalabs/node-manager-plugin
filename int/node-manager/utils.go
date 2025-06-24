@@ -16,3 +16,7 @@ func connRefused(err error) bool {
 	}
 	return strings.Contains(err.Error(), "connect: connection refused")
 }
+
+func isMainnetFromVersion(version string) bool {
+	return strings.Contains(version, "MAIN")
+}

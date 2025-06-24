@@ -112,10 +112,10 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
-  /api/config:
+  /api/autoRestart:
     post:
-      description: Set the plugin config
-      operationId: SetConfig
+      description: Set the auto-restart config
+      operationId: SetAutoRestart
       produces:
         - application/json
       parameters:
@@ -123,26 +123,28 @@ paths:
           name: body
           required: true
           schema:
-            $ref: "#/definitions/Config"
+            $ref: "#/definitions/AutoRestartBody"
       responses:
         "204":
-          description: Plugin config set successfully
+          description: Auto-restart set successfully
         "500":
-          description: Error setting plugin config
+          description: Error setting auto-restart
           schema:
             $ref: "#/definitions/Error"
+
+  /api/pluginInfos:
     get:  
-      description: Get the plugin config
-      operationId: GetConfig
+      description: Get plugin various infos
+      operationId: GetPluginInfos
       produces:
         - application/json
       responses:
         "200":
-          description: Plugin config retrieved successfully 
+          description: Plugin infos retrieved successfully 
           schema:
-            $ref: "#/definitions/Config"
+            $ref: "#/definitions/PluginInfos"
         "500":
-          description: Error retrieving plugin config
+          description: Error retrieving plugin infos
           schema:
             $ref: "#/definitions/Error"
 
@@ -182,6 +184,25 @@ definitions:
       password:
         type: string
         description: The password to launch the node
+
+  AutoRestartBody:
+    type: object
+    properties:
+      autoRestart:
+        type: boolean
+        description: Whether to auto-restart the node or not when there is a crash/desync
+
+  PluginInfos:
+    type: object
+    properties:
+      version:
+        type: string
+        description: The version of the node
+      autoRestart:
+        type: boolean
+        description: Whether to auto-restart the node or not when there is a crash/desync
+
+
   StartNodeResponse:
     type: object
     properties:
@@ -195,10 +216,3 @@ definitions:
       status:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
-  
-  Config:
-    type: object
-    properties:
-      autoRestart:
-        type: boolean
-        description: Whether to auto-restart the node or not when there is a crash/desync
