@@ -14,9 +14,13 @@ const (
 )
 
 type PluginConfig struct {
-	NodeLogPath    string `yaml:"log_path"`
-	NodeLogMaxSize int    `yaml:"log_max_size"`
-	MaxLogBackups  int    `yaml:"max_log_backups"`
+	NodeLogPath            string `yaml:"log_path"`
+	NodeLogMaxSize         int    `yaml:"log_max_size"`
+	MaxLogBackups          int    `yaml:"max_log_backups"`
+	ClientTimeout          int    `yaml:"client_timeout"`
+	BootstrapCheckInterval int    `yaml:"bootstrap_check_interval"`
+	DesyncCheckInterval    int    `yaml:"desync_check_interval"`
+	RestartCooldown        int    `yaml:"restart_cooldown"`
 }
 
 func defaultPluginConfig() (PluginConfig, error) {
@@ -25,9 +29,13 @@ func defaultPluginConfig() (PluginConfig, error) {
 		return PluginConfig{}, fmt.Errorf("failed to get executable path: %v", err)
 	}
 	return PluginConfig{
-		NodeLogPath:    filepath.Join(filepath.Dir(execPath), "./nodeLogs"),
-		NodeLogMaxSize: 1,
-		MaxLogBackups:  10,
+		NodeLogPath:            filepath.Join(filepath.Dir(execPath), "./nodeLogs"),
+		NodeLogMaxSize:         1,
+		MaxLogBackups:          10,
+		ClientTimeout:          30,
+		BootstrapCheckInterval: 30, // Interval at which the node is checked if it has bootstrapped
+		DesyncCheckInterval:    30, // Interval at which the node is checked if it is desynced
+		RestartCooldown:        5,  // Time to wait before restarting the node
 	}, nil
 }
 

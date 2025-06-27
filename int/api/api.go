@@ -8,19 +8,25 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/massalabs/node-manager-plugin/api/restapi"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	"github.com/massalabs/node-manager-plugin/int/api/handlers"
 	"github.com/massalabs/node-manager-plugin/int/api/html"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
+	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
 	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
+	prometheusPkg "github.com/massalabs/node-manager-plugin/int/prometheus"
 	"github.com/massalabs/station-massa-hello-world/pkg/plugin"
 	"github.com/massalabs/station/pkg/logger"
 )
 
 type API struct {
-	apiServer   *restapi.Server
-	api         *operations.NodeManagerPluginAPI
-	nodeManager nodeManagerPkg.INodeManager
-	config      config.PluginConfig
+	apiServer        *restapi.Server
+	api              *operations.NodeManagerPluginAPI
+	nodeManager      nodeManagerPkg.INodeManager
+	nodeDirManager   nodeDirManager.NodeDirManager
+	statusDispatcher nodeStatusPkg.NodeStatusDispatcher
+	config           config.PluginConfig
 }
 
 // NewAPI creates a new API with the provided plugin directory
@@ -32,17 +38,36 @@ func NewAPI(config config.PluginConfig) *API {
 
 	apiServer := restapi.NewServer(nodeManagerAPI)
 
+	nodeDirManager, err := nodeDirManager.NewNodeDirManager()
+	if err != nil {
+		logger.Fatalf("could not create a node dir manager instance, got : %s", err)
+	}
+
+	prometheusDriver := prometheusPkg.NewPrometheus()
+	statusDispatcher := nodeStatusPkg.NewNodeStatusDispatcher()
+	nodeMonitor := nodeManagerPkg.NewNodeMonitor(prometheusDriver, statusDispatcher)
+
+	nodeDriver := nodeDriverPkg.NewNodeDriver(nodeDirManager)
+
 	// create the node manager instance
-	nodeManager, err := nodeManagerPkg.NewNodeManager(config)
+	nodeManager, err := nodeManagerPkg.NewNodeManager(
+		config,
+		nodeDirManager,
+		nodeMonitor,
+		nodeDriver,
+		statusDispatcher,
+	)
 	if err != nil {
 		logger.Fatalf("could not create a node manager instance, got : %s", err)
 	}
 
 	return &API{
-		apiServer:   apiServer,
-		api:         nodeManagerAPI,
-		nodeManager: nodeManager,
-		config:      config,
+		apiServer:        apiServer,
+		api:              nodeManagerAPI,
+		nodeManager:      nodeManager,
+		nodeDirManager:   nodeDirManager,
+		statusDispatcher: statusDispatcher,
+		config:           config,
 	}
 }
 
@@ -105,12 +130,12 @@ func (a API) registerHandlers() {
 	html.AppendEndpoints(a.api)
 
 	// Set API handlers
-	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(&a.nodeManager))
-	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(&a.nodeManager))
-	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(&a.nodeManager))
+	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(a.nodeManager, a.statusDispatcher))
+	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(a.nodeManager, a.statusDispatcher))
+	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(a.statusDispatcher))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
 	a.api.SetAutoRestartHandler = operations.SetAutoRestartHandlerFunc(handlers.HandleSetAutoRestart(&a.nodeManager))
-	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos(&a.nodeManager))
+	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos(&a.nodeManager, &a.nodeDirManager))
 }
 
 func (a *API) Cleanup() {

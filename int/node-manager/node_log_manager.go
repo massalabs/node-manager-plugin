@@ -15,9 +15,8 @@ import (
 )
 
 type NodeLogManager struct {
-	config        config.PluginConfig
-	re            *regexp.Regexp
-	currentLogger *lumberjack.Logger
+	config config.PluginConfig
+	re     *regexp.Regexp
 }
 
 type logFile struct {
@@ -42,27 +41,21 @@ func NewNodeLogManager(config config.PluginConfig) (*NodeLogManager, error) {
 	}, nil
 }
 
-func (nodeLog *NodeLogManager) newLogger(logDirName string) *lumberjack.Logger {
+func (nodeLog *NodeLogManager) newLogger(logDirName string) (*lumberjack.Logger, error) {
 	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
 	// Create the log files folder for the given logDirName if it doesn't exist
 	if _, err := os.Stat(logFilesFolderPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(logFilesFolderPath, 0o755); err != nil {
-			logger.Error("Failed to create log files folder: %v", err)
+			return nil, fmt.Errorf("failed to create log files folder: %v", err)
 		}
 	}
 
-	nodeLog.currentLogger = &lumberjack.Logger{
+	return &lumberjack.Logger{
 		Filename:   filepath.Join(logFilesFolderPath, NodeLogFileBaseName+NodeLogFileExtension),
 		MaxSize:    nodeLog.config.NodeLogMaxSize, // megabytes
 		MaxBackups: nodeLog.config.MaxLogBackups,
-	}
-
-	return nodeLog.currentLogger
-}
-
-func (nodeLog *NodeLogManager) getCurrentLogger() *lumberjack.Logger {
-	return nodeLog.currentLogger
+	}, nil
 }
 
 func (nodeLog *NodeLogManager) getLogs(logDirName string) (string, error) {

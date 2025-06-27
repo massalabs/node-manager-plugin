@@ -42,7 +42,8 @@ func TestNodeLogger(t *testing.T) {
 		require.NoError(t, err)
 
 		version := "test-version"
-		lumberjackLogger := logger.newLogger(version)
+		lumberjackLogger, err := logger.newLogger(version)
+		require.NoError(t, err)
 
 		// Check if the logger was created with correct settings
 		assert.NotNil(t, lumberjackLogger)
