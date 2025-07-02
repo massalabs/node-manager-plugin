@@ -12,12 +12,19 @@ import (
 	"github.com/massalabs/node-manager-plugin/int/api/handlers"
 	"github.com/massalabs/node-manager-plugin/int/api/html"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	"github.com/massalabs/node-manager-plugin/int/db"
+	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
 	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
 	prometheusPkg "github.com/massalabs/node-manager-plugin/int/prometheus"
+	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/staking-manager"
 	"github.com/massalabs/station-massa-hello-world/pkg/plugin"
 	"github.com/massalabs/station/pkg/logger"
+)
+
+const (
+	NodeURL = "http://localhost:33035"
 )
 
 type API struct {
@@ -27,6 +34,7 @@ type API struct {
 	nodeDirManager   nodeDirManager.NodeDirManager
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher
 	config           config.PluginConfig
+	stakingManager   stakingManagerPkg.StakingManager
 }
 
 // NewAPI creates a new API with the provided plugin directory
@@ -45,9 +53,24 @@ func NewAPI(config config.PluginConfig) *API {
 
 	prometheusDriver := prometheusPkg.NewPrometheus()
 	statusDispatcher := nodeStatusPkg.NewNodeStatusDispatcher()
-	nodeMonitor := nodeManagerPkg.NewNodeMonitor(prometheusDriver, statusDispatcher)
+	nodeAPI := nodeAPI.NewNodeAPI()
+	nodeMonitor := nodeManagerPkg.NewNodeMonitor(prometheusDriver, statusDispatcher, nodeAPI)
 
 	nodeDriver := nodeDriverPkg.NewNodeDriver(nodeDirManager)
+	db, err := db.NewDB(config.DBPath)
+	if err != nil {
+		logger.Fatalf("could not create a database instance, got : %s", err)
+	}
+
+	stakingManager := stakingManagerPkg.NewStakingManager(
+		nodeAPI,
+		statusDispatcher,
+		db,
+		nodeDirManager,
+		uint64(config.StakingAddressDataPollInterval),
+		uint64(config.NodeStatusPollInterval),
+		uint64(config.ClientTimeout),
+	)
 
 	// create the node manager instance
 	nodeManager, err := nodeManagerPkg.NewNodeManager(
@@ -68,6 +91,7 @@ func NewAPI(config config.PluginConfig) *API {
 		nodeDirManager:   nodeDirManager,
 		statusDispatcher: statusDispatcher,
 		config:           config,
+		stakingManager:   stakingManager,
 	}
 }
 
@@ -134,13 +158,22 @@ func (a API) registerHandlers() {
 	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(a.nodeManager, a.statusDispatcher))
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(a.statusDispatcher))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
-	a.api.SetAutoRestartHandler = operations.SetAutoRestartHandlerFunc(handlers.HandleSetAutoRestart(&a.nodeManager))
-	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos(&a.nodeManager, &a.nodeDirManager))
+	a.api.SetAutoRestartHandler = operations.SetAutoRestartHandlerFunc(handlers.HandleSetAutoRestart())
+	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos(&a.nodeDirManager))
+
+	a.api.GetStakingAddressesHandler = operations.GetStakingAddressesHandlerFunc(handlers.HandleAddressChangedFeeder(a.stakingManager))
+	a.api.AddStakingAddressHandler = operations.AddStakingAddressHandlerFunc(handlers.HandlePostStakingAddresses(a.stakingManager))
+	a.api.UpdateStakingAddressHandler = operations.UpdateStakingAddressHandlerFunc(handlers.HandlePutStakingAddresses(a.stakingManager))
+	a.api.RemoveStakingAddressHandler = operations.RemoveStakingAddressHandlerFunc(handlers.HandleDeleteStakingAddresses(a.stakingManager))
 }
 
 func (a *API) Cleanup() {
 	if err := a.nodeManager.Close(); err != nil {
 		logger.Errorf("Failed to cleanup node manager: %v", err)
+	}
+
+	if err := a.stakingManager.Close(); err != nil {
+		logger.Errorf("Failed to cleanup staking manager: %v", err)
 	}
 
 	logger.Debug("Closing plugin logger")

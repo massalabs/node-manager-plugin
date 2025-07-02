@@ -21,22 +21,14 @@ type INodeManager interface {
 	StartNode(isMainnet bool, pwd string) (string, error)
 	StopNode() error
 	Logs(isMainnet bool) (string, error)
-	GetNodeInfos() NodeInfos
-	SetAutoRestart(autoRestart bool)
+
 	GetStatus() nodeStatusPkg.NodeStatus
 	Close() error
-}
-
-type NodeInfos struct {
-	IsMainnet   bool
-	AutoRestart bool
-	pwd         string
 }
 
 type NodeManager struct {
 	mu                sync.Mutex
 	config            config.PluginConfig
-	nodeInfos         NodeInfos
 	status            nodeStatusPkg.NodeStatus
 	buildnetLogger    io.WriteCloser
 	mainnetLogger     io.WriteCloser
@@ -106,8 +98,9 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 
 	nodeMana.setStatus(nodeStatus.NodeStatusBootstrapping)
 
-	nodeMana.nodeInfos.pwd = pwd
-	nodeMana.nodeInfos.IsMainnet = isMainnet
+	// Update global plugin info
+	config.GlobalPluginInfo.SetPwd(pwd)
+	config.GlobalPluginInfo.SetIsMainnet(isMainnet)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodeMana.cancelAsyncTask = cancel
@@ -157,14 +150,6 @@ func (nodeMana *NodeManager) Logs(isMainnet bool) (string, error) {
 		return "", fmt.Errorf("failed to get massa node binary path: %v", err)
 	}
 	return nodeMana.NodeLogManager.getLogs(version)
-}
-
-func (nodeMana *NodeManager) SetAutoRestart(autoRestart bool) {
-	nodeMana.nodeInfos.AutoRestart = autoRestart
-}
-
-func (nodeMana *NodeManager) GetNodeInfos() NodeInfos {
-	return nodeMana.nodeInfos
 }
 
 func (nodeMana *NodeManager) GetStatus() nodeStatusPkg.NodeStatus {
@@ -222,7 +207,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 			nodeMana.setStatus(nodeStatus.NodeStatusDesynced)
 			nodeMana.mu.Unlock()
 
-			if nodeMana.nodeInfos.AutoRestart {
+			if config.GlobalPluginInfo.GetAutoRestart() {
 				// Wait for the restart cooldown
 				time.Sleep(time.Duration(nodeMana.config.RestartCooldown) * time.Second)
 
@@ -240,7 +225,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 				}
 
 				// Start the node
-				_, err := nodeMana.StartNode(nodeMana.nodeInfos.IsMainnet, "")
+				_, err := nodeMana.StartNode(config.GlobalPluginInfo.GetIsMainnet(), "")
 				if err != nil {
 					logger.Errorf("Failed to restart node: %v", err)
 				}
@@ -264,13 +249,13 @@ func (nodeMana *NodeManager) handleNodeStopped() {
 		status = nodeStatus.NodeStatusCrashed
 
 		// if auto-restart option is enabled, restart the node
-		if nodeMana.nodeInfos.AutoRestart {
+		if config.GlobalPluginInfo.GetAutoRestart() {
 			logger.Info("Auto-restarting node due to error")
 			nodeMana.setStatus(status)
 			time.Sleep(time.Duration(nodeMana.config.RestartCooldown) * time.Second)
 			_, err := nodeMana.StartNode(
-				nodeMana.nodeInfos.IsMainnet,
-				nodeMana.nodeInfos.pwd,
+				config.GlobalPluginInfo.GetIsMainnet(),
+				config.GlobalPluginInfo.GetPwd(),
 			)
 			if err != nil {
 				logger.Errorf("Failed to restart node: %v", err)
