@@ -20,7 +20,7 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
   autoRestart: false,
   setStatus: (status: NodeStatus) => {
     /*
-    if the first status update is not off, it means that we have reloaded the page or something like that
+    if the first status update is not off, it means the node have been launched and that we have reloaded the page
     This means that various store values are not default and we need to retrieve them.
     */
     if (status !== NodeStatus.OFF && get().status === NodeStatus.UNSET) {

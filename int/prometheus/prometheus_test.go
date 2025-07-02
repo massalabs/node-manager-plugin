@@ -1,4 +1,4 @@
-package nodeManager
+package prometheus
 
 import (
 	"testing"
@@ -91,8 +91,10 @@ final_cursor_period invalid`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nm := NewNodeMonitor()
-			gotDesync, err := nm.checkDesync([]byte(tt.prometheusData))
+			prometheus := Prometheus{
+				metricsIndexes: make(map[string]int),
+			}
+			gotDesync, err := prometheus.checkDesync([]byte(tt.prometheusData))
 
 			if tt.wantErr {
 				if err == nil {

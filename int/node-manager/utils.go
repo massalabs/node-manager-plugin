@@ -1,13 +1,17 @@
 package nodeManager
 
-import "strings"
+import (
+	"strings"
 
-func IsRunning(nodeStatus NodeStatus) bool {
-	return nodeStatus != NodeStatusOff && nodeStatus != NodeStatusCrashed
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+)
+
+func IsRunning(nodeStatus nodeStatusPkg.NodeStatus) bool {
+	return nodeStatus != nodeStatusPkg.NodeStatusOff && nodeStatus != nodeStatusPkg.NodeStatusCrashed
 }
 
-func IsClosedOrClosing(nodeStatus NodeStatus) bool {
-	return !IsRunning(nodeStatus) || nodeStatus == NodeStatusStopping
+func IsClosedOrClosing(nodeStatus nodeStatusPkg.NodeStatus) bool {
+	return !IsRunning(nodeStatus) || nodeStatus == nodeStatusPkg.NodeStatusStopping
 }
 
 func connRefused(err error) bool {
@@ -15,8 +19,4 @@ func connRefused(err error) bool {
 		return false
 	}
 	return strings.Contains(err.Error(), "connect: connection refused")
-}
-
-func isMainnetFromVersion(version string) bool {
-	return strings.Contains(version, "MAIN")
 }

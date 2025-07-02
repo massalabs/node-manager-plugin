@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeManager "github.com/massalabs/node-manager-plugin/int/node-manager"
+	nodeStatus "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	"github.com/massalabs/station/pkg/logger"
 )
 
@@ -16,7 +16,7 @@ const (
 	flushCooldown = 5 * time.Second
 )
 
-func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operations.GetMassaNodeStatusParams) middleware.Responder {
+func HandleNodeStatusFeeder(statusDispatcher nodeStatus.NodeStatusDispatcher) func(operations.GetMassaNodeStatusParams) middleware.Responder {
 	return func(params operations.GetMassaNodeStatusParams) middleware.Responder {
 		return middleware.ResponderFunc(
 			func(w http.ResponseWriter, _ runtime.Producer) {
@@ -34,8 +34,11 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 				w.Header().Set("Connection", "keep-alive")
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 
-				// retrieve the current status and the channel to listen for updates
-				currentStatus, statusChan := (*nodeManager).GetStatus()
+				// subscribe to all status changes
+				currentStatus := statusDispatcher.GetCurrentStatus()
+				statusChan, unsubscribe := statusDispatcher.SubscribeAll("status-Server-Side-Event-feeder")
+				defer unsubscribe() // Ensure cleanup
+
 				flush(w, flusher, currentStatus)
 
 				lastFlushTime := time.Now()
@@ -74,7 +77,7 @@ func HandleNodeStatusFeeder(nodeManager *nodeManager.INodeManager) func(operatio
 	}
 }
 
-func flush(w http.ResponseWriter, flusher http.Flusher, status nodeManager.NodeStatus) {
+func flush(w http.ResponseWriter, flusher http.Flusher, status nodeStatus.NodeStatus) {
 	_, err := fmt.Fprintf(w, "data: %s\n\n", status)
 	if err != nil {
 		logger.Errorf("Failed to flush status %s, got error: %v", status, err)

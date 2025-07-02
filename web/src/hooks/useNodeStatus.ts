@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +12,10 @@ export function useNodeStatus() {
 
   const navigate = useNavigate();
 
-  const startListeningStatus = () => {
+  /* use useCallback to avoid recreating a new function instance each time the hook is re-rendering
+This function can be used in dependency array, so it needs to be a stable reference
+*/
+  const startListeningStatus = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
@@ -42,7 +45,7 @@ export function useNodeStatus() {
     };
 
     eventSourceRef.current = eventSource;
-  };
+  }, [navigate, setStatus]);
 
   useEffect(() => {
     // Cleanup on unmount
