@@ -17,23 +17,17 @@ type Slot struct {
 	Thread uint8  `json:"thread"`
 }
 
-type DeferredCredits struct {
-	Slot   Slot   `json:"slot"`
-	Amount uint64 `json:"amount"`
-}
-
-// StakingAddress represents a staking address with its information
-type StakingAddress struct {
-	Address         string            `json:"address"`
-	FinalRolls      uint64            `json:"final_roll_count"`
-	FinalBalance    string            `json:"final_balance"`
-	Thread          uint8             `json:"thread"`
-	DeferredCredits []DeferredCredits `json:"deferred_credits"`
-}
-
 // ClientDriver handles interactions with the massa-client CLI tool
-type ClientDriver struct {
-	isMainnet      bool
+
+type ClientDriver interface {
+	GetStakingAddresses() ([]string, error)
+	AddStakingAddress(pwd string, secKey, address string) error
+	RemoveStakingAddress(pwd string, address string) error
+	BuyRolls(pwd string, address string, amount uint64, fee float32) (string, error)
+	SellRolls(pwd string, address string, amount uint64, fee float32) (string, error)
+}
+
+type clientDriver struct {
 	binPath        string
 	nodeDirManager nodeDirManagerPkg.NodeDirManager
 	timeout        time.Duration
@@ -44,14 +38,13 @@ func NewClientDriver(
 	isMainnet bool,
 	nodeDirManager nodeDirManagerPkg.NodeDirManager,
 	timeout time.Duration,
-) (*ClientDriver, error) {
+) (ClientDriver, error) {
 	binPath, err := nodeDirManager.GetClientBin(isMainnet)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client binary path: %v", err)
 	}
 
-	cd := &ClientDriver{
-		isMainnet:      isMainnet,
+	cd := &clientDriver{
 		binPath:        binPath,
 		nodeDirManager: nodeDirManager,
 		timeout:        timeout,
@@ -61,10 +54,12 @@ func NewClientDriver(
 }
 
 // executeCommand executes a massa-client command and returns the output
-func (cd *ClientDriver) executeCommand(args ...string) ([]byte, error) {
+func (cd *clientDriver) executeCommand(args ...string) ([]byte, error) {
 	// Create command with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), cd.timeout)
 	defer cancel()
+
+	args = append(args, "-a")
 
 	cmd := exec.CommandContext(ctx, cd.binPath, args...)
 	cmd.Dir = filepath.Dir(cd.binPath)
@@ -78,53 +73,53 @@ func (cd *ClientDriver) executeCommand(args ...string) ([]byte, error) {
 }
 
 // GetStakingAddresses retrieves all staking addresses
-func (cd *ClientDriver) GetStakingAddresses() ([]StakingAddress, error) {
+func (cd *clientDriver) GetStakingAddresses() ([]string, error) {
 	output, err := cd.executeCommand("node_get_staking_addresses")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get staking addresses list: %v", err)
 	}
 
-	outputStr := strings.ReplaceAll(string(output), "\n", " ")
+	outputStr := strings.Split(string(output), "\n")
 
-	addresses, err := cd.executeCommand("get_addresses", outputStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get staking addresses info: %v", err)
-	}
-
-	resAddresses := []StakingAddress{}
-	err = json.Unmarshal(addresses, &resAddresses)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal staking addresses info: %v", err)
-	}
-
-	return resAddresses, nil
+	return outputStr, nil
 }
 
 // AddStakingAddress adds a new staking address
-func (cd *ClientDriver) AddStakingAddress(pwd string, address string) error {
-	_, err := cd.executeCommand("node_start_staking", "-p", pwd, address)
+func (cd *clientDriver) AddStakingAddress(pwd string, secKey, address string) error {
+
+	_, err := cd.executeCommand("wallet_add_secret_keys", "-p", pwd, secKey)
 	if err != nil {
-		return fmt.Errorf("failed to add staking address %s: %v", address, err)
+		return fmt.Errorf("failed to add address %s to massa client: %v", address, err)
+	}
+
+	_, err = cd.executeCommand("node_start_staking", "-p", pwd, address)
+	if err != nil {
+		return fmt.Errorf("failed to add staking address %s to massa node: %v", address, err)
 	}
 
 	return nil
 }
 
 // RemoveStakingAddress removes a staking address
-func (cd *ClientDriver) RemoveStakingAddress(pwd string, address string) error {
+func (cd *clientDriver) RemoveStakingAddress(pwd string, address string) error {
 	_, err := cd.executeCommand("node_stop_staking", "-p", pwd, address)
 	if err != nil {
-		return fmt.Errorf("failed to remove staking address %s: %v", address, err)
+		return fmt.Errorf("failed to remove staking address %s from massa node: %v", address, err)
+	}
+
+	_, err = cd.executeCommand("wallet_remove_addresses", "-p", pwd, address)
+	if err != nil {
+		return fmt.Errorf("failed to remove address %s from massa client: %v", address, err)
 	}
 
 	return nil
 }
 
 // BuyRolls buys rolls for a specific address
-func (cd *ClientDriver) BuyRolls(pwd string, address string, amount int64, fee int64) (string, error) {
-	output, err := cd.executeCommand("buy_rolls", "-p", pwd, "-j", address, fmt.Sprintf("%d", amount), fmt.Sprintf("%d", fee))
+func (cd *clientDriver) BuyRolls(pwd string, address string, amount uint64, fee float32) (string, error) {
+	output, err := cd.executeCommand("buy_rolls", "-p", pwd, "-j", address, fmt.Sprintf("%d", amount), fmt.Sprintf("%f", fee))
 	if err != nil {
-		return "", fmt.Errorf("failed to buy %d rolls for address %s with fee %d MAS, got error: %v", amount, address, fee, err)
+		return "", fmt.Errorf("failed to buy %d rolls for address %s with fee %f MAS, got error: %v", amount, address, fee, err)
 	}
 
 	// retrieve operation id from response
@@ -141,10 +136,10 @@ func (cd *ClientDriver) BuyRolls(pwd string, address string, amount int64, fee i
 }
 
 // SellRolls sells rolls for a specific address
-func (cd *ClientDriver) SellRolls(pwd string, address string, amount int64, fee int64) (string, error) {
-	output, err := cd.executeCommand("sell_rolls", "-p", pwd, "-j", address, fmt.Sprintf("%d", amount), fmt.Sprintf("%d", fee))
+func (cd *clientDriver) SellRolls(pwd string, address string, amount uint64, fee float32) (string, error) {
+	output, err := cd.executeCommand("sell_rolls", "-p", pwd, "-j", address, fmt.Sprintf("%d", amount), fmt.Sprintf("%f", fee))
 	if err != nil {
-		return "", fmt.Errorf("failed to sell %d rolls for address %s with fee %d MAS, got error: %v", amount, address, fee, err)
+		return "", fmt.Errorf("failed to sell %d rolls for address %s with fee %f MAS, got error: %v", amount, address, fee, err)
 	}
 
 	// retrieve operation id from response

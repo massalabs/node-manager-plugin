@@ -5,6 +5,7 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+	"github.com/massalabs/node-manager-plugin/int/config"
 	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
 )
 
@@ -15,7 +16,17 @@ func HandleStartNode(nodeManager nodeManagerPkg.INodeManager, statusDispatcher n
 			return createErrorResponse(400, "Node is already running")
 		}
 
-		version, err := nodeManager.StartNode(!params.Body.UseBuildnet, params.Body.Password)
+		pwd := params.Body.Password
+
+		if pwd == "" {
+			registeredPwd := config.GlobalPluginInfo.GetPwd()
+			if registeredPwd == "" {
+				return createErrorResponse(400, "Password is required")
+			}
+			pwd = registeredPwd
+		}
+
+		version, err := nodeManager.StartNode(!params.Body.UseBuildnet, pwd)
 		if err != nil {
 			return operations.NewStartNodeInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),

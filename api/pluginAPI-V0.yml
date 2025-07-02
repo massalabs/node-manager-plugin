@@ -148,19 +148,78 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
-  /api/version:
+  /api/stakingAddresses:
     get:
-      description: Get the version of the plugin
-      operationId: GetPluginVersion
+      description: Get the staking addresses
+      operationId: GetStakingAddresses
       produces:
         - application/json
       responses:
         "200":
-          description: Plugin version retrieved successfully
+          description: Staking addresses retrieved successfully
           schema:
-            type: string
+            $ref: "#/definitions/StakingAddresses"
         "500":
-          description: Error retrieving plugin version
+          description: Error retrieving staking addresses
+          schema:
+            $ref: "#/definitions/Error"
+
+    post:
+      description: Add a staking address
+      operationId: AddStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/AddStakingAddressBody"
+      responses:
+        "200":
+          description: Staking address added successfully
+          schema:
+            $ref: "#/definitions/StakingAddress"
+        "500":
+          description: Error adding staking address
+          schema:
+            $ref: "#/definitions/Error"
+
+    put:
+      description: Update a staking address
+      operationId: UpdateStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/UpdateStakingAddressBody"
+      responses:
+        "204":
+          description: Staking address updated successfully
+        "500":
+          description: Error updating staking address
+          schema:
+            $ref: "#/definitions/Error"
+
+    delete:
+      description: Remove a staking address
+      operationId: RemoveStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body    
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/RemoveStakingAddressBody"
+      responses:
+        "204":      
+          description: Staking address removed successfully
+        "500":
+          description: Error removing staking address
           schema:
             $ref: "#/definitions/Error"
 
@@ -198,10 +257,15 @@ definitions:
       version:
         type: string
         description: The version of the node
+      pluginVersion:
+        type: string
+        description: The version of the plugin
       autoRestart:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
-
+      hasPwd:
+        type: boolean
+        description: Whether the node has a password set or not
 
   StartNodeResponse:
     type: object
@@ -209,6 +273,84 @@ definitions:
       version:
         type: string
         description: The version of the launched node
+
+  StakingAddresses:
+    type: object
+    properties:
+      addresses:
+        type: array
+        items:
+          $ref: "#/definitions/StakingAddress"
+  
+  StakingAddress:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The address of the staking address
+      targetRolls:
+        type: integer
+        description: The target rolls of the staking address
+      finalRolls:
+        type: integer
+        description: The final rolls of the staking address
+      finalBalance:
+        type: number
+        description: The final balance of the staking address
+      candidateRolls:
+        type: integer
+        description: The candidate rolls of the staking address
+      candidateBalance:
+        type: number
+        description: The candidate balance of the staking address
+      thread:
+        type: integer
+        description: The thread of the staking address
+      deferredCredits:
+        type: array
+        items:
+          $ref: "#/definitions/DeferredCredit"
+
+  DeferredCredit:
+    type: object
+    properties:
+      slot:
+        type: object
+        properties:
+          period:
+            type: number
+            description: The period of the slot
+          thread:
+            type: number
+            description: The thread of the slot
+        description: The slot of the deferred credit
+      amount:
+        type: number
+        description: The amount of the deferred credit
+
+  AddStakingAddressBody:
+    type: object
+    properties:
+      nickname:
+        type: string
+        description: The nickname of the staking address
+
+  UpdateStakingAddressBody:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The address of the staking address
+      targetRolls:  
+        type: number
+        description: The target rolls of the staking address
+
+  RemoveStakingAddressBody:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The address of the staking address
 
   NodeStatus:
     type: object
