@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
 // import { AiOutlineDashboard } from 'react-icons/ai';
 import { FiHome } from 'react-icons/fi';
-// import { GrMoney } from 'react-icons/gr';
+import { GrMoney } from 'react-icons/gr';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 import { NodeStatusDisplay } from '@/components/NodeStatusDisplay';
@@ -53,13 +53,13 @@ function Base() {
     //   footer: false,
     //   onClickItem: () => navigate(routeFor(Path.dashboard)),
     // },
-    // {
-    //   label: Intl.t('menu.stacking'),
-    //   icon: <GrMoney data-testid="side-menu-stacking-icon" />,
-    //   active: isActive(Path.stacking),
-    //   footer: false,
-    //   onClickItem: () => navigate(routeFor(Path.stacking)),
-    // },
+    {
+      label: Intl.t('menu.stacking'),
+      icon: <GrMoney data-testid="side-menu-stacking-icon" />,
+      active: isActive(Path.stacking),
+      footer: false,
+      onClickItem: () => navigate(routeFor(Path.stacking)),
+    },
     // {
     //   label: themeLabel,
     //   icon: themeIcon,
