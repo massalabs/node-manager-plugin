@@ -13,6 +13,7 @@ import './index.css';
 import Base from '@/pages/Base/Base.tsx';
 import Error from '@/pages/Error.tsx';
 import Home from '@/pages/Home/Home.tsx';
+import StakingPage from '@/pages/Staking/StakingPage.tsx';
 import { Path } from '@/utils/routes.ts';
 
 const baseURL = import.meta.env.VITE_BASE_APP;
@@ -30,10 +31,10 @@ const router = createBrowserRouter(
       <Route path={Path.home} element={<Home />} />
 
       <Route path={Path.dashboard} element={<Home />} />
-      <Route path={Path.stacking} element={<Home />} />
+      <Route path={Path.stacking} element={<StakingPage />} />
 
       {/* routes for errors */}
-      <Route path={'error'} element={<Error />} />
+      <Route path={Path.error} element={<Error />} />
       <Route
         path="*"
         element={

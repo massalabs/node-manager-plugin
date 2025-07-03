@@ -22,7 +22,7 @@ export default function Error() {
           : Intl.t('errors.unexpected-error.description')}
       </p>
       <Link to={routeFor('index')} className="underline">
-        {Intl.t('errors.unexpected-error.link')}
+        {Intl.t('errors.back-to-home-link')}
       </Link>
     </div>
   );

@@ -54,7 +54,6 @@ This function can be used in dependency array, so it needs to be a stable refere
 
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
-        eventSourceRef.current = null;
       }
     };
   }, []);

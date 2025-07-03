@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   toast,
   Password,
-  PopupModal,
-  PopupModalContent,
-  PopupModalHeader,
-  PopupModalFooter,
 } from '@massalabs/react-ui-kit';
 
+import ConfirmModal from '@/components/ConfirmModal';
 import { usePost } from '@/hooks/api/usePost';
 import Intl from '@/i18n/i18n';
 import { startNodeBody, startNodeReponse } from '@/models/nodeInfos';
 import { useNodeStore } from '@/store/nodeStore';
 import { isRunning, networks } from '@/utils';
+import { getErrorPath } from '@/utils/error';
 
 const OnOffBtn: React.FC = () => {
-  // TODO: password handling is not ready for use yet
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [password, setPassword] = useState('');
-
+  const navigate = useNavigate();
   const setVersion = useNodeStore((state) => state.setVersion);
   const status = useNodeStore((state) => state.status);
   const network = useNodeStore((state) => state.network);
-  const nodeRunning = isRunning(status);
+  const hasPwd = useNodeStore((state) => state.hasPwd);
+  const setHasPwd = useNodeStore((state) => state.setHasPwd);
+
   const { mutate: startMutate, isLoading: isStarting } =
     usePost<startNodeReponse>('start') as ReturnType<
       typeof usePost<startNodeReponse>
@@ -32,6 +32,9 @@ const OnOffBtn: React.FC = () => {
     'stop',
   ) as ReturnType<typeof usePost<unknown>>;
 
+
+  const nodeRunning = isRunning(status);
+  
   const handleStart = (password: string) => {
     const payload: startNodeBody = {
       useBuildnet: network === networks.buildnet,
@@ -42,11 +45,21 @@ const OnOffBtn: React.FC = () => {
         if (data && data.version) {
           setVersion(data.version);
         }
+        setHasPwd(true);
         toast.success(Intl.t('home.startSuccess'));
       },
       onError: (err) => {
         console.error('Error starting node:', err);
-        toast.error(Intl.t('home.startError'));
+        navigate(getErrorPath(), {
+          state: {
+            error: {
+              title: Intl.t('errors.start-node.title'),
+              message: Intl.t('errors.start-node.description', {
+                error: err instanceof Error ? err.message : String(err),
+              }),
+            },
+          },
+        });
       },
     });
   };
@@ -64,8 +77,11 @@ const OnOffBtn: React.FC = () => {
 
   const handleClick = () => {
     if (!nodeRunning) {
-      // setIsModalOpen(true);
-      handleStart(password);
+      if (!hasPwd) {
+        setIsPasswordModalOpen(true);
+      } else {
+        handleStart('');
+      }
     } else {
       handleStop();
     }
@@ -73,7 +89,12 @@ const OnOffBtn: React.FC = () => {
 
   const handleSubmitPassword = () => {
     handleStart(password);
-    setIsModalOpen(false);
+    setIsPasswordModalOpen(false);
+    setPassword('');
+  };
+
+  const handleClosePasswordModal = () => {
+    setIsPasswordModalOpen(false);
     setPassword('');
   };
 
@@ -89,42 +110,30 @@ const OnOffBtn: React.FC = () => {
         {nodeRunning ? Intl.t('home.button.off') : Intl.t('home.button.on')}
       </button>
 
-      {isModalOpen && (
-        <PopupModal
-          fullMode={true}
-          customClass="w-[520px] h-[200px]"
-          onClose={() => {
-            setIsModalOpen(false);
-          }}
-        >
-          <PopupModalHeader>
-            <p className="mas-title mb-6">
-              {Intl.t('home.nodePassword.title')}
+      <ConfirmModal
+        isOpen={isPasswordModalOpen}
+        onClose={handleClosePasswordModal}
+        onConfirm={handleSubmitPassword}
+        title={Intl.t('home.nodePassword.title')}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="mas-body">
+            {Intl.t('home.nodePassword.description')}
+          </p>
+          
+          {/* Warning Zone */}
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 text-center">
+            <p className="mas-body text-yellow-300 text-sm">
+              {Intl.t('home.nodePassword.warning')}
             </p>
-          </PopupModalHeader>
-          <PopupModalContent>
-            <div className="flex flex-col gap-4">
-              <p className="mas-body">
-                {Intl.t('home.nodePassword.description')}
-              </p>
-              <Password
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </PopupModalContent>
-          <PopupModalFooter>
-            <div className="flex justify-end w-full mt-4">
-              <button
-                className="bg-green-500 text-white font-bold px-4 py-2 rounded"
-                onClick={handleSubmitPassword}
-              >
-                {Intl.t('home.nodePassword.submit')}
-              </button>
-            </div>
-          </PopupModalFooter>
-        </PopupModal>
-      )}
+          </div>
+          
+          <Password
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+      </ConfirmModal>
     </>
   );
 };

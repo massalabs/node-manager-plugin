@@ -14,7 +14,8 @@ export function isRunning(status: NodeStatus): boolean {
   return status !== NodeStatus.OFF && status !== NodeStatus.CRASHED;
 }
 
-// If the node is running and has finished bootstrapping
-export function isReady(status: NodeStatus): boolean {
-  return status != NodeStatus.BOOTSTRAPPING && isRunning(status);
+export function isStopStakingMonitoring(status: NodeStatus): boolean {
+  return status === NodeStatus.CRASHED || status === NodeStatus.DESYNCED || status === NodeStatus.STOPPING;
 }
+
+
