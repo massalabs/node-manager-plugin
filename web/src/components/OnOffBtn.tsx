@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
-import {
-  toast,
-  Password,
-} from '@massalabs/react-ui-kit';
+import { toast, Password } from '@massalabs/react-ui-kit';
+import { useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { usePost } from '@/hooks/api/usePost';
@@ -32,9 +29,8 @@ const OnOffBtn: React.FC = () => {
     'stop',
   ) as ReturnType<typeof usePost<unknown>>;
 
-
   const nodeRunning = isRunning(status);
-  
+
   const handleStart = (password: string) => {
     const payload: startNodeBody = {
       useBuildnet: network === networks.buildnet,
@@ -117,17 +113,15 @@ const OnOffBtn: React.FC = () => {
         title={Intl.t('home.nodePassword.title')}
       >
         <div className="flex flex-col gap-4">
-          <p className="mas-body">
-            {Intl.t('home.nodePassword.description')}
-          </p>
-          
+          <p className="mas-body">{Intl.t('home.nodePassword.description')}</p>
+
           {/* Warning Zone */}
           <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 text-center">
             <p className="mas-body text-yellow-300 text-sm">
               {Intl.t('home.nodePassword.warning')}
             </p>
           </div>
-          
+
           <Password
             value={password}
             onChange={(e) => setPassword(e.target.value)}

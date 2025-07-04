@@ -1,38 +1,38 @@
 import React, { useEffect, useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 
-import { useNodeStore } from '@/store/nodeStore';
-import { NodeStatus, Path, routeFor } from '@/utils';
-import { isMassaWalletInstalled } from './utils/station';
-
 import DownloadMassaWallet from './DownloadMassaWallet';
-import NodeNotReady from '@/pages/Staking/NodeNotReady';
-import StakingDashboard from './StakingDashboard';
 import Loading from './Loading';
+import StakingDashboard from './StakingDashboard';
+import { isMassaWalletInstalled } from './utils/station';
 import Intl from '@/i18n/i18n';
+import NodeNotReady from '@/pages/Staking/NodeNotReady';
+import { useNodeStore } from '@/store/nodeStore';
+import { goToErrorPage, NodeStatus } from '@/utils';
 
 const StakingPage: React.FC = () => {
   const status = useNodeStore((state) => state.status);
-  const [massaWalletInstalled, setMassaWalletInstalled] = useState<boolean | null>(null);
+  const [massaWalletInstalled, setMassaWalletInstalled] = useState<
+    boolean | null
+  >(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    isMassaWalletInstalled().then((isInstalled) => {
-      setMassaWalletInstalled(isInstalled);
-    }).catch((error) => {
-      console.error('Error checking if Massa Wallet is installed:', error);
-      navigate(routeFor(Path.error), {
-        replace: true,
-        state: {
-          error: {
-            title: Intl.t('errors.massa-wallet-check.title'),
-            message: Intl.t('errors.massa-wallet-check.description', {
-              error: error instanceof Error ? error.message : String(error),
-            }),
-          },
-        },
-      }); 
-    });
+    isMassaWalletInstalled()
+      .then((isInstalled) => {
+        setMassaWalletInstalled(isInstalled);
+      })
+      .catch((error) => {
+        console.error('Error checking if Massa Wallet is installed:', error);
+        goToErrorPage(
+          navigate,
+          Intl.t('errors.massa-wallet-check.title'),
+          Intl.t('errors.massa-wallet-check.description', {
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      });
   }, [navigate]);
 
   // If massaWalletInstalled is null, show fetching round
@@ -51,9 +51,7 @@ const StakingPage: React.FC = () => {
   // If status is not NodeStatus.ON, show node not ready
   if (status !== NodeStatus.ON) {
     return <NodeNotReady />;
-  }  
-
-  
+  }
 };
 
-export default StakingPage; 
+export default StakingPage;

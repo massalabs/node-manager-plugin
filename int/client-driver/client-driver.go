@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	nodeDirManagerPkg "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
@@ -17,6 +16,15 @@ type Slot struct {
 	Thread uint8  `json:"thread"`
 }
 
+type AddressInfo struct {
+	ActiveRolls uint64 `json:"active_rolls"`
+}
+
+// WalletInfo represents wallet information for an address
+type WalletInfo struct {
+	AddressInfo AddressInfo `json:"address_info"`
+}
+
 // ClientDriver handles interactions with the massa-client CLI tool
 
 type ClientDriver interface {
@@ -25,6 +33,7 @@ type ClientDriver interface {
 	RemoveStakingAddress(pwd string, address string) error
 	BuyRolls(pwd string, address string, amount uint64, fee float32) (string, error)
 	SellRolls(pwd string, address string, amount uint64, fee float32) (string, error)
+	WalletInfo(pwd string) (map[string]WalletInfo, error)
 }
 
 type clientDriver struct {
@@ -74,19 +83,22 @@ func (cd *clientDriver) executeCommand(args ...string) ([]byte, error) {
 
 // GetStakingAddresses retrieves all staking addresses
 func (cd *clientDriver) GetStakingAddresses() ([]string, error) {
-	output, err := cd.executeCommand("node_get_staking_addresses")
+	output, err := cd.executeCommand("node_get_staking_addresses", "-j")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get staking addresses list: %v", err)
 	}
 
-	outputStr := strings.Split(string(output), "\n")
+	var addresses []string
+	err = json.Unmarshal(output, &addresses)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal staking addresses: %v", err)
+	}
 
-	return outputStr, nil
+	return addresses, nil
 }
 
 // AddStakingAddress adds a new staking address
 func (cd *clientDriver) AddStakingAddress(pwd string, secKey, address string) error {
-
 	_, err := cd.executeCommand("wallet_add_secret_keys", "-p", pwd, secKey)
 	if err != nil {
 		return fmt.Errorf("failed to add address %s to massa client: %v", address, err)
@@ -153,6 +165,24 @@ func (cd *clientDriver) SellRolls(pwd string, address string, amount uint64, fee
 	}
 
 	return res[0], nil
+}
+
+// WalletInfo retrieves wallet information for all addresses
+func (cd *clientDriver) WalletInfo(pwd string) (map[string]WalletInfo, error) {
+	output, err := cd.executeCommand("wallet_info", "-j", "-p", pwd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet info: %v", err)
+	}
+
+	// Parse the JSON response which is an object with address keys
+	var walletData map[string]WalletInfo
+
+	err = json.Unmarshal(output, &walletData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal wallet info: %v", err)
+	}
+
+	return walletData, nil
 }
 
 // // GetAddressBalance gets the balance of a specific address

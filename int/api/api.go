@@ -68,7 +68,6 @@ func NewAPI(config config.PluginConfig) *API {
 		db,
 		nodeDirManager,
 		uint64(config.StakingAddressDataPollInterval),
-		uint64(config.NodeStatusPollInterval),
 		uint64(config.ClientTimeout),
 	)
 

@@ -2,6 +2,7 @@ package stakingManager
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/awnumar/memguard"
 	WalletPkg "github.com/massalabs/station-massa-wallet/pkg/wallet"
@@ -14,7 +15,9 @@ func getPrivateKeyFromNickname(pwd, nickname string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to create wallet from nickname %s: %v", nickname, err)
 	}
 
-	account, err := wallet.Load(nickname)
+	filePath := path.Join(wallet.WalletPath, WalletPkg.Filename(nickname))
+
+	account, err := wallet.Load(filePath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to load account from nickname %s: %v", nickname, err)
 	}

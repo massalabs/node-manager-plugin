@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { Spinner } from '@massalabs/react-ui-kit';
 
 const Loading: React.FC<{ message?: string }> = ({ message }) => {
@@ -8,12 +9,10 @@ const Loading: React.FC<{ message?: string }> = ({ message }) => {
         <div className="flex justify-center mb-4">
           <Spinner />
         </div>
-        <p className="mas-body text-f-primary text-lg">
-          {message}
-        </p>
+        <p className="mas-body text-f-primary text-lg">{message}</p>
       </div>
     </div>
   );
 };
 
-export default Loading; 
+export default Loading;

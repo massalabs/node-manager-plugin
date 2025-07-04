@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { FiBarChart2 } from 'react-icons/fi';
 
 const HistoryGraph: React.FC = () => {
@@ -9,12 +10,10 @@ const HistoryGraph: React.FC = () => {
       </h3>
       <div className="flex flex-col items-center justify-center h-full">
         <FiBarChart2 className="text-6xl text-gray-400 mb-4" />
-        <p className="text-gray-400 text-sm">
-          Not enough data
-        </p>
+        <p className="text-gray-400 text-sm">Not enough data</p>
       </div>
     </div>
   );
 };
 
-export default HistoryGraph; 
+export default HistoryGraph;

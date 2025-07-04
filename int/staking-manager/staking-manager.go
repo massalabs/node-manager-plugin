@@ -48,6 +48,7 @@ type StakingAddress struct {
 	Address          string           `json:"address"`
 	FinalRolls       uint64           `json:"final_roll_count"`
 	CandidateRolls   uint64           `json:"candidate_roll_count"`
+	ActiveRolls      uint64           `json:"active_roll_count"`
 	FinalBalance     float64          `json:"final_balance"`
 	CandidateBalance float64          `json:"candidate_balance"`
 	Thread           uint8            `json:"thread"`
@@ -55,14 +56,9 @@ type StakingAddress struct {
 	TargetRolls      uint64           `json:"target_rolls"`
 }
 
-// type StakingAddress struct {
-// 	GetAddressesResponse
-// 	TargetRolls uint64 `json:"target_rolls"`
-// }
-
 type StakingManager interface {
 	GetStakingAddresses(pwd string) ([]StakingAddress, AddressChangedDispatcher, error)
-	AddStakingAddress(pwd, nickname string) (StakingAddress, error)
+	AddStakingAddress(pwdNode, pwdAccount, nickname string) (StakingAddress, error)
 	RemoveStakingAddress(pwd, address string) error
 	SetTargetRolls(address string, targetRolls uint64) error
 	Close() error
@@ -77,7 +73,6 @@ type stakingManager struct {
 	nodeStatusDispatcher           nodeStatusPkg.NodeStatusDispatcher
 	addressChangedDispatcher       AddressChangedDispatcher
 	stakingAddressDataPollInterval uint64
-	nodeStatusPollInterval         uint64
 	miscellaneous                  Miscellaneous
 	stopStakingMonitoringFunc      func()
 	closeStakingManagerAsyncFunc   func()
@@ -92,7 +87,6 @@ func NewStakingManager(
 	database dbPkg.DB,
 	nodeDirManager nodeDirManagerPkg.NodeDirManager,
 	stakingAddressDataPollInterval uint64,
-	nodeStatusPollInterval uint64,
 	clientTimeout uint64,
 ) StakingManager {
 	sm := &stakingManager{
@@ -100,7 +94,6 @@ func NewStakingManager(
 		nodeStatusDispatcher:           nodeStatusDispatcher,
 		addressChangedDispatcher:       NewAddressChangedDispatcher(),
 		stakingAddressDataPollInterval: stakingAddressDataPollInterval,
-		nodeStatusPollInterval:         nodeStatusPollInterval,
 		miscellaneous:                  Miscellaneous{},
 		db:                             database,
 		nodeDirManager:                 nodeDirManager,
@@ -129,7 +122,7 @@ func (s *stakingManager) GetStakingAddresses(pwd string) ([]StakingAddress, Addr
 }
 
 // AddStakingAddress add an address to the massa node for staking
-func (s *stakingManager) AddStakingAddress(pwd, nickname string) (StakingAddress, error) {
+func (s *stakingManager) AddStakingAddress(pwdNode, pwdAccount, nickname string) (StakingAddress, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -137,7 +130,7 @@ func (s *stakingManager) AddStakingAddress(pwd, nickname string) (StakingAddress
 		return StakingAddress{}, fmt.Errorf("massa node is not up")
 	}
 
-	privateKey, address, err := getPrivateKeyFromNickname(pwd, nickname)
+	privateKey, address, err := getPrivateKeyFromNickname(pwdAccount, nickname)
 	if err != nil {
 		return StakingAddress{}, fmt.Errorf("failed to get address and priv key from nickname %s: %w", nickname, err)
 	}
@@ -147,7 +140,7 @@ func (s *stakingManager) AddStakingAddress(pwd, nickname string) (StakingAddress
 	}
 
 	// add address to node staking addresses
-	err = s.clientDriver.AddStakingAddress(pwd, privateKey, address)
+	err = s.clientDriver.AddStakingAddress(pwdNode, privateKey, address)
 	if err != nil {
 		return StakingAddress{}, fmt.Errorf("failed to add address %s to node staking addresses: %w", address, err)
 	}
@@ -253,7 +246,7 @@ func (s *stakingManager) Close() error {
 	return nil
 }
 
-func (s *stakingManager) asyncTask(ctx context.Context) error {
+func (s *stakingManager) asyncTask(ctx context.Context) {
 	// when node is up
 	statusOnChan, _ := s.nodeStatusDispatcher.Subscribe([]nodeStatusPkg.NodeStatus{nodeStatusPkg.NodeStatusOn}, "staking-manager-status-on")
 
@@ -270,7 +263,8 @@ func (s *stakingManager) asyncTask(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			logger.Debugf("staking manager async task stopped: %v", ctx.Err())
+			return
 
 		case <-statusOnChan:
 			s.mu.Lock()
@@ -289,12 +283,17 @@ func (s *stakingManager) asyncTask(ctx context.Context) error {
 
 			s.clientDriver = clientDriver
 
+			// Check if miscellaneous data has been initialized
+			if s.miscellaneous.RollPrice == 0 {
+				// if not, fetch it
+				if err := s.fetchMiscellaneousData(); err != nil {
+					logger.Error("failed to fetch miscellaneous data: %v", err)
+				}
+			}
+
 			ctxMonitoring, cancel := context.WithCancel(ctx)
 			s.stopStakingMonitoringFunc = cancel
 			go s.stakingAddressMonitoring(ctxMonitoring)
-
-			// Start node status monitoring
-			go s.nodeStatusMonitoring(ctxMonitoring)
 
 		case <-nodeDownChan:
 			s.mu.Lock()
@@ -362,10 +361,15 @@ func (s *stakingManager) getAddressesDataFromNode(addresses []string) ([]Staking
 		return nil, err
 	}
 
-	return s.convertToStakingAddress(res)
+	walletInfos, err := s.clientDriver.WalletInfo(config.GlobalPluginInfo.GetPwd())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet info: %v", err)
+	}
+
+	return s.convertToStakingAddress(res, walletInfos)
 }
 
-func (s *stakingManager) convertToStakingAddress(addresses []getAddressesResponse) ([]StakingAddress, error) {
+func (s *stakingManager) convertToStakingAddress(addresses []getAddressesResponse, walletInfos map[string]clientDriverPkg.WalletInfo) ([]StakingAddress, error) {
 	stakingAddresses := make([]StakingAddress, len(addresses))
 	for i, addr := range addresses {
 		finalBalance, err := strconv.ParseFloat(addr.FinalBalance, 64)
@@ -380,6 +384,7 @@ func (s *stakingManager) convertToStakingAddress(addresses []getAddressesRespons
 			Address:          addr.Address,
 			FinalRolls:       addr.FinalRolls,
 			CandidateRolls:   addr.CandidateRolls,
+			ActiveRolls:      walletInfos[addr.Address].AddressInfo.ActiveRolls,
 			FinalBalance:     finalBalance,
 			CandidateBalance: candidateBalance,
 			Thread:           addr.Thread,

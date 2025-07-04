@@ -10,7 +10,8 @@ import (
 
 func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.AddStakingAddressParams) middleware.Responder {
 	return func(params operations.AddStakingAddressParams) middleware.Responder {
-		stakingAddress, err := stakingManager.AddStakingAddress(configPkg.GlobalPluginInfo.GetPwd(), params.Body.Nickname)
+		// the first param is the pwd of the node, the second is the pwd to unlock the account file
+		stakingAddress, err := stakingManager.AddStakingAddress(configPkg.GlobalPluginInfo.GetPwd(), params.Body.Password, params.Body.Nickname)
 		if err != nil {
 			return operations.NewAddStakingAddressInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),
@@ -20,6 +21,7 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 			Address:          stakingAddress.Address,
 			TargetRolls:      int64(stakingAddress.TargetRolls),
 			FinalRolls:       int64(stakingAddress.FinalRolls),
+			ActiveRolls:      int64(stakingAddress.ActiveRolls),
 			FinalBalance:     stakingAddress.FinalBalance,
 			CandidateRolls:   int64(stakingAddress.CandidateRolls),
 			CandidateBalance: stakingAddress.CandidateBalance,

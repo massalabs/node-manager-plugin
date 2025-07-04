@@ -1,6 +1,7 @@
 import React from 'react';
-import { FiPower } from 'react-icons/fi';
+
 import { FetchingLine } from '@massalabs/react-ui-kit';
+import { FiPower } from 'react-icons/fi';
 
 import Intl from '@/i18n/i18n';
 
@@ -12,7 +13,7 @@ const NodeNotReady: React.FC = () => {
           <FiPower className="text-6xl text-gray-400" />
         </div>
         <div className="flex justify-center w-full">
-        <FetchingLine width={40} height={4}/>
+          <FetchingLine width={40} height={4} />
         </div>
         <p className="mas-body text-f-primary text-lg">
           {Intl.t('staking.node-not-running')}
@@ -22,4 +23,4 @@ const NodeNotReady: React.FC = () => {
   );
 };
 
-export default NodeNotReady; 
+export default NodeNotReady;

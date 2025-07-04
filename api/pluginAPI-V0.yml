@@ -294,6 +294,9 @@ definitions:
       finalRolls:
         type: integer
         description: The final rolls of the staking address
+      activeRolls:
+        type: integer
+        description: The active rolls of the staking address
       finalBalance:
         type: number
         description: The final balance of the staking address
@@ -334,6 +337,9 @@ definitions:
       nickname:
         type: string
         description: The nickname of the staking address
+      password:
+        type: string
+        description: The password of the staking address
 
   UpdateStakingAddressBody:
     type: object

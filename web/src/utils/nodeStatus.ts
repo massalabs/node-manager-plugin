@@ -15,7 +15,9 @@ export function isRunning(status: NodeStatus): boolean {
 }
 
 export function isStopStakingMonitoring(status: NodeStatus): boolean {
-  return status === NodeStatus.CRASHED || status === NodeStatus.DESYNCED || status === NodeStatus.STOPPING;
+  return (
+    status === NodeStatus.CRASHED ||
+    status === NodeStatus.DESYNCED ||
+    status === NodeStatus.STOPPING
+  );
 }
-
-
