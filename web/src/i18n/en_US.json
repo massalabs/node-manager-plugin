@@ -4,6 +4,33 @@
     "dashboard": "Dashboard",
     "stacking": "Staking"
   },
+  "errors": {
+    "start-node": {
+      "title": "Node setup Error",
+      "description": "Got error while starting the node: {error}"
+    },
+    "node-status": {
+      "title": "Node status Error",
+      "description": "Got error while retrieving node status: {error}"
+    },
+    "massa-wallet-check": {
+      "title": "Massa Wallet Check Error",
+      "description": "Got error while checking if Massa Wallet is installed: {error}"
+    },
+    "load-massa-wallet-accounts": {
+      "title": "Failed Loading Massa Wallet Accounts",
+      "description": "Got error while loading accounts list from Massa Wallet: {error}"
+    },
+    "staking-address-add": {
+      "title": "Failed adding staking address",
+      "description": "Got error while adding staking address: {error}"
+    },
+    "staking-address-delete": {
+      "title": "Failed deleting staking address",
+      "description": "Got error while deleting staking address: {error}"
+    },
+    "back-to-home-link": "Back to home"
+  },
   "home": {
     "title-select-network": "Select a network",
     "title-account-address": "Account address",
@@ -12,7 +39,6 @@
       "off": "OFF"
     },
     "startSuccess": "Massa node started successfully",
-    "startError": "Error while starting the massa node",
     "stopSuccess": "Massa node stopped successfully",
     "stopError": "Error while stopping the massa node",
     "auto-restart": {
@@ -31,7 +57,41 @@
     "nodePassword": {
       "title": "Enter Node Password",
       "description": "Please enter the password to start the node",
-      "submit": "Submit"
+      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again."
+    }
+  },
+  "staking": {
+    "node-not-running": "The node needs to be up to retrieve staking addresses",
+    "loading": "Loading staking addresses...",
+    "addresses-found": "Found {count} staking address(es)",
+    "download-wallet": {
+      "title": "Download Massa Wallet",
+      "description": "Massa station wallet plugin is not installed or not activated. Please install or activate it to be able to import your staking addresses.",
+      "button": "Download Wallet"
+    },
+    "add-address": {
+      "title": "Confirm Add Staking Address",
+      "description": "Node manager plugin need access to {nickname}' account's private key to start staking. Your key will be encrypted with the password you used to start the node.",
+      "warning": "⚠️ Node manager plugin is not a wallet: you will not be able to restore your account's private key from it. So DO NOT remove your account from massa wallet",
+      "address-added": "Staking address added"
+    },
+    "delete-address": {
+      "title": "Delete Staking Address",
+      "message": "Are you sure you want to delete address {address} from node manager? All historic data related to this address will be deleted.",
+      "address-deleted": "Staking address deleted",
+      "failed-deleting-address": "Failed deleting staking address"
+    },
+    "status": {
+      "staking": "Staking",
+      "not-staking": "Not Staking"
+    },
+    "updateRollTarget": {
+      "confirmModal": {
+        "title": "Update Roll Target",
+        "rollBuy": "{rollsToBuy} rolls are going to be bought",
+        "rollSell": "{rollsToSell} rolls are going to be sold",
+        "body": "Change roll target from {address.targetRolls || 0} to {newTargetRolls}."
+      }
     }
   }
 }

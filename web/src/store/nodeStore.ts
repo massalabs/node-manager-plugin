@@ -7,10 +7,14 @@ export interface NodeStoreState {
   network: networks;
   version: string;
   autoRestart: boolean;
+  hasPwd: boolean;
+  pluginVersion: string;
   setStatus: (status: NodeStatus) => void;
   setNetwork: (network: networks) => void;
   setVersion: (version: string) => void;
   setAutoRestart: (autoRestart: boolean) => void;
+  setHasPwd: (hasPwd: boolean) => void;
+  setPluginVersion: (pluginVersion: string) => void;
 }
 
 export const useNodeStore = create<NodeStoreState>((set, get) => ({
@@ -18,6 +22,8 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
   network: networks.mainnet,
   version: '',
   autoRestart: false,
+  hasPwd: false,
+  pluginVersion: '',
   setStatus: (status: NodeStatus) => {
     /*
     if the first status update is not off, it means the node have been launched and that we have reloaded the page
@@ -29,6 +35,8 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
           autoRestart: data.autoRestart ?? false,
           version: data.version,
           network: getNetworkFromVersion(data.version),
+          hasPwd: data.hasPwd,
+          pluginVersion: data.pluginVersion,
         });
       });
     }
@@ -49,5 +57,11 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
   },
   setAutoRestart: (autoRestart: boolean) => {
     set({ autoRestart });
+  },
+  setHasPwd: (hasPwd: boolean) => {
+    set({ hasPwd });
+  },
+  setPluginVersion: (pluginVersion: string) => {
+    set({ pluginVersion });
   },
 }));

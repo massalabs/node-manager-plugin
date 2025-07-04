@@ -5,9 +5,9 @@ import (
 	"time"
 
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	"github.com/massalabs/node-manager-plugin/int/prometheus"
 	"github.com/massalabs/station/pkg/logger"
-	"github.com/massalabs/station/pkg/node"
 )
 
 // NodeMonitoring defines the interface for monitoring node status
@@ -29,13 +29,19 @@ type NodeMonitoring interface {
 type NodeMonitor struct {
 	prometheusDriver prometheus.PrometheusDriver
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher
+	nodeAPI          nodeAPI.NodeAPI
 }
 
 // NewNodeMonitor creates a new NodeMonitor instance
-func NewNodeMonitor(prometheusDriver prometheus.PrometheusDriver, statusDispatcher nodeStatusPkg.NodeStatusDispatcher) NodeMonitoring {
+func NewNodeMonitor(
+	prometheusDriver prometheus.PrometheusDriver,
+	statusDispatcher nodeStatusPkg.NodeStatusDispatcher,
+	nodeAPI nodeAPI.NodeAPI,
+) NodeMonitoring {
 	return &NodeMonitor{
 		prometheusDriver: prometheusDriver,
 		statusDispatcher: statusDispatcher,
+		nodeAPI:          nodeAPI,
 	}
 }
 
@@ -52,7 +58,6 @@ func (nm *NodeMonitor) MonitorBootstrapping(ctx context.Context, interval time.D
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		client := node.NewClient(nodeURL)
 		for {
 			select {
 			case <-ctx.Done():
@@ -62,7 +67,7 @@ func (nm *NodeMonitor) MonitorBootstrapping(ctx context.Context, interval time.D
 				/*Check if the massa node process has finished bootstrapping by sending a request to it's api
 				If the request fails, it means that the node is still bootstrapping*/
 				logger.Debug("Send a get_status request to the massa node to check if it has bootstrapped")
-				_, err := node.Status(client)
+				_, err := nm.nodeAPI.GetStatus()
 				if err != nil {
 					if connRefused(err) {
 						logger.Debug("Connection refused, the massa node is still bootstrapping")

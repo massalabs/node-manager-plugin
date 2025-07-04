@@ -10,6 +10,8 @@ export interface startNodeBody {
 export interface nodeInfosResponse {
   autoRestart: boolean;
   version: string;
+  hasPwd: boolean;
+  pluginVersion: string;
 }
 
 export interface autoRestartBody {

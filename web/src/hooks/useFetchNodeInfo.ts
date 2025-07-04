@@ -7,7 +7,7 @@ import {
 } from '@massalabs/massa-web3';
 import { useQuery } from '@tanstack/react-query';
 
-export const useFetchNodeInfo = (fetchInterval = 5000) => {
+export const useFetchNodeInfo = (fetchInterval = 10000) => {
   const providerRef = useRef<JsonRpcPublicProvider | null>(null);
 
   useEffect(() => {

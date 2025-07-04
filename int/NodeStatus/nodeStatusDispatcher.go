@@ -15,7 +15,7 @@ type NodeStatusDispatcher interface {
 	Publish(status NodeStatus)
 	GetCurrentStatus() NodeStatus
 	SubscribeAll(subscriberName string) (chan NodeStatus, func())
-	Subscribe(status NodeStatus, subscriberName string) (chan NodeStatus, func())
+	Subscribe(status []NodeStatus, subscriberName string) (chan NodeStatus, func())
 }
 
 type NodeStatusDispatcherImpl struct {
@@ -86,35 +86,39 @@ func (n *NodeStatusDispatcherImpl) SubscribeAll(subscriberName string) (chan Nod
 	return eventChan, unsubscribe
 }
 
-func (n *NodeStatusDispatcherImpl) Subscribe(status NodeStatus, subscriberName string) (chan NodeStatus, func()) {
+func (n *NodeStatusDispatcherImpl) Subscribe(statusList []NodeStatus, subscriberName string) (chan NodeStatus, func()) {
 	eventChan := make(chan NodeStatus, 10) // Buffered channel
 
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	if _, ok := n.specificStatusSubscribers[status]; !ok {
-		n.specificStatusSubscribers[status] = make([]NodeStatusSubscriber, 0)
+	for _, status := range statusList {
+		if _, ok := n.specificStatusSubscribers[status]; !ok {
+			n.specificStatusSubscribers[status] = make([]NodeStatusSubscriber, 0)
+		}
+		n.specificStatusSubscribers[status] = append(n.specificStatusSubscribers[status], NodeStatusSubscriber{ch: eventChan, name: subscriberName})
 	}
-	n.specificStatusSubscribers[status] = append(n.specificStatusSubscribers[status], NodeStatusSubscriber{ch: eventChan, name: subscriberName})
 
 	// Create unsubscribe function
 	unsubscribe := func() {
-		n.unsubscribe(status, subscriberName)
+		n.unsubscribe(statusList, subscriberName)
 	}
 
 	return eventChan, unsubscribe
 }
 
-func (n *NodeStatusDispatcherImpl) unsubscribe(status NodeStatus, subscriberName string) {
+func (n *NodeStatusDispatcherImpl) unsubscribe(statusList []NodeStatus, subscriberName string) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	if subscribers, exists := n.specificStatusSubscribers[status]; exists {
-		for i, subscriber := range subscribers {
-			if subscriber.name == subscriberName {
-				n.specificStatusSubscribers[status] = append(subscribers[:i], subscribers[i+1:]...)
-				close(subscriber.ch)
-				break
+	for _, status := range statusList {
+		if subscribers, exists := n.specificStatusSubscribers[status]; exists {
+			for i, subscriber := range subscribers {
+				if subscriber.name == subscriberName {
+					n.specificStatusSubscribers[status] = append(subscribers[:i], subscribers[i+1:]...)
+					close(subscriber.ch)
+					break
+				}
 			}
 		}
 	}
