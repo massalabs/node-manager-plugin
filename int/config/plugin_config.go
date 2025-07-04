@@ -23,7 +23,6 @@ type PluginConfig struct {
 	DesyncCheckInterval            int    `yaml:"desync_check_interval"`
 	RestartCooldown                int    `yaml:"restart_cooldown"`
 	StakingAddressDataPollInterval int    `yaml:"staking_address_data_poll_interval"`
-	NodeStatusPollInterval         int    `yaml:"node_status_poll_interval"`
 	DBPath                         string `yaml:"db_path"`
 }
 
@@ -37,11 +36,10 @@ func defaultPluginConfig() (PluginConfig, error) {
 		NodeLogMaxSize:                 1,
 		MaxLogBackups:                  10,
 		ClientTimeout:                  30,
-		BootstrapCheckInterval:         30,   // Interval at which the node is checked if it has bootstrapped
-		DesyncCheckInterval:            30,   // Interval at which the node is checked if it is desynced
-		RestartCooldown:                5,    // Time to wait before restarting the node
-		StakingAddressDataPollInterval: 30,   // Time to wait before polling the staking address data
-		NodeStatusPollInterval:         1800, // Time to wait before polling the node status (30 minutes in seconds)
+		BootstrapCheckInterval:         30, // Interval at which the node is checked if it has bootstrapped
+		DesyncCheckInterval:            30, // Interval at which the node is checked if it is desynced
+		RestartCooldown:                5,  // Time to wait before restarting the node
+		StakingAddressDataPollInterval: 30, // Time to wait before polling the staking address data
 		DBPath:                         filepath.Join(filepath.Dir(execPath), "./db.sqlite"),
 	}, nil
 }

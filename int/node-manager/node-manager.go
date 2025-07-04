@@ -41,10 +41,6 @@ type NodeManager struct {
 	statusDispatcher  nodeStatusPkg.NodeStatusDispatcher
 }
 
-const (
-	nodeURL = "http://localhost:33035"
-)
-
 // NewNodeManager creates a new NodeManager instance
 func NewNodeManager(
 	config config.PluginConfig,

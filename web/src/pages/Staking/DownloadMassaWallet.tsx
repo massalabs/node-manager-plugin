@@ -16,23 +16,22 @@ const DownloadMassaWallet: React.FC = () => {
       <div className="text-center max-w-md">
         <div className="mb-6">
           <div className="flex justify-center">
-            <MassaWallet className="w-400 h-300"/>
+            <MassaWallet className="w-400 h-300" />
           </div>
-          
-         
         </div>
-        
+
         <h2 className="mas-title mb-4">
           {Intl.t('staking.download-wallet.title')}
         </h2>
-        
+
         <p className="mas-body text-f-primary mb-6">
           {Intl.t('staking.download-wallet.description')}
         </p>
-        
+
         <button
           onClick={handleDownloadClick}
-          className="bg-green-500 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 mx-auto"
+          className="bg-green-500 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-600
+          transition-colors flex items-center gap-2 mx-auto"
         >
           <FiDownload className="w-5 h-5" />
           {Intl.t('staking.download-wallet.button')}
@@ -42,4 +41,4 @@ const DownloadMassaWallet: React.FC = () => {
   );
 };
 
-export default DownloadMassaWallet; 
+export default DownloadMassaWallet;

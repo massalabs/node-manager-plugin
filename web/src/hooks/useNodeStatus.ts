@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
-import { getErrorPath, NodeStatus } from '@/utils';
+import { goToErrorPage, NodeStatus } from '@/utils';
 
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -32,16 +32,13 @@ This function can be used in dependency array, so it needs to be a stable refere
     eventSource.onerror = (err) => {
       console.error('node status retrieving SSE error:', err);
       eventSource.close();
-      navigate(getErrorPath(), {
-        state: {
-          error: {
-            title: intl.t('errors.node-status.title'),
-            message: intl.t('errors.node-status.description', {
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          },
-        },
-      });
+      goToErrorPage(
+        navigate,
+        intl.t('errors.node-status.title'),
+        intl.t('errors.node-status.description', {
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
     };
 
     eventSourceRef.current = eventSource;

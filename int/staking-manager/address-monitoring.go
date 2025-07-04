@@ -12,32 +12,6 @@ import (
 	"github.com/massalabs/station/pkg/logger"
 )
 
-// nodeStatusMonitoring fetches the node status every nodeStatusPollInterval seconds and store some values in miscellaneous field
-func (s *stakingManager) nodeStatusMonitoring(ctx context.Context) {
-
-	// Fetch miscellaneous data on startup
-	err := s.fetchMiscellaneousData()
-	if err != nil {
-		logger.Error("failed to fetch miscellaneous data: %v", err)
-	}
-
-	ticker := time.NewTicker(time.Duration(s.nodeStatusPollInterval) * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			err := s.fetchMiscellaneousData()
-			if err != nil {
-				logger.Error("failed to fetch miscellaneous data: %v", err)
-				continue
-			}
-		}
-	}
-}
-
 // fetchMiscellaneousData fetches the node status and store some values in miscellaneous field
 func (s *stakingManager) fetchMiscellaneousData() error {
 	status, err := s.nodeAPI.GetStatus()
@@ -90,6 +64,7 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 			currentAddresses := s.getAddressesFromRamList()
 
 			if len(currentAddresses) == 0 {
+				s.mu.Unlock()
 				logger.Debug("no staking addresses found in ram list")
 				continue
 			}
@@ -97,12 +72,10 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 			// Update staking addresses data
 			newAddresses, err := s.getAddressesDataFromNode(currentAddresses)
 			if err != nil {
+				s.mu.Unlock()
 				logger.Error("failed to retrieve staking addresses from node: %v", err)
 				continue
 			}
-
-			// Handle whether we need to buy or sell rolls to reach the roll target
-			s.handleRollsUpdates(newAddresses)
 
 			/* If the front is listening to address data changes (if the addressChangedDispatcher has subscribers),
 			update the staking addresses list in ram and publish the new staking address data to front
@@ -114,6 +87,10 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 					s.addressChangedDispatcher.Publish(s.stakingAddresses)
 				}
 			}
+			s.mu.Unlock()
+
+			// Handle whether we need to buy or sell rolls to reach the roll target
+			s.handleRollsUpdates(newAddresses)
 
 			// get total value of all staking addresses and save to database if it has changed
 			newTotalValue := s.getTotalValue()
@@ -130,7 +107,6 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 				totalValue = newTotalValue
 			}
 
-			s.mu.Unlock()
 		}
 	}
 }
@@ -154,6 +130,11 @@ func (s *stakingManager) updateStakingAddresses(newAddresses []StakingAddress) b
 		if s.stakingAddresses[index].FinalRolls != newAddress.FinalRolls {
 			updated = true
 			s.stakingAddresses[index].FinalRolls = newAddress.FinalRolls
+		}
+
+		if s.stakingAddresses[index].ActiveRolls != newAddress.ActiveRolls {
+			updated = true
+			s.stakingAddresses[index].ActiveRolls = newAddress.ActiveRolls
 		}
 
 		if s.stakingAddresses[index].FinalBalance != newAddress.FinalBalance {
