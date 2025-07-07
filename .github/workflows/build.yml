@@ -60,7 +60,16 @@ jobs:
           OS: ${{ matrix.target }}
           ARCH: ${{ matrix.arch }}
           VERSION: ${{ inputs.tag_name }}
-      
+
+      - name: Sign Macos binary
+        uses: massalabs/massa/.github/actions/sign-macos@ccc3f02e34544f722634a6fb7732cc4bb515e90b
+        if: ${{ runner.os == 'macOS' }}
+        with:
+          paths: "build/node-manager-plugin"
+          certificate-p12-base64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          certificate-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          signing-identity: ${{ vars.APPLE_DEVELOPER_ID_APPLICATION }}
+
       - name: Rename Plugin artifact
         run: 
           mv build/node-manager-plugin${{ matrix.ext }} ${{ env.TARGET_NAME }}${{ matrix.ext }}
