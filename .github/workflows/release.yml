@@ -71,6 +71,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      TARGET_NAME: node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -96,22 +98,29 @@ jobs:
 
       - name: make bin executable
         run: |
-          chmod +x node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}/*
+          chmod +x ${{ env.TARGET_NAME }}/*
 
       - name : zip package
         shell: bash
         run: |
-          TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
+          zip -j ${{ env.TARGET_NAME }}.zip web/public/favicon.ico manifest.json ${{ env.TARGET_NAME }}/*
+          cd build && zip -r ../${{ env.TARGET_NAME }}.zip node-massa
 
-          zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}/*
-          cd build && zip -r ../${TARGET_NAME}.zip node-massa
+      - name: Notarize zip for MacOS ${{ matrix.arch }}
+        uses: massalabs/massa/.github/actions/notarize-macos@ccc3f02e34544f722634a6fb7732cc4bb515e90b
+        if: matrix.target == 'darwin'
+        with:
+          paths: "${{ env.TARGET_NAME }}.zip"
+          apple-id: ${{ secrets.APPLE_ID }}
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
+          apple-app-password: ${{ secrets.APPLE_APP_PASSWORD }}
 
       - name: Upload zip package
         uses: actions/upload-artifact@v4
         with:
           name: release-zip-node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
           path: |
-            node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}.zip
+            ${{ env.TARGET_NAME }}.zip
 
           
   create-release:
