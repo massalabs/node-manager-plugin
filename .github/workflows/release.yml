@@ -104,7 +104,7 @@ jobs:
           TARGET_NAME=node-manager-plugin_${{ matrix.target }}-${{ matrix.arch }}
 
           zip -j ${TARGET_NAME}.zip web/public/favicon.ico manifest.json ${TARGET_NAME}/*
-          cd build && zip -r ../${TARGET_NAME}.zip node-massa && cd ..
+          cd build && zip -r ../${TARGET_NAME}.zip node-massa
 
       - name: Upload zip package
         uses: actions/upload-artifact@v4
