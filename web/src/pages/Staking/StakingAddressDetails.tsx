@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiInfo } from 'react-icons/fi';
+
 import {
   SidePanel,
   Balance,
@@ -7,13 +7,16 @@ import {
   Input,
   Button,
   AccordionCategory,
+  Clipboard,
+  maskAddress,
 } from '@massalabs/react-ui-kit';
+import { FiInfo, FiX } from 'react-icons/fi';
 
-import { StakingAddress } from '@/models/staking';
-import { useStakingAddress } from '@/hooks/useStakingAddress';
-import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
+import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
+import { DeferredCredit, StakingAddress } from '@/models/staking';
 
 interface StakingAddressDetailsProps {
   isOpen: boolean;
@@ -26,24 +29,31 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   onClose,
   address,
 }) => {
-  const [targetRolls, setTargetRolls] = useState(address.targetRolls);
+  const [targetRolls, setTargetRolls] = useState(address.target_rolls);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [newTargetRolls, setNewTargetRolls] = useState(0);
-  
+
   const { updateStakingAddress } = useStakingAddress();
   const { data: nodeInfo } = useFetchNodeInfo();
+
+  // Helper function to format MAS with 2 decimal places
+  const formatMas = (masAmount: number): string => {
+    return masAmount.toFixed(2);
+  };
 
   // SidePanel component doesn't provide a way to handle the open/close state of the panel programmatically
   // so we need to simulate a click on the toggle dropdown button to open and closethe panel
   const clickSidePanelButton = () => {
-    const sidePanel = document.querySelector('[data-panel-type="staking-address-details"]');
+    const sidePanel = document.querySelector(
+      '[data-panel-type="staking-address-details"]',
+    );
     if (sidePanel) {
       const button = sidePanel.querySelector('button') as HTMLButtonElement;
       if (button) {
         button.click();
       }
     }
-  }
+  };
 
   // Effect to trigger SidePanel dropdown when isOpen becomes true
   useEffect(() => {
@@ -55,12 +65,11 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   const pannelClose = () => {
     clickSidePanelButton();
     onClose();
-  }
+  };
 
-  
   const handleValidateClick = () => {
     const newTarget = targetRolls;
-    if (newTarget !== address.targetRolls) {
+    if (newTarget !== address.target_rolls) {
       setNewTargetRolls(targetRolls);
       setIsConfirmModalOpen(true);
     }
@@ -70,7 +79,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
     const newTarget = newTargetRolls;
     updateStakingAddress.mutate({
       address: address.address,
-      targetRolls: newTarget,
+      target_rolls: newTarget,
     });
     setIsConfirmModalOpen(false);
   };
@@ -80,25 +89,44 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   };
 
   const getTargetChangeMessage = () => {
-    const currentTarget = address.targetRolls;
+    const currentTarget = address.target_rolls;
     const newTarget = newTargetRolls;
     const rollPrice = Number(nodeInfo?.config?.rollPrice) || 100;
-    const finalBalance = address.finalBalance;
+    const finalBalance = address.final_balance;
 
     if (newTarget > currentTarget && Math.floor(finalBalance / rollPrice) > 0) {
       const maxRollsToBuy = Math.min(
         Math.floor(finalBalance / rollPrice), // number of rolls that can be bought with current MAS balance
-        newTarget - currentTarget // number of rolls that are needed to reach the new target
+        newTarget - currentTarget, // number of rolls that are needed to reach the new target
       );
-      return Intl.t('staking.updateRollTarget.confirmModal.rollBuy', { rollsToBuy: maxRollsToBuy.toString() });
+      return (
+        ' ' +
+        Intl.t('staking.updateRollTarget.confirmModal.rollBuy', {
+          rollsToBuy: maxRollsToBuy.toString(),
+        })
+      );
     } else if (newTarget < currentTarget) {
-      return Intl.t('staking.updateRollTarget.confirmModal.rollSell', { rollsToSell: (currentTarget - newTarget).toString() });
+      return (
+        ' ' +
+        Intl.t('staking.updateRollTarget.confirmModal.rollSell', {
+          rollsToSell: (currentTarget - newTarget).toString(),
+        })
+      );
     }
     return '';
   };
 
+  const getDeferredCreditReleaseDate = (credit: DeferredCredit) => {
+    const periodDiff =
+      credit.slot.period -
+      (nodeInfo?.executionStats?.activeCursor?.period || 0);
+    const periodLength = nodeInfo?.config?.t0 || 0;
+    const releaseTime = periodDiff * periodLength;
+    return new Date(Date.now() + releaseTime * 1000);
+  };
+
   const getDeferredCreditsTable = () => {
-    if (!address.deferredCredits || address.deferredCredits.length === 0) {
+    if (!address.deferred_credits || address.deferred_credits.length === 0) {
       return <p className="text-gray-400">No deferred credits</p>;
     }
 
@@ -106,25 +134,22 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
       <table className="min-w-full divide-y divide-gray-600">
         <thead className="bg-gray-700">
           <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/4">
               Amount
             </th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-3/4">
               Approx Release Date
             </th>
           </tr>
         </thead>
         <tbody className="bg-secondary divide-y divide-gray-600">
-          {address.deferredCredits.map((credit, index) => {
-            const periodDiff = credit.slot.period - (nodeInfo?.executionStats?.activeCursor?.period || 0);
-            const periodLength = nodeInfo?.config?.t0 || 0;
-            const releaseTime = periodDiff * periodLength;
-            const releaseDate = new Date(Date.now() + releaseTime * 1000);
+          {address.deferred_credits.map((credit, index) => {
+            const releaseDate = getDeferredCreditReleaseDate(credit);
 
             return (
               <tr key={index} className="border-b border-gray-600">
                 <td className="px-4 py-2 text-sm">
-                  <Balance amount={credit.amount.toString()} />
+                  <Balance size="xs" amount={formatMas(credit.amount)} />
                 </td>
                 <td className="px-4 py-2 text-sm text-f-primary">
                   {releaseDate.toLocaleString()}
@@ -139,107 +164,164 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
 
   return (
     <>
-     {isOpen && (<SidePanel
-        customClass="w-96"
-        data-panel-type="staking-address-details"
-        onClose={pannelClose}
-      >
-        <div className="flex flex-col gap-6 p-6">
-          {/* Address */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Address</h3>
-            <p className="text-f-primary font-mono text-sm break-all">{address.address}</p>
-          </div>
+      {isOpen && (
+        <SidePanel
+          customClass="w-110"
+          data-panel-type="staking-address-details"
+          onClose={pannelClose}
+        >
+          <div className="flex flex-col gap-6 p-10 relative">
+            {/* Close Button */}
+            <button
+              onClick={pannelClose}
+              className="absolute top-2 right-2 p-1 text-gray-400 hover:text-white transition-colors z-10"
+              title="Close"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
 
-          {/* Thread */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Thread</h3>
-            <p className="text-f-primary">{address.thread}</p>
-          </div>
-
-          {/* Balances */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Candidate Balance</h3>
-              <Balance amount={address.candidateBalance.toString()} />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Final Balance</h3>
-              <Balance amount={address.finalBalance.toString()} />
-            </div>
-          </div>
-
-          {/* Rolls */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-1">
-                Active Rolls
-                <Tooltip body="It takes 3 cycles (about 1h40min) for new rolls to become active and be used for staking">
-                  <FiInfo className="w-3 h-3 text-gray-400" />
-                </Tooltip>
-              </h3>
-              <p className="text-f-primary">{address.activeRolls}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Final Rolls</h3>
-              <p className="text-f-primary">{address.finalRolls}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Candidate Rolls</h3>
-              <p className="text-f-primary">{address.candidateRolls}</p>
-            </div>
-          </div>
-
-          {/* Deferred Credits */}
-          <div>
-            <AccordionCategory
-              categoryTitle={
-                <div className="flex items-center justify-between w-full">
-                  <span className="flex items-center gap-1">
-                    Deferred Credits
-                    <Tooltip body="When rolls are sold, staked MAS are frozen for a cycle before they can be spent">
-                      <FiInfo className="w-3 h-3 text-gray-400" />
-                    </Tooltip>
-                  </span>
-                  <span className="text-sm text-gray-400">
-                    {address.deferredCredits?.length || 0}
-                  </span>
+            {/* Address and Thread */}
+            <div className="flex items-start gap-4">
+              {/* Address */}
+              <div className="w-1/2">
+                <div className="flex items-center gap-2 h-8">
+                  <h3 className="text-sm font-medium text-gray-300 whitespace-nowrap">
+                    Address:
+                  </h3>
+                  <div className="flex-1 min-w-0">
+                    <Clipboard
+                      rawContent={address.address}
+                      displayedContent={maskAddress(address.address)}
+                    />
+                  </div>
                 </div>
-              }
-            >
-              <div className="mt-4">
-                {getDeferredCreditsTable()}
               </div>
-            </AccordionCategory>
-          </div>
 
-          {/* Set Roll Target */}
-          <div className="border-t border-gray-600 pt-6">
-            <h3 className="text-sm font-medium text-gray-300 mb-2">Set Roll Target</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Set the expected number of rolls for this address. Node manager will automatically sell or buy (within the limit of available MAS funds) rolls to match this target
-            </p>
-            
-            <div className="flex items-center gap-2 mb-4">
-              <Tooltip body={`1 roll = ${nodeInfo?.config?.rollPrice || 0} MAS`}>
-                <FiInfo className="w-4 h-4 text-gray-400" />
-              </Tooltip>
-              <Input
-                value={targetRolls}
-                onChange={(e) => setTargetRolls(Number(e.target.value))}
-                placeholder="Enter target rolls"
-                type="number"
-                min="0"
-              />
+              {/* Thread */}
+              <div className="w-1/2">
+                <div className="flex items-center justify-end gap-2 h-8">
+                  <h3 className="text-sm font-medium text-gray-300 whitespace-nowrap">
+                    Thread:
+                  </h3>
+                  <p className="text-f-primary text-sm">{address.thread}</p>
+                </div>
+              </div>
             </div>
 
-            <Button
-              variant="primary"
-              onClick={handleValidateClick}
-              disabled={Number(targetRolls) === address.targetRolls}
-            >
-              Validate
-            </Button>
+            <hr className="h-1 border-t-0 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60" />
+
+            {/* Balances */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                  Candidate Balance
+                </h3>
+                <Balance
+                  size="xs"
+                  amount={formatMas(address.candidate_balance)}
+                />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                  Final Balance
+                </h3>
+                <Balance size="xs" amount={formatMas(address.final_balance)} />
+              </div>
+            </div>
+
+            <hr className="h-1 border-t-0 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60" />
+
+            {/* Rolls */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                  Candidate Rolls
+                </h3>
+                <p className="text-f-primary">{address.candidate_roll_count}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-300 mb-1">
+                  Final Rolls
+                </h3>
+                <p className="text-f-primary">{address.final_roll_count}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-300 mb-1 flex items-center gap-1">
+                  Active Rolls
+                  <Tooltip
+                    body={Intl.t(
+                      'staking.stakingAddressDetails.active-rolls-tooltip',
+                    )}
+                  >
+                    <FiInfo className="w-3 h-3 text-gray-400" />
+                  </Tooltip>
+                </h3>
+                <p className="text-f-primary">{address.active_roll_count}</p>
+              </div>
+            </div>
+
+            {/* Deferred Credits */}
+            <div>
+              <AccordionCategory
+                categoryTitle={
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-1">
+                      Deferred Credits
+                      <Tooltip
+                        body={Intl.t(
+                          'staking.stakingAddressDetails.deferred-credits-tooltip',
+                        )}
+                      >
+                        <FiInfo className="w-3 h-3 text-gray-400" />
+                      </Tooltip>
+                    </span>
+                    <span className="text-sm text-gray-400 mr-5">
+                      ({address.deferred_credits?.length || 0})
+                    </span>
+                  </div>
+                }
+              >
+                <div className="mt-2">{getDeferredCreditsTable()}</div>
+              </AccordionCategory>
+            </div>
+
+            {/* Set Roll Target */}
+            <div className="border-t border-gray-600 pt-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-1">
+                Set Roll Target
+              </h3>
+              <p className="text-sm text-gray-400 mb-3">
+                Set the expected number of rolls for this address. Node manager
+                will automatically sell or buy (within the limit of available
+                MAS funds) rolls to match this target
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Tooltip
+                  body={`1 roll = ${nodeInfo?.config?.rollPrice || 0} MAS`}
+                >
+                  <FiInfo className="w-4 h-4 text-gray-400" />
+                </Tooltip>
+                <Input
+                  value={targetRolls}
+                  onChange={(e) => setTargetRolls(Number(e.target.value))}
+                  placeholder="Enter target rolls"
+                  type="number"
+                  min="0"
+                />
+                <Button
+                  variant="primary"
+                  onClick={handleValidateClick}
+                  disabled={Number(targetRolls) === address.target_rolls}
+                  customClass={`px-3 py-1 text-sm ${
+                    Number(targetRolls) === address.target_rolls
+                      ? 'bg-gray-500 hover:bg-gray-500 opacity-75 cursor-not-allowed'
+                      : 'bg-green-500 hover:bg-green-600'
+                  }`}
+                >
+                  Validate
+                </Button>
+              </div>
             </div>
           </div>
         </SidePanel>
@@ -253,7 +335,10 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
       >
         <div className="flex flex-col gap-4">
           <p className="mas-body text-f-primary">
-            {Intl.t('staking.updateRollTarget.confirmModal.body', { addressTargetRolls: address.targetRolls.toString(), newTargetRolls: newTargetRolls.toString() })}
+            {Intl.t('staking.updateRollTarget.confirmModal.body', {
+              currentTargetRolls: address.target_rolls.toString(),
+              newTargetRolls: newTargetRolls.toString(),
+            })}
             {getTargetChangeMessage()}
           </p>
         </div>
@@ -262,4 +347,4 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   );
 };
 
-export default StakingAddressDetails; 
+export default StakingAddressDetails;

@@ -7,13 +7,15 @@ export interface NodeStoreState {
   network: networks;
   version: string;
   autoRestart: boolean;
-  hasPwd: boolean;
+  hasPwdMainnet: boolean;
+  hasPwdBuildnet: boolean;
   pluginVersion: string;
   setStatus: (status: NodeStatus) => void;
   setNetwork: (network: networks) => void;
   setVersion: (version: string) => void;
   setAutoRestart: (autoRestart: boolean) => void;
-  setHasPwd: (hasPwd: boolean) => void;
+  getHasPwd: () => boolean;
+  setHasPwd: (hasPwd: boolean, network?: networks) => void;
   setPluginVersion: (pluginVersion: string) => void;
 }
 
@@ -22,20 +24,22 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
   network: networks.mainnet,
   version: '',
   autoRestart: false,
-  hasPwd: false,
+  hasPwdMainnet: false,
+  hasPwdBuildnet: false,
   pluginVersion: '',
   setStatus: (status: NodeStatus) => {
     /*
     if the first status update is not off, it means the node have been launched and that we have reloaded the page
     This means that various store values are not default and we need to retrieve them.
     */
-    if (status !== NodeStatus.OFF && get().status === NodeStatus.UNSET) {
+    if (get().status === NodeStatus.UNSET) {
       getPluginInfos().then((data) => {
         set({
           autoRestart: data.autoRestart ?? false,
           version: data.version,
           network: getNetworkFromVersion(data.version),
-          hasPwd: data.hasPwd,
+          hasPwdMainnet: data.hasPwdMainnet,
+          hasPwdBuildnet: data.hasPwdBuildnet,
           pluginVersion: data.pluginVersion,
         });
       });
@@ -58,8 +62,18 @@ export const useNodeStore = create<NodeStoreState>((set, get) => ({
   setAutoRestart: (autoRestart: boolean) => {
     set({ autoRestart });
   },
-  setHasPwd: (hasPwd: boolean) => {
-    set({ hasPwd });
+  setHasPwd: (hasPwd: boolean, network?: networks) => {
+    const net = network ?? get().network;
+    if (net === networks.mainnet) {
+      set({ hasPwdMainnet: hasPwd });
+    } else if (net === networks.buildnet) {
+      set({ hasPwdBuildnet: hasPwd });
+    }
+  },
+  getHasPwd: () => {
+    return get().network === networks.mainnet
+      ? get().hasPwdMainnet
+      : get().hasPwdBuildnet;
   },
   setPluginVersion: (pluginVersion: string) => {
     set({ pluginVersion });

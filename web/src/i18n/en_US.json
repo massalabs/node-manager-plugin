@@ -57,7 +57,8 @@
     "nodePassword": {
       "title": "Enter Node Password",
       "description": "Please enter the password to start the node",
-      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again."
+      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again.",
+      "error": "Invalid password. Please check your password and try again."
     }
   },
   "staking": {
@@ -85,12 +86,16 @@
       "staking": "Staking",
       "not-staking": "Not Staking"
     },
-    "updateRollTarget": {
-      "confirmModal": {
-        "title": "Update Roll Target",
-        "rollBuy": "{rollsToBuy} rolls are going to be bought",
-        "rollSell": "{rollsToSell} rolls are going to be sold",
-        "body": "Change roll target from {address.targetRolls || 0} to {newTargetRolls}."
+    "stakingAddressDetails": {
+      "active-rolls-tooltip": "It takes 3 cycles (about 1h40min) for new rolls to become active and be used for staking",
+      "deferred-credits-tooltip": "When rolls are sold, staked MAS are frozen for a cycle before they can be spent",
+      "updateRollTarget": {
+        "confirmModal": {
+          "title": "Update Roll Target",
+          "rollBuy": "You are going to buy {rollsToBuy} rolls",
+          "rollSell": "You are going to sell {rollsToSell} rolls",
+          "body": "Change roll target from {currentTargetRolls} to {newTargetRolls}."
+        }
       }
     }
   }

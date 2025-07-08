@@ -15,7 +15,7 @@ import (
 )
 
 type NodeLogManager struct {
-	config config.PluginConfig
+	config *config.PluginConfig
 	re     *regexp.Regexp
 }
 
@@ -29,7 +29,7 @@ const (
 	NodeLogFileExtension = ".log"
 )
 
-func NewNodeLogManager(config config.PluginConfig) (*NodeLogManager, error) {
+func NewNodeLogManager(config *config.PluginConfig) (*NodeLogManager, error) {
 	// Exemple : node-2024-06-07T12-34-56.789.log
 	re, err := regexp.Compile(regexp.QuoteMeta(NodeLogFileBaseName) + `-(\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}\\.\\d{3})` + regexp.QuoteMeta(NodeLogFileExtension))
 	if err != nil {

@@ -18,14 +18,14 @@ export const useStakingStore = create<StakingStoreState>((set) => ({
   stakingAddresses: [
     {
       address: 'AU12h9c7mHSf8jVZLCpVGFXzqzMZvqXG8t8kfn8dqSwFu5PVxgqnc',
-      finalBalance: 1000000,
-      targetRolls: 2,
-      finalRolls: 1,
-      candidateRolls: 1,
-      activeRolls: 1,
-      candidateBalance: 1000000,
+      final_balance: 1000000.773,
+      target_rolls: 2,
+      final_roll_count: 1,
+      candidate_roll_count: 1,
+      active_roll_count: 1,
+      candidate_balance: 1000000.33,
       thread: 1,
-      deferredCredits: [
+      deferred_credits: [
         {
           amount: 500000,
           slot: {

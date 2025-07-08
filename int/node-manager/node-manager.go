@@ -28,7 +28,7 @@ type INodeManager interface {
 
 type NodeManager struct {
 	mu                sync.Mutex
-	config            config.PluginConfig
+	config            *config.PluginConfig
 	status            nodeStatusPkg.NodeStatus
 	buildnetLogger    io.WriteCloser
 	mainnetLogger     io.WriteCloser
@@ -43,7 +43,7 @@ type NodeManager struct {
 
 // NewNodeManager creates a new NodeManager instance
 func NewNodeManager(
-	config config.PluginConfig,
+	config *config.PluginConfig,
 	nodeDirManager NodeDirManager.NodeDirManager,
 	nodeMonitor NodeMonitoring,
 	nodeDriver nodeDriver.NodeDriver,
@@ -95,8 +95,8 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	nodeMana.setStatus(nodeStatus.NodeStatusBootstrapping)
 
 	// Update global plugin info
-	config.GlobalPluginInfo.SetPwd(pwd)
 	config.GlobalPluginInfo.SetIsMainnet(isMainnet)
+	config.GlobalPluginInfo.SetPwd(pwd)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	nodeMana.cancelAsyncTask = cancel

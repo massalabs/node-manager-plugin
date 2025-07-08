@@ -153,7 +153,7 @@ paths:
       description: Get the staking addresses
       operationId: GetStakingAddresses
       produces:
-        - application/json
+        - text/event-stream
       responses:
         "200":
           description: Staking addresses retrieved successfully
@@ -223,6 +223,27 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
+  /api/valueHistory:
+    get:
+      description: Get historic data of total value owned by staking addresses on the node
+      operationId: GetValueHistory
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: since
+          required: true
+          type: string
+          description: The date since which we want to get the value history
+      responses:  
+        "200":
+          description: Value history retrieved successfully
+          schema:
+            $ref: "#/definitions/ValueHistory"
+        "500":
+          description: Error retrieving value history
+          schema:
+            $ref: "#/definitions/Error"
   
 definitions:
   Error:
@@ -263,9 +284,12 @@ definitions:
       autoRestart:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
-      hasPwd:
+      hasPwdMainnet:
         type: boolean
-        description: Whether the node has a password set or not
+        description: Whether the node has a password set for mainnet
+      hasPwdBuildnet:
+        type: boolean
+        description: Whether the node has a password set for buildnet
 
   StartNodeResponse:
     type: object
@@ -364,3 +388,16 @@ definitions:
       status:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
+
+  ValueHistory:
+    type: array
+    items:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: The timestamp of the history entry
+        totalValue:
+          type: number
+          description: The total value at this timestamp

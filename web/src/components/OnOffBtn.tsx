@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
 import { toast, Password } from '@massalabs/react-ui-kit';
+import { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/ConfirmModal';
@@ -8,17 +9,18 @@ import { usePost } from '@/hooks/api/usePost';
 import Intl from '@/i18n/i18n';
 import { startNodeBody, startNodeReponse } from '@/models/nodeInfos';
 import { useNodeStore } from '@/store/nodeStore';
-import { isRunning, networks } from '@/utils';
-import { getErrorPath } from '@/utils/error';
+import { getErrorMessage, isRunning, networks } from '@/utils';
+import { goToErrorPage } from '@/utils/routes';
 
 const OnOffBtn: React.FC = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
   const setVersion = useNodeStore((state) => state.setVersion);
   const status = useNodeStore((state) => state.status);
   const network = useNodeStore((state) => state.network);
-  const hasPwd = useNodeStore((state) => state.hasPwd);
+  const getHasPwd = useNodeStore((state) => state.getHasPwd);
   const setHasPwd = useNodeStore((state) => state.setHasPwd);
 
   const { mutate: startMutate, isLoading: isStarting } =
@@ -36,26 +38,28 @@ const OnOffBtn: React.FC = () => {
       useBuildnet: network === networks.buildnet,
       password: password,
     };
+
+    // network may change between the start of the request and the result, so we need to save the current network
+    const currentNetwork = network;
+
     startMutate(payload as unknown as startNodeReponse, {
       onSuccess: (data) => {
         if (data && data.version) {
           setVersion(data.version);
         }
-        setHasPwd(true);
+        setHasPwd(true, currentNetwork);
+        setPasswordError('');
         toast.success(Intl.t('home.startSuccess'));
       },
-      onError: (err) => {
+      onError: (err: AxiosError) => {
         console.error('Error starting node:', err);
-        navigate(getErrorPath(), {
-          state: {
-            error: {
-              title: Intl.t('errors.start-node.title'),
-              message: Intl.t('errors.start-node.description', {
-                error: err instanceof Error ? err.message : String(err),
-              }),
-            },
-          },
-        });
+        goToErrorPage(
+          navigate,
+          Intl.t('errors.start-node.title'),
+          Intl.t('errors.start-node.description', {
+            error: getErrorMessage(err),
+          }),
+        );
       },
     });
   };
@@ -73,7 +77,7 @@ const OnOffBtn: React.FC = () => {
 
   const handleClick = () => {
     if (!nodeRunning) {
-      if (!hasPwd) {
+      if (!getHasPwd()) {
         setIsPasswordModalOpen(true);
       } else {
         handleStart('');
@@ -92,6 +96,14 @@ const OnOffBtn: React.FC = () => {
   const handleClosePasswordModal = () => {
     setIsPasswordModalOpen(false);
     setPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (passwordError) {
+      setPasswordError('');
+    }
   };
 
   return (
@@ -124,7 +136,8 @@ const OnOffBtn: React.FC = () => {
 
           <Password
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
+            error={passwordError}
           />
         </div>
       </ConfirmModal>

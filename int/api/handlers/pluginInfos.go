@@ -20,10 +20,11 @@ func HandleGetPluginInfos(nodeDirManager *nodeDirManagerPkg.NodeDirManager) func
 			})
 		}
 		return operations.NewGetPluginInfosOK().WithPayload(&models.PluginInfos{
-			Version:       version,
-			AutoRestart:   config.GlobalPluginInfo.GetAutoRestart(),
-			PluginVersion: config.Version,
-			HasPwd:        config.GlobalPluginInfo.GetPwd() != "",
+			Version:        version,
+			AutoRestart:    config.GlobalPluginInfo.GetAutoRestart(),
+			PluginVersion:  config.Version,
+			HasPwdMainnet:  config.GlobalPluginInfo.GetPwdByNetwork(true) != "",
+			HasPwdBuildnet: config.GlobalPluginInfo.GetPwdByNetwork(false) != "",
 		})
 	}
 }

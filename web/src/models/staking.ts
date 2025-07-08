@@ -10,14 +10,14 @@ export interface DeferredCredit {
 
 export interface StakingAddress {
   address: string;
-  finalRolls: number;
-  candidateRolls: number;
-  activeRolls: number;
-  finalBalance: number;
-  candidateBalance: number;
+  final_roll_count: number;
+  candidate_roll_count: number;
+  active_roll_count: number;
+  final_balance: number;
+  candidate_balance: number;
   thread: number;
-  deferredCredits: DeferredCredit[];
-  targetRolls: number;
+  deferred_credits: DeferredCredit[];
+  target_rolls: number;
 }
 
 export interface StakingAddressesResponse {
@@ -31,7 +31,7 @@ export interface AddStakingAddressBody {
 
 export interface UpdateStakingAddressBody {
   address: string;
-  targetRolls: number;
+  target_rolls: number;
 }
 
 export interface RemoveStakingAddressBody {

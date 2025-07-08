@@ -119,7 +119,7 @@ tasks:
         platforms: [linux, darwin]
       - cmd: cp build/node-manager-plugin /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
-      - cmd: cp web/public/favicon.ico /usr/local/share/massastation/plugins/node-manager-plugin
+      - cmd: cp web/public/favicon.svg /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
       - cmd: cp manifest.json /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
@@ -130,7 +130,7 @@ tasks:
         platforms: [windows]
       - cmd: cp build/node-manager-plugin.exe "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]
-      - cmd: cp web/public/favicon.ico "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: cp web/public/favicon.svg "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]
       - cmd: cp manifest.json "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
         platforms: [windows]

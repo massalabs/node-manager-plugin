@@ -15,7 +15,7 @@ import ConfirmModal from '@/components/ConfirmModal';
 import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { useStakingStore } from '@/store/stakingStore';
-import { goToErrorPage } from '@/utils';
+import { getErrorMessage, goToErrorPage } from '@/utils';
 
 type Account = {
   address: string;
@@ -54,11 +54,11 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
       setAccounts(availableAccounts);
     } catch (error) {
       console.error('Error loading accounts:', error);
-      goToErrorPage(
+      goToErrorPage(  
         navigate,
         Intl.t('errors.load-massa-wallet-accounts.title'),
         Intl.t('errors.load-massa-wallet-accounts.description', {
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         }),
       );
     } finally {

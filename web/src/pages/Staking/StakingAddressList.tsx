@@ -3,15 +3,17 @@ import React, { useState } from 'react';
 import { FiPlus } from 'react-icons/fi';
 
 import AddStakingAddress from './addStakingAddress';
-import StakingAddressItem from './StakingAddressItem';
 import StakingAddressDetails from './StakingAddressDetails';
-import { useStakingStore } from '@/store/stakingStore';
+import StakingAddressItem from './StakingAddressItem';
 import { StakingAddress } from '@/models/staking';
+import { useStakingStore } from '@/store/stakingStore';
 
 const StakingAddressList: React.FC = () => {
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<StakingAddress | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<StakingAddress | null>(
+    null,
+  );
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleAddClick = () => {
@@ -72,9 +74,9 @@ const StakingAddressList: React.FC = () => {
             </thead>
             <tbody className="bg-secondary divide-y divide-gray-600">
               {stakingAddresses.map((address) => (
-                <StakingAddressItem 
-                  key={address.address} 
-                  address={address} 
+                <StakingAddressItem
+                  key={address.address}
+                  address={address}
                   onOpenDetails={handleOpenDetails}
                 />
               ))}
@@ -84,7 +86,7 @@ const StakingAddressList: React.FC = () => {
       </div>
 
       <AddStakingAddress isOpen={isAddModalOpen} onClose={handleCloseModal} />
-      
+
       {selectedAddress && (
         <StakingAddressDetails
           isOpen={isDetailsOpen}
@@ -97,4 +99,3 @@ const StakingAddressList: React.FC = () => {
 };
 
 export default StakingAddressList;
- 

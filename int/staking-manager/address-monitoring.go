@@ -9,6 +9,7 @@ import (
 
 	configPkg "github.com/massalabs/node-manager-plugin/int/config"
 	"github.com/massalabs/node-manager-plugin/int/db"
+	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
 )
 
@@ -96,12 +97,16 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 			newTotalValue := s.getTotalValue()
 			if newTotalValue != totalValue {
 				logger.Debugf("total value has changed from %f to %f, saving to database", totalValue, newTotalValue)
-				if err := s.db.PostHistory([]db.BalanceHistory{
+				currentNetwork := utils.NetworkMainnet
+				if !configPkg.GlobalPluginInfo.GetIsMainnet() {
+					currentNetwork = utils.NetworkBuildnet
+				}
+				if err := s.db.PostHistory([]db.ValueHistory{
 					{
 						Timestamp:  time.Now(),
 						TotalValue: newTotalValue,
 					},
-				}); err != nil {
+				}, currentNetwork); err != nil {
 					logger.Errorf("failed to save total value to database: %v", err)
 				}
 				totalValue = newTotalValue
@@ -142,7 +147,7 @@ func (s *stakingManager) updateStakingAddresses(newAddresses []StakingAddress) b
 			s.stakingAddresses[index].FinalBalance = newAddress.FinalBalance
 		}
 
-		if slices.EqualFunc(s.stakingAddresses[index].DeferredCredits, newAddress.DeferredCredits, func(a, b DeferredCredit) bool {
+		if !slices.EqualFunc(s.stakingAddresses[index].DeferredCredits, newAddress.DeferredCredits, func(a, b DeferredCredit) bool {
 			return a.Amount == b.Amount
 		}) {
 			updated = true

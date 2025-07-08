@@ -4,7 +4,7 @@ import { FiBarChart2 } from 'react-icons/fi';
 
 const HistoryGraph: React.FC = () => {
   return (
-    <div className="bg-secondary rounded-lg shadow p-6 h-full">
+    <div className="bg-secondary rounded-lg shadow p-6 h-full w-4/5 mx-auto">
       <h3 className="text-lg font-semibold text-f-primary mb-4">
         $MAS history
       </h3>

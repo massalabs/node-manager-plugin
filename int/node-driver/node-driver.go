@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
+	"syscall"
+	"time"
 
 	NodeDirManagerPkg "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	"github.com/massalabs/station/pkg/logger"
@@ -32,8 +36,10 @@ type ProcessExitedResult struct {
 
 // NodeDriverImpl implements the NodeDriver interface
 type NodeDriverImpl struct {
-	cancelNodeProcess context.CancelFunc
-	nodeDirManager    NodeDirManagerPkg.NodeDirManager
+	mu              sync.Mutex
+	killNodeProcess context.CancelFunc
+	serverProcess   *os.Process
+	nodeDirManager  NodeDirManagerPkg.NodeDirManager
 }
 
 // NewNodeDriver creates a new NodeDriver instance
@@ -48,6 +54,13 @@ StartNode starts the node process
 It returns a channel that will send a ProcessExitedResult when the node process exits.
 */
 func (nd *NodeDriverImpl) StartNode(isMainnet bool, pwd string, nodeLogger io.Writer) (<-chan ProcessExitedResult, error) {
+	nd.mu.Lock()
+	defer nd.mu.Unlock()
+
+	if nd.serverProcess != nil {
+		return nil, fmt.Errorf("node process already running")
+	}
+
 	// Set node parameters
 	nodeArgs := []string{"-p", pwd, "-a"} // args for node process
 	networkName := "buildnet"
@@ -67,7 +80,7 @@ func (nd *NodeDriverImpl) StartNode(isMainnet bool, pwd string, nodeLogger io.Wr
 
 	// Create a new context for this node instance
 	ctx, cancel := context.WithCancel(context.Background())
-	nd.cancelNodeProcess = cancel
+	nd.killNodeProcess = cancel
 
 	cmd := exec.CommandContext(ctx, nodeBinPath, nodeArgs...)
 	cmd.Dir = filepath.Dir(nodeBinPath) // the command is executed in the folder of node binary
@@ -80,6 +93,8 @@ func (nd *NodeDriverImpl) StartNode(isMainnet bool, pwd string, nodeLogger io.Wr
 		return nil, fmt.Errorf("failed to start node: %v", err)
 	}
 
+	nd.serverProcess = cmd.Process
+
 	logger.Infof("node process started with PID: %d", cmd.Process.Pid)
 
 	processExitedChan := make(chan ProcessExitedResult)
@@ -88,6 +103,11 @@ func (nd *NodeDriverImpl) StartNode(isMainnet bool, pwd string, nodeLogger io.Wr
 		processExitedChan <- ProcessExitedResult{
 			Err: err,
 		}
+
+		nd.mu.Lock()
+		nd.serverProcess = nil
+		nd.mu.Unlock()
+
 		close(processExitedChan)
 	}()
 
@@ -99,7 +119,33 @@ StopNode stops the node process
 It returns any error that occurred during the stop operation
 */
 func (nd *NodeDriverImpl) StopNode() error {
-	nd.cancelNodeProcess()
+	{
+		nd.mu.Lock()
+		defer nd.mu.Unlock()
+
+		if nd.serverProcess == nil {
+			return fmt.Errorf("node process not running")
+		}
+
+		// Send a SIGTERM signal to gracefully shut down
+		if err := nd.serverProcess.Signal(syscall.SIGTERM); err != nil {
+			logger.Errorf("Failed to send SIGTERM: %v", err)
+
+			nd.killNodeProcess()
+			return nil
+		}
+	}
+
+	// Wait for the process to exit
+	timeout := time.Now().Add(5 * time.Second)
+	for time.Now().Before(timeout) && nd.serverProcess != nil {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// If still running after timeout, force kill
+	if nd.serverProcess != nil {
+		nd.killNodeProcess()
+	}
 
 	return nil
 }

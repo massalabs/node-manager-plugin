@@ -30,7 +30,7 @@ func TestNodeLogger(t *testing.T) {
 
 	// Test NewNodeLogger
 	t.Run("NewNodeLogger", func(t *testing.T) {
-		logger, err := NewNodeLogManager(testConfig)
+		logger, err := NewNodeLogManager(&testConfig)
 		require.NoError(t, err)
 		assert.NotNil(t, logger)
 		assert.NotNil(t, logger.re)
@@ -38,7 +38,7 @@ func TestNodeLogger(t *testing.T) {
 
 	// Test newLogger
 	t.Run("newLogger", func(t *testing.T) {
-		logger, err := NewNodeLogManager(testConfig)
+		logger, err := NewNodeLogManager(&testConfig)
 		require.NoError(t, err)
 
 		version := "test-version"
@@ -68,7 +68,7 @@ func TestNodeLogger(t *testing.T) {
 
 	// Test getLogs
 	t.Run("getLogs", func(t *testing.T) {
-		logger, err := NewNodeLogManager(testConfig)
+		logger, err := NewNodeLogManager(&testConfig)
 		require.NoError(t, err)
 
 		logFolderTest := "test-version"
@@ -111,7 +111,7 @@ func TestNodeLogger(t *testing.T) {
 
 	// Test getLogs with no files
 	t.Run("getLogs with no files", func(t *testing.T) {
-		logger, err := NewNodeLogManager(testConfig)
+		logger, err := NewNodeLogManager(&testConfig)
 		require.NoError(t, err)
 
 		logFolderTest := "empty-folder"
@@ -125,7 +125,7 @@ func TestNodeLogger(t *testing.T) {
 
 	// Test getLogs with invalid file names
 	t.Run("getLogs with invalid file names", func(t *testing.T) {
-		logger, err := NewNodeLogManager(testConfig)
+		logger, err := NewNodeLogManager(&testConfig)
 		require.NoError(t, err)
 
 		logFolderTest := "invalid-log-content"

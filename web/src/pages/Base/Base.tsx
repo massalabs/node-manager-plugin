@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { Toast, SideMenu, MassaLogo } from '@massalabs/react-ui-kit';
+import { Toast, SideMenu } from '@massalabs/react-ui-kit';
 // import { AiOutlineDashboard } from 'react-icons/ai';
 import { FiHome } from 'react-icons/fi';
 import { GrMoney } from 'react-icons/gr';
@@ -12,6 +12,21 @@ import { useTheme } from '@/hooks/useTheme';
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { Path, routeFor } from '@/utils/routes';
+
+// Custom NodeLogo component to replace MassaLogo
+const NodeLogo: React.FC<{ size?: number }> = ({ size = 32 }) => {
+  return (
+    <div className="bg-primary w-fit rounded-full p-1">
+      <img
+        src={import.meta.env.VITE_BASE_APP + '/favicon.svg'}
+        alt="Node Logo"
+        width={size}
+        height={size}
+        className="w-full h-full object-contain"
+      />
+    </div>
+  );
+};
 
 function Base() {
   const { theme, themeIcon, themeLabel, handleSetTheme } = useTheme();
@@ -34,7 +49,7 @@ function Base() {
 
   let menuConf = {
     title: 'Massa Node Manager',
-    logo: <MassaLogo />,
+    logo: <NodeLogo />,
     fullMode: true,
   };
 

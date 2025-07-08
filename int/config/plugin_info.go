@@ -4,7 +4,8 @@ import "sync"
 
 // PluginInfo contains runtime plugin information
 type PluginInfo struct {
-	Pwd         string `json:"pwd"`
+	PwdMainnet  string `json:"pwd_mainnet"`
+	PwdBuildnet string `json:"pwd_buildnet"`
 	AutoRestart bool   `json:"auto_restart"`
 	IsMainnet   bool   `json:"is_mainnet"`
 	mu          sync.RWMutex
@@ -16,24 +17,41 @@ var GlobalPluginInfo *PluginInfo
 // init function to initialize the global PluginInfo instance
 func init() {
 	GlobalPluginInfo = &PluginInfo{
-		Pwd:         "",
+		PwdMainnet:  "",
+		PwdBuildnet: "",
 		AutoRestart: false,
-		IsMainnet:   false,
+		IsMainnet:   true,
 	}
+}
+
+func (pi *PluginInfo) GetPwdByNetwork(isMainnet bool) string {
+	pi.mu.RLock()
+	defer pi.mu.RUnlock()
+	if isMainnet {
+		return pi.PwdMainnet
+	}
+	return pi.PwdBuildnet
 }
 
 // GetPwd returns the current password
 func (pi *PluginInfo) GetPwd() string {
 	pi.mu.RLock()
 	defer pi.mu.RUnlock()
-	return pi.Pwd
+	if pi.IsMainnet {
+		return pi.PwdMainnet
+	}
+	return pi.PwdBuildnet
 }
 
 // SetPwd sets the password
 func (pi *PluginInfo) SetPwd(pwd string) {
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
-	pi.Pwd = pwd
+	if pi.IsMainnet {
+		pi.PwdMainnet = pwd
+	} else {
+		pi.PwdBuildnet = pwd
+	}
 }
 
 // GetAutoRestart returns the current auto restart setting

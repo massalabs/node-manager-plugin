@@ -11,7 +11,11 @@ export function routeFor(path: string) {
   return `${import.meta.env.VITE_BASE_APP}/${path}`;
 }
 
-export function goToErrorPage(navigate: NavigateFunction, title: string, message: string) {
+export function goToErrorPage(
+  navigate: NavigateFunction,
+  title: string,
+  message: string,
+) {
   navigate(routeFor('error'), {
     state: {
       error: {

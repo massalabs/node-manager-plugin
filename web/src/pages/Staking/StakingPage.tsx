@@ -6,10 +6,11 @@ import DownloadMassaWallet from './DownloadMassaWallet';
 import Loading from './Loading';
 import StakingDashboard from './StakingDashboard';
 import { isMassaWalletInstalled } from './utils/station';
+import { useStakingListener } from '@/hooks/useStakingListener';
 import Intl from '@/i18n/i18n';
 import NodeNotReady from '@/pages/Staking/NodeNotReady';
 import { useNodeStore } from '@/store/nodeStore';
-import { goToErrorPage, NodeStatus } from '@/utils';
+import { getErrorMessage, goToErrorPage, NodeStatus } from '@/utils';
 
 const StakingPage: React.FC = () => {
   const status = useNodeStore((state) => state.status);
@@ -17,6 +18,9 @@ const StakingPage: React.FC = () => {
     boolean | null
   >(null);
   const navigate = useNavigate();
+
+  // Fetch staking addresses and start listening to changes
+  useStakingListener();
 
   useEffect(() => {
     isMassaWalletInstalled()
@@ -29,7 +33,7 @@ const StakingPage: React.FC = () => {
           navigate,
           Intl.t('errors.massa-wallet-check.title'),
           Intl.t('errors.massa-wallet-check.description', {
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           }),
         );
       });

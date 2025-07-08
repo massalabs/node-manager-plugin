@@ -34,6 +34,7 @@ type ClientDriver interface {
 	BuyRolls(pwd string, address string, amount uint64, fee float32) (string, error)
 	SellRolls(pwd string, address string, amount uint64, fee float32) (string, error)
 	WalletInfo(pwd string) (map[string]WalletInfo, error)
+	WalletInfoWithoutNode(pwd string) (string, error)
 }
 
 type clientDriver struct {
@@ -183,6 +184,14 @@ func (cd *clientDriver) WalletInfo(pwd string) (map[string]WalletInfo, error) {
 	}
 
 	return walletData, nil
+}
+
+func (cd *clientDriver) WalletInfoWithoutNode(pwd string) (string, error) {
+	output, err := cd.executeCommand("wallet_info", "-j", "-p", pwd)
+	if err != nil {
+		return "", fmt.Errorf("failed to get wallet info: %v", err)
+	}
+	return string(output), nil
 }
 
 // // GetAddressBalance gets the balance of a specific address

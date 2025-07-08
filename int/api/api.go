@@ -2,8 +2,6 @@ package api
 
 import (
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/go-openapi/loads"
 	"github.com/massalabs/node-manager-plugin/api/restapi"
@@ -33,12 +31,13 @@ type API struct {
 	nodeManager      nodeManagerPkg.INodeManager
 	nodeDirManager   nodeDirManager.NodeDirManager
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher
-	config           config.PluginConfig
+	config           *config.PluginConfig
 	stakingManager   stakingManagerPkg.StakingManager
+	db               db.DB
 }
 
 // NewAPI creates a new API with the provided plugin directory
-func NewAPI(config config.PluginConfig) *API {
+func NewAPI(config *config.PluginConfig) *API {
 	nodeManagerAPI, err := createAPI()
 	if err != nil {
 		logger.Fatalf("could not create the api, got : %s", err)
@@ -91,10 +90,12 @@ func NewAPI(config config.PluginConfig) *API {
 		statusDispatcher: statusDispatcher,
 		config:           config,
 		stakingManager:   stakingManager,
+		db:               db,
 	}
 }
 
 func (a *API) Start() {
+	defer a.Cleanup()
 	if os.Getenv("STANDALONE") == "1" {
 		// If the plugin is run without being linked to Massa Station
 		a.apiServer.Port = 8080
@@ -120,20 +121,10 @@ func (a *API) Start() {
 
 	logger.Infof("Starting node manager plugin API on port %d", a.apiServer.Port)
 
-	// Gracefuly shutdown the node manager plugin on SIGTERM and SIGINT
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		// launch the plugin API
-		if err := a.apiServer.Serve(); err != nil {
-			logger.Fatalf("Failed to start node manager plugin: %v", err)
-		}
-	}()
-
-	sig := <-sigChan
-	logger.Debugf("Node manager plugin received closing signal: %v", sig)
-	a.Cleanup()
+	// launch the plugin API
+	if err := a.apiServer.Serve(); err != nil {
+		logger.Fatalf("Failed to start node manager plugin: %v", err)
+	}
 }
 
 // createAPI creates a new NodeManagerPluginAPI instance and loads the Swagger specification
@@ -153,7 +144,7 @@ func (a API) registerHandlers() {
 	html.AppendEndpoints(a.api)
 
 	// Set API handlers
-	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(a.nodeManager, a.statusDispatcher))
+	a.api.StartNodeHandler = operations.StartNodeHandlerFunc(handlers.HandleStartNode(a.nodeManager, a.statusDispatcher, &a.nodeDirManager, a.config))
 	a.api.StopNodeHandler = operations.StopNodeHandlerFunc(handlers.HandleStopNode(a.nodeManager, a.statusDispatcher))
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(a.statusDispatcher))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
@@ -164,6 +155,7 @@ func (a API) registerHandlers() {
 	a.api.AddStakingAddressHandler = operations.AddStakingAddressHandlerFunc(handlers.HandlePostStakingAddresses(a.stakingManager))
 	a.api.UpdateStakingAddressHandler = operations.UpdateStakingAddressHandlerFunc(handlers.HandlePutStakingAddresses(a.stakingManager))
 	a.api.RemoveStakingAddressHandler = operations.RemoveStakingAddressHandlerFunc(handlers.HandleDeleteStakingAddresses(a.stakingManager))
+	a.api.GetValueHistoryHandler = operations.GetValueHistoryHandlerFunc(handlers.HandleGetValueHistory(a.db))
 }
 
 func (a *API) Cleanup() {

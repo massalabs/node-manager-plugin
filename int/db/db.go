@@ -5,24 +5,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/massalabs/node-manager-plugin/int/utils"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type DB interface {
 	Close() error
-	GetRollsTarget() ([]AddressInfo, error)
-	UpdateRollsTarget(address string, rollTarget uint64) error
-	AddRollsTarget(address string, rollTarget uint64) error
-	DeleteRollsTarget(address string) error
-	PostHistory(histories []BalanceHistory) error
-	GetHistory(since time.Time) ([]BalanceHistory, error)
+	GetRollsTarget(network utils.Network) ([]AddressInfo, error)
+	UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error
+	AddRollsTarget(address string, rollTarget uint64, network utils.Network) error
+	DeleteRollsTarget(address string, network utils.Network) error
+	PostHistory(histories []ValueHistory, network utils.Network) error
+	GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error)
 }
 
 type dB struct {
 	db *sql.DB
 }
 
-type BalanceHistory struct {
+type ValueHistory struct {
 	Timestamp  time.Time `json:"timestamp"`
 	TotalValue float64   `json:"total_value"`
 }
@@ -30,6 +31,7 @@ type BalanceHistory struct {
 type AddressInfo struct {
 	Address    string `json:"address"`
 	RollTarget uint64 `json:"roll_target"`
+	Network    string `json:"network"`
 }
 
 // NewDB creates a new database connection and initializes tables
@@ -59,9 +61,16 @@ func (d *dB) Close() error {
 
 // initTables creates the required tables if they don't exist
 func (d *dB) initTables() error {
-	// Create balance_history table
-	balanceHistoryTable := `
-	CREATE TABLE IF NOT EXISTS balance_history (
+	// Create value_history_mainnet table
+	valueHistoryMainnetTable := `
+	CREATE TABLE IF NOT EXISTS value_history_mainnet (
+		timestamp DATETIME PRIMARY KEY,
+		total_value INTEGER NOT NULL
+	);`
+
+	// Create value_history_buildnet table
+	valueHistoryBuildnetTable := `
+	CREATE TABLE IF NOT EXISTS value_history_buildnet (
 		timestamp DATETIME PRIMARY KEY,
 		total_value INTEGER NOT NULL
 	);`
@@ -69,12 +78,18 @@ func (d *dB) initTables() error {
 	// Create rolls_target table
 	rollsTargetTable := `
 	CREATE TABLE IF NOT EXISTS rolls_target (
-		address TEXT PRIMARY KEY,
-		roll_target INTEGER NOT NULL
+		address TEXT,
+		roll_target INTEGER NOT NULL,
+		network TEXT NOT NULL,
+		PRIMARY KEY (address, network)
 	);`
 
-	if _, err := d.db.Exec(balanceHistoryTable); err != nil {
-		return fmt.Errorf("failed to create balance_history table: %w", err)
+	if _, err := d.db.Exec(valueHistoryMainnetTable); err != nil {
+		return fmt.Errorf("failed to create value_history_mainnet table: %w", err)
+	}
+
+	if _, err := d.db.Exec(valueHistoryBuildnetTable); err != nil {
+		return fmt.Errorf("failed to create value_history_buildnet table: %w", err)
 	}
 
 	if _, err := d.db.Exec(rollsTargetTable); err != nil {
@@ -84,11 +99,11 @@ func (d *dB) initTables() error {
 	return nil
 }
 
-// GetRollsTarget returns a list of address and roll_target pairs
-func (d *dB) GetRollsTarget() ([]AddressInfo, error) {
-	query := `SELECT address, roll_target FROM rolls_target ORDER BY address`
+// GetRollsTarget returns a list of address and roll_target pairs for a specific network
+func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
+	query := `SELECT address, roll_target, network FROM rolls_target WHERE network = ? ORDER BY address`
 
-	rows, err := d.db.Query(query)
+	rows, err := d.db.Query(query, string(network))
 	if err != nil {
 		return nil, fmt.Errorf("failed to query rolls_target: %w", err)
 	}
@@ -97,7 +112,7 @@ func (d *dB) GetRollsTarget() ([]AddressInfo, error) {
 	var addresses []AddressInfo
 	for rows.Next() {
 		var addr AddressInfo
-		if err := rows.Scan(&addr.Address, &addr.RollTarget); err != nil {
+		if err := rows.Scan(&addr.Address, &addr.RollTarget, &addr.Network); err != nil {
 			return nil, fmt.Errorf("failed to scan rolls_target row: %w", err)
 		}
 		addresses = append(addresses, addr)
@@ -110,11 +125,11 @@ func (d *dB) GetRollsTarget() ([]AddressInfo, error) {
 	return addresses, nil
 }
 
-// UpdateRollsTarget updates the roll_target for a specific address
-func (d *dB) UpdateRollsTarget(address string, rollTarget uint64) error {
-	query := `UPDATE rolls_target SET roll_target = ? WHERE address = ?`
+// UpdateRollsTarget updates the roll_target for a specific address and network
+func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error {
+	query := `UPDATE rolls_target SET roll_target = ? WHERE address = ? AND network = ?`
 
-	result, err := d.db.Exec(query, rollTarget, address)
+	result, err := d.db.Exec(query, rollTarget, address, string(network))
 	if err != nil {
 		return fmt.Errorf("failed to update roll_target: %w", err)
 	}
@@ -125,17 +140,17 @@ func (d *dB) UpdateRollsTarget(address string, rollTarget uint64) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("address %s not found", address)
+		return fmt.Errorf("address %s not found for network %s", address, string(network))
 	}
 
 	return nil
 }
 
-// AddRollsTarget adds a new address with roll_target
-func (d *dB) AddRollsTarget(address string, rollTarget uint64) error {
-	query := `INSERT INTO rolls_target (address, roll_target) VALUES (?, ?)`
+// AddRollsTarget adds a new address with roll_target for a specific network
+func (d *dB) AddRollsTarget(address string, rollTarget uint64, network utils.Network) error {
+	query := `INSERT INTO rolls_target (address, roll_target, network) VALUES (?, ?, ?)`
 
-	_, err := d.db.Exec(query, address, rollTarget)
+	_, err := d.db.Exec(query, address, rollTarget, string(network))
 	if err != nil {
 		return fmt.Errorf("failed to add rolls_target: %w", err)
 	}
@@ -143,11 +158,11 @@ func (d *dB) AddRollsTarget(address string, rollTarget uint64) error {
 	return nil
 }
 
-// DeleteRollsTarget deletes an address from the rolls_target table
-func (d *dB) DeleteRollsTarget(address string) error {
-	query := `DELETE FROM rolls_target WHERE address = ?`
+// DeleteRollsTarget deletes an address from the rolls_target table for a specific network
+func (d *dB) DeleteRollsTarget(address string, network utils.Network) error {
+	query := `DELETE FROM rolls_target WHERE address = ? AND network = ?`
 
-	result, err := d.db.Exec(query, address)
+	result, err := d.db.Exec(query, address, string(network))
 	if err != nil {
 		return fmt.Errorf("failed to delete rolls_target: %w", err)
 	}
@@ -158,20 +173,30 @@ func (d *dB) DeleteRollsTarget(address string) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("address %s not found", address)
+		return fmt.Errorf("address %s not found for network %s", address, string(network))
 	}
 
 	return nil
 }
 
-// PostHistory adds a list of balance history records
-func (d *dB) PostHistory(histories []BalanceHistory) error {
+// PostHistory adds a list of value history records to the appropriate network table
+func (d *dB) PostHistory(histories []ValueHistory, network utils.Network) error {
 	if len(histories) == 0 {
 		return nil
 	}
 
+	var tableName string
+	switch network {
+	case utils.NetworkMainnet:
+		tableName = "value_history_mainnet"
+	case utils.NetworkBuildnet:
+		tableName = "value_history_buildnet"
+	default:
+		return fmt.Errorf("unsupported network: %s", string(network))
+	}
+
 	// Build a single INSERT statement with multiple VALUES
-	query := `INSERT INTO balance_history (timestamp, total_value) VALUES `
+	query := fmt.Sprintf(`INSERT INTO %s (timestamp, total_value) VALUES `, tableName)
 	args := make([]interface{}, 0, len(histories)*2)
 
 	for i, history := range histories {
@@ -184,33 +209,43 @@ func (d *dB) PostHistory(histories []BalanceHistory) error {
 
 	_, err := d.db.Exec(query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to insert balance_history: %w", err)
+		return fmt.Errorf("failed to insert %s: %w", tableName, err)
 	}
 
 	return nil
 }
 
-// GetHistory retrieves all balance history records after a given timestamp, ordered chronologically
-func (d *dB) GetHistory(since time.Time) ([]BalanceHistory, error) {
-	query := `SELECT timestamp, total_value FROM balance_history WHERE timestamp > ? ORDER BY timestamp ASC`
+// GetHistory retrieves all value history records after a given timestamp for a specific network, ordered chronologically
+func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error) {
+	var tableName string
+	switch network {
+	case utils.NetworkMainnet:
+		tableName = "value_history_mainnet"
+	case utils.NetworkBuildnet:
+		tableName = "value_history_buildnet"
+	default:
+		return nil, fmt.Errorf("unsupported network: %s", string(network))
+	}
+
+	query := fmt.Sprintf(`SELECT timestamp, total_value FROM %s WHERE timestamp > ? ORDER BY timestamp ASC`, tableName)
 
 	rows, err := d.db.Query(query, since)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query balance_history: %w", err)
+		return nil, fmt.Errorf("failed to query %s: %w", tableName, err)
 	}
 	defer rows.Close()
 
-	var histories []BalanceHistory
+	var histories []ValueHistory
 	for rows.Next() {
-		var history BalanceHistory
+		var history ValueHistory
 		if err := rows.Scan(&history.Timestamp, &history.TotalValue); err != nil {
-			return nil, fmt.Errorf("failed to scan balance_history row: %w", err)
+			return nil, fmt.Errorf("failed to scan %s row: %w", tableName, err)
 		}
 		histories = append(histories, history)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating over balance_history rows: %w", err)
+		return nil, fmt.Errorf("error iterating over %s rows: %w", tableName, err)
 	}
 
 	return histories, nil

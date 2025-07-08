@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
-import { goToErrorPage, NodeStatus } from '@/utils';
+import { getErrorMessage, goToErrorPage, NodeStatus } from '@/utils';
 
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -36,7 +36,7 @@ This function can be used in dependency array, so it needs to be a stable refere
         navigate,
         intl.t('errors.node-status.title'),
         intl.t('errors.node-status.description', {
-          error: err instanceof Error ? err.message : String(err),
+          error: getErrorMessage(err),
         }),
       );
     };

@@ -1,7 +1,7 @@
 // EXTERNALS
 import { toast } from '@massalabs/react-ui-kit';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 // LOCALS
@@ -14,6 +14,7 @@ import {
 } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
 import { goToErrorPage } from '@/utils/routes';
+import { getErrorMessage } from '@/utils/error';
 
 const STAKING_ADDRESS_ENDPOINT =
   import.meta.env.VITE_BASE_API + '/stakingAddresses';
@@ -31,7 +32,7 @@ export function useStakingAddress() {
   // Add a new staking address
   const addStakingAddress = useMutation<
     StakingAddress,
-    Error,
+    AxiosError,
     AddStakingAddressBody,
     unknown
   >({
@@ -50,13 +51,13 @@ export function useStakingAddress() {
       // Show success toast
       toast.success(Intl.t('staking.add-address.address-added'));
     },
-    onError: (error: Error) => {
+    onError: (error: AxiosError) => {
       console.error('Failed adding staking address:', error);
       goToErrorPage(
         navigate,
         Intl.t('errors.staking-address-add.title'),
         Intl.t('errors.staking-address-add.description', {
-          error: error.message,
+          error: getErrorMessage(error),
         }),
       );
     },
@@ -82,7 +83,7 @@ export function useStakingAddress() {
   // Remove a staking address
   const removeStakingAddress = useMutation<
     void,
-    Error,
+    AxiosError,
     RemoveStakingAddressBody,
     unknown
   >({
@@ -96,13 +97,13 @@ export function useStakingAddress() {
       // Show success toast
       toast.success(Intl.t('staking.delete-address.address-deleted'));
     },
-    onError: (error: Error) => {
+    onError: (error: AxiosError) => {
       console.error('Failed deleting staking address:', error);
       goToErrorPage(
         navigate,
         Intl.t('errors.staking-address-delete.title'),
         Intl.t('errors.staking-address-delete.description', {
-          error: error.message,
+          error: getErrorMessage(error),
         }),
       );
     },

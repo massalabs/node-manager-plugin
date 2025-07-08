@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -6,7 +6,7 @@ import intl from '@/i18n/i18n';
 import { StakingAddress } from '@/models/staking';
 import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
-import { goToErrorPage, isStopStakingMonitoring, NodeStatus } from '@/utils';
+import { getErrorMessage, goToErrorPage, isStopStakingMonitoring, NodeStatus } from '@/utils';
 
 export function useStakingListener() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -17,13 +17,13 @@ export function useStakingListener() {
 
   const navigate = useNavigate();
 
-  const startListeningStakingAddresses = () => {
+  const startListeningStakingAddresses = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
     const baseApi = import.meta.env.VITE_BASE_API || '/api';
-    const eventSource = new EventSource(`${baseApi}/staking-addresses`);
+    const eventSource = new EventSource(`${baseApi}/stakingAddresses`);
 
     eventSource.onmessage = (event) => {
       console.log('Staking addresses update received:', event.data);
@@ -42,16 +42,16 @@ export function useStakingListener() {
         navigate,
         intl.t('errors.get-staking-addresses.title'),
         intl.t('errors.get-staking-addresses.description', {
-          error: err instanceof Error ? err.message : String(err),
+          error: getErrorMessage(err),
         }),
       );
     };
 
     eventSourceRef.current = eventSource;
-  };
+  }, [setStakingAddresses, navigate]);
 
   useEffect(() => {
-    if (status === NodeStatus.ON) {
+    if (status === NodeStatus.ON || status === NodeStatus.BOOTSTRAPPING) {
       startListeningStakingAddresses();
     }
 

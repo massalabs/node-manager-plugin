@@ -11,7 +11,7 @@ export async function getPluginInfos(): Promise<nodeInfosResponse> {
 }
 
 export function getNetworkFromVersion(version: string): networks {
-  if (version.includes('mainnet')) {
+  if (version.includes('MAIN')) {
     return networks.mainnet;
   }
   return networks.buildnet;

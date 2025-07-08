@@ -14,6 +14,7 @@ import (
 	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	nodeDirManagerPkg "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
+	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
 )
 
@@ -146,7 +147,11 @@ func (s *stakingManager) AddStakingAddress(pwdNode, pwdAccount, nickname string)
 	}
 
 	// Add to database
-	if err := s.db.AddRollsTarget(address, 0); err != nil { // Default to 0 rolls target
+	currentNetwork := utils.NetworkMainnet
+	if !config.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+	if err := s.db.AddRollsTarget(address, 0, currentNetwork); err != nil { // Default to 0 rolls target
 		return StakingAddress{}, fmt.Errorf("address added to node staking addresses but failed to add address to rolls_target table in local database: %w", err)
 	}
 
@@ -196,7 +201,11 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 	s.removeAddressFromRamList(address)
 
 	// Remove from database if available
-	if err := s.db.DeleteRollsTarget(address); err != nil {
+	currentNetwork := utils.NetworkMainnet
+	if !config.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+	if err := s.db.DeleteRollsTarget(address, currentNetwork); err != nil {
 		return fmt.Errorf("failed to remove address %s from database: %w", address, err)
 	}
 
@@ -221,10 +230,14 @@ func (s *stakingManager) SetTargetRolls(address string, targetRolls uint64) erro
 	s.stakingAddresses[index].TargetRolls = targetRolls
 
 	// Update database
-	err := s.db.UpdateRollsTarget(address, targetRolls)
+	currentNetwork := utils.NetworkMainnet
+	if !config.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+	err := s.db.UpdateRollsTarget(address, targetRolls, currentNetwork)
 	if err != nil {
 		// If database update fails, try to add the record
-		err = s.db.AddRollsTarget(address, targetRolls)
+		err = s.db.AddRollsTarget(address, targetRolls, currentNetwork)
 		if err != nil {
 			return fmt.Errorf("failed to update database: %w", err)
 		}
@@ -300,7 +313,9 @@ func (s *stakingManager) asyncTask(ctx context.Context) {
 			s.nodeIsUp = false
 			s.mu.Unlock()
 
-			s.stopStakingMonitoringFunc()
+			if s.stopStakingMonitoringFunc != nil {
+				s.stopStakingMonitoringFunc()
+			}
 		}
 	}
 }
@@ -327,7 +342,11 @@ func (s *stakingManager) initStakingAddresses() error {
 	s.stakingAddresses = addresses
 
 	// Load roll targets from database
-	dbAddresses, err := s.db.GetRollsTarget()
+	currentNetwork := utils.NetworkMainnet
+	if !config.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
 	if err != nil {
 		return fmt.Errorf("failed to load roll targets from database: %w", err)
 	}
@@ -338,7 +357,7 @@ func (s *stakingManager) initStakingAddresses() error {
 			s.stakingAddresses[index].TargetRolls = dbAddr.RollTarget
 		} else {
 			logger.Info("address %s is in db but not found in node staking addresses map, deleting it from database", dbAddr.Address)
-			err := s.db.DeleteRollsTarget(dbAddr.Address)
+			err := s.db.DeleteRollsTarget(dbAddr.Address, currentNetwork)
 			if err != nil {
 				return fmt.Errorf("failed to delete %s address's roll target from database: %w", dbAddr.Address, err)
 			}

@@ -24,6 +24,7 @@ type PluginConfig struct {
 	RestartCooldown                int    `yaml:"restart_cooldown"`
 	StakingAddressDataPollInterval int    `yaml:"staking_address_data_poll_interval"`
 	DBPath                         string `yaml:"db_path"`
+	PwdHash                        string `yaml:"pwd_hash"`
 }
 
 func defaultPluginConfig() (PluginConfig, error) {
@@ -75,10 +76,10 @@ func PluginDir() (string, error) {
 RetrieveConfig retrieves the plugin configuration. If the configuration file does not exist,
 it creates the file with a default configuration and returns it.
 */
-func RetrieveConfig() (PluginConfig, error) {
+func RetrieveConfig() (*PluginConfig, error) {
 	pluginDir, err := PluginDir()
 	if err != nil {
-		return PluginConfig{}, fmt.Errorf("getting plugin directory: %w", err)
+		return &PluginConfig{}, fmt.Errorf("getting plugin directory: %w", err)
 	}
 
 	configFilePath := filepath.Join(pluginDir, configFileName)
@@ -90,42 +91,42 @@ func RetrieveConfig() (PluginConfig, error) {
 			// File doesn't exist, create it with default config
 			defaultConfig, err := defaultPluginConfig()
 			if err != nil {
-				return PluginConfig{}, fmt.Errorf("getting default config: %w", err)
+				return &PluginConfig{}, fmt.Errorf("getting default config: %w", err)
 			}
 
 			if err = saveConfig(defaultConfig, configFilePath); err != nil {
-				return PluginConfig{}, fmt.Errorf("saving default config: %w", err)
+				return &PluginConfig{}, fmt.Errorf("saving default config: %w", err)
 			}
 
-			return defaultConfig, nil
+			return &defaultConfig, nil
 		}
-		return PluginConfig{}, fmt.Errorf("checking config file: %w", err)
+		return &PluginConfig{}, fmt.Errorf("checking config file: %w", err)
 	}
 
 	// File exists, read and parse it
 	data, err := os.ReadFile(configFilePath)
 	if err != nil {
-		return PluginConfig{}, fmt.Errorf("reading config file: %w", err)
+		return &PluginConfig{}, fmt.Errorf("reading config file: %w", err)
 	}
 
 	var config PluginConfig
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		return PluginConfig{}, fmt.Errorf("unmarshaling config file: %w", err)
+		return &PluginConfig{}, fmt.Errorf("unmarshaling config file: %w", err)
 	}
 
 	config, hasChanged, err := FillDefaultValues(config)
 	if err != nil {
-		return PluginConfig{}, fmt.Errorf("filling empty plugin config with default values: %w", err)
+		return &PluginConfig{}, fmt.Errorf("filling empty plugin config with default values: %w", err)
 	}
 
 	if hasChanged {
 		if err = saveConfig(config, configFilePath); err != nil {
-			return PluginConfig{}, fmt.Errorf("saving config: %w", err)
+			return &PluginConfig{}, fmt.Errorf("saving config: %w", err)
 		}
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 /*
@@ -171,4 +172,64 @@ func saveConfig(config PluginConfig, configFilePath string) error {
 	}
 
 	return nil
+}
+
+// UpdateConfigField updates a specific field in the config file
+func UpdateConfigField(fieldName string, value interface{}) error {
+	configFilePath, err := getConfPath()
+	if err != nil {
+		return fmt.Errorf("getting config file path: %w", err)
+	}
+
+	// Read current config
+	config, err := readConfigFile(configFilePath)
+	if err != nil {
+		return fmt.Errorf("reading config file: %w", err)
+	}
+
+	// Use reflection to update the field
+	configValue := reflect.ValueOf(&config).Elem()
+	field := configValue.FieldByName(fieldName)
+	if !field.IsValid() {
+		return fmt.Errorf("field %s not found in config", fieldName)
+	}
+
+	if !field.CanSet() {
+		return fmt.Errorf("field %s cannot be set", fieldName)
+	}
+
+	// Convert value to the correct type
+	valueReflect := reflect.ValueOf(value)
+	if field.Type() != valueReflect.Type() {
+		return fmt.Errorf("type mismatch: expected %v, got %v", field.Type(), valueReflect.Type())
+	}
+
+	field.Set(valueReflect)
+
+	// Save updated config
+	return saveConfig(config, configFilePath)
+}
+
+func getConfPath() (string, error) {
+	pluginDir, err := PluginDir()
+	if err != nil {
+		return "", fmt.Errorf("getting plugin directory: %w", err)
+	}
+
+	return filepath.Join(pluginDir, configFileName), nil
+}
+
+func readConfigFile(configFilePath string) (PluginConfig, error) {
+	data, err := os.ReadFile(configFilePath)
+	if err != nil {
+		return PluginConfig{}, fmt.Errorf("reading config file: %w", err)
+	}
+
+	var config PluginConfig
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return PluginConfig{}, fmt.Errorf("unmarshaling config file: %w", err)
+	}
+
+	return config, nil
 }
