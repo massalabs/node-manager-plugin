@@ -119,6 +119,12 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 // updateStakingAddresses updates the staking addresses list in ram with the new addresses data if required
 // returns true if the staking addresses list has been updated
 func (s *stakingManager) updateStakingAddresses(newAddresses []StakingAddress) bool {
+	if len(newAddresses) != len(s.stakingAddresses) {
+		logger.Debugf("number of staking addresses has changed from %d to %d", len(s.stakingAddresses), len(newAddresses))
+		s.stakingAddresses = copyAddresses(newAddresses)
+		return true
+	}
+
 	updated := false
 	for _, newAddress := range newAddresses {
 		index, _ := s.getAddressIndexFromRamList(newAddress.Address)
@@ -165,13 +171,13 @@ func (s *stakingManager) handleRollsUpdates(newAddresses []StakingAddress) {
 		currentRollTarget := s.stakingAddresses[index].TargetRolls
 
 		// Sell rolls
-		if currentRollTarget > newAddress.FinalRolls {
+		if currentRollTarget < newAddress.FinalRolls {
 			// Check if the address has enough balance to pay minimal fees
 			if float64(s.miscellaneous.MinimalFees) > newAddress.FinalBalance {
 				logger.Errorf("address %s need to sell rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
 				continue
 			}
-			rollsToSell := currentRollTarget - newAddress.FinalRolls
+			rollsToSell := newAddress.FinalRolls - currentRollTarget
 			logger.Infof("Address %s had %d rolls and %d target rolls: Need to sell %d rolls", newAddress.Address, newAddress.FinalRolls, currentRollTarget, rollsToSell)
 
 			_, err := s.clientDriver.SellRolls(configPkg.GlobalPluginInfo.GetPwd(), newAddress.Address, uint64(rollsToSell), float32(s.miscellaneous.MinimalFees))
@@ -182,21 +188,21 @@ func (s *stakingManager) handleRollsUpdates(newAddresses []StakingAddress) {
 
 			logger.Infof("Sold %d rolls for address %s", rollsToSell, newAddress.Address)
 			// Buy rolls
-		} else if currentRollTarget < newAddress.FinalRolls {
+		} else if currentRollTarget > newAddress.FinalRolls {
 			// Check if the address has enough balance to pay minimal fees
 			if float64(s.miscellaneous.MinimalFees) > newAddress.FinalBalance {
 				logger.Errorf("Address %s need to buy rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
 				continue
 			}
 
-			rollsToBuy := min(
-				float64(newAddress.FinalRolls-currentRollTarget),
+			rollsToBuy := uint64(min(
+				float64(currentRollTarget-newAddress.FinalRolls),
 				newAddress.FinalBalance/float64(s.miscellaneous.RollPrice),
-			)
+			))
 
 			if rollsToBuy > 0 {
 				logger.Infof("Address %s (balance: %f) had %d rolls and %d target rolls: Need to buy %d rolls", newAddress.Address, newAddress.FinalBalance, newAddress.FinalBalance, newAddress.FinalRolls, currentRollTarget, rollsToBuy)
-				_, err := s.clientDriver.BuyRolls(configPkg.GlobalPluginInfo.GetPwd(), newAddress.Address, uint64(rollsToBuy), float32(s.miscellaneous.MinimalFees))
+				_, err := s.clientDriver.BuyRolls(configPkg.GlobalPluginInfo.GetPwd(), newAddress.Address, rollsToBuy, float32(s.miscellaneous.MinimalFees))
 				if err != nil {
 					logger.Errorf("failed to buy rolls for address %s: %v", newAddress.Address, err)
 					continue

@@ -32,3 +32,13 @@ func (sm *stakingManager) getAddressesFromRamList() []string {
 	}
 	return addresses
 }
+
+func copyAddresses(src []StakingAddress) []StakingAddress {
+	dst := make([]StakingAddress, len(src))
+	copy(dst, src)
+	for i := range dst {
+		dst[i].DeferredCredits = make([]DeferredCredit, len(src[i].DeferredCredits))
+		copy(dst[i].DeferredCredits, src[i].DeferredCredits)
+	}
+	return dst
+}

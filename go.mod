@@ -41,6 +41,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/ybbus/jsonrpc/v3 v3.1.4 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

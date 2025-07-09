@@ -94,7 +94,8 @@
           "title": "Update Roll Target",
           "rollBuy": "You are going to buy {rollsToBuy} rolls",
           "rollSell": "You are going to sell {rollsToSell} rolls",
-          "body": "Change roll target from {currentTargetRolls} to {newTargetRolls}."
+          "body": "Change roll target from {currentTargetRolls} to {newTargetRolls}.",
+          "rollTargetUpdated": "Roll target updated"
         }
       }
     }

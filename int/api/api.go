@@ -68,6 +68,7 @@ func NewAPI(config *config.PluginConfig) *API {
 		nodeDirManager,
 		uint64(config.StakingAddressDataPollInterval),
 		uint64(config.ClientTimeout),
+		stakingManagerPkg.NewMassaWalletManager(),
 	)
 
 	// create the node manager instance

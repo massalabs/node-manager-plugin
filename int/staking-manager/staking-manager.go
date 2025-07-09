@@ -12,6 +12,7 @@ import (
 	clientDriverPkg "github.com/massalabs/node-manager-plugin/int/client-driver"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
+	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	nodeDirManagerPkg "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	"github.com/massalabs/node-manager-plugin/int/utils"
@@ -80,6 +81,7 @@ type stakingManager struct {
 	db                             dbPkg.DB
 	nodeDirManager                 nodeDirManagerPkg.NodeDirManager
 	clientTimeout                  uint64
+	walletManager                  MassaWalletManager
 }
 
 func NewStakingManager(
@@ -89,6 +91,7 @@ func NewStakingManager(
 	nodeDirManager nodeDirManagerPkg.NodeDirManager,
 	stakingAddressDataPollInterval uint64,
 	clientTimeout uint64,
+	walletManager MassaWalletManager,
 ) StakingManager {
 	sm := &stakingManager{
 		nodeAPI:                        nodeAPI,
@@ -99,6 +102,7 @@ func NewStakingManager(
 		db:                             database,
 		nodeDirManager:                 nodeDirManager,
 		clientTimeout:                  clientTimeout,
+		walletManager:                  walletManager,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -131,7 +135,7 @@ func (s *stakingManager) AddStakingAddress(pwdNode, pwdAccount, nickname string)
 		return StakingAddress{}, fmt.Errorf("massa node is not up")
 	}
 
-	privateKey, address, err := getPrivateKeyFromNickname(pwdAccount, nickname)
+	privateKey, address, err := s.walletManager.GetPrivateKeyFromNickname(pwdAccount, nickname)
 	if err != nil {
 		return StakingAddress{}, fmt.Errorf("failed to get address and priv key from nickname %s: %w", nickname, err)
 	}
@@ -205,8 +209,13 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 	if !config.GlobalPluginInfo.GetIsMainnet() {
 		currentNetwork = utils.NetworkBuildnet
 	}
+
 	if err := s.db.DeleteRollsTarget(address, currentNetwork); err != nil {
-		return fmt.Errorf("failed to remove address %s from database: %w", address, err)
+		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
+			logger.Info("[RemoveStakingAddress] target rolls for address %s and network %s is not in database. Nothing to remove from DB", address, string(currentNetwork))
+		} else {
+			return fmt.Errorf("failed to remove address %s (%s) from database: %w", address, string(currentNetwork), err)
+		}
 	}
 
 	return nil
@@ -219,7 +228,7 @@ func (s *stakingManager) SetTargetRolls(address string, targetRolls uint64) erro
 
 	index, ok := s.getAddressIndexFromRamList(address)
 	if !ok {
-		return fmt.Errorf("address not found for nickname %s", address)
+		return fmt.Errorf("address not found for address %s", address)
 	}
 
 	if s.stakingAddresses[index].TargetRolls == targetRolls {
@@ -357,8 +366,8 @@ func (s *stakingManager) initStakingAddresses() error {
 			s.stakingAddresses[index].TargetRolls = dbAddr.RollTarget
 		} else {
 			logger.Info("address %s is in db but not found in node staking addresses map, deleting it from database", dbAddr.Address)
-			err := s.db.DeleteRollsTarget(dbAddr.Address, currentNetwork)
-			if err != nil {
+
+			if err := s.db.DeleteRollsTarget(dbAddr.Address, currentNetwork); err != nil {
 				return fmt.Errorf("failed to delete %s address's roll target from database: %w", dbAddr.Address, err)
 			}
 		}

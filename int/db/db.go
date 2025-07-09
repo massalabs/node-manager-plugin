@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	"github.com/massalabs/node-manager-plugin/int/utils"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -125,6 +126,20 @@ func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
 	return addresses, nil
 }
 
+// ExistsRollsTarget checks if an address exists in the rolls_target table for a specific network
+
+func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, error) {
+	query := `SELECT COUNT(*) FROM rolls_target WHERE address = ? AND network = ?`
+
+	var count int
+	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	return count > 0, nil
+}
+
 // UpdateRollsTarget updates the roll_target for a specific address and network
 func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error {
 	query := `UPDATE rolls_target SET roll_target = ? WHERE address = ? AND network = ?`
@@ -160,6 +175,16 @@ func (d *dB) AddRollsTarget(address string, rollTarget uint64, network utils.Net
 
 // DeleteRollsTarget deletes an address from the rolls_target table for a specific network
 func (d *dB) DeleteRollsTarget(address string, network utils.Network) error {
+
+	exists, err := d.existsRollsTarget(address, network)
+	if err != nil {
+		return fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	if !exists {
+		return nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, fmt.Sprintf("address %s not found for network %s", address, string(network)))
+	}
+
 	query := `DELETE FROM rolls_target WHERE address = ? AND network = ?`
 
 	result, err := d.db.Exec(query, address, string(network))

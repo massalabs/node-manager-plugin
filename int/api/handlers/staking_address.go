@@ -18,14 +18,14 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 			})
 		}
 		return operations.NewAddStakingAddressOK().WithPayload(&models.StakingAddress{
-			Address:          stakingAddress.Address,
-			TargetRolls:      int64(stakingAddress.TargetRolls),
-			FinalRolls:       int64(stakingAddress.FinalRolls),
-			ActiveRolls:      int64(stakingAddress.ActiveRolls),
-			FinalBalance:     stakingAddress.FinalBalance,
-			CandidateRolls:   int64(stakingAddress.CandidateRolls),
-			CandidateBalance: stakingAddress.CandidateBalance,
-			Thread:           int64(stakingAddress.Thread),
+			Address:            stakingAddress.Address,
+			TargetRolls:        int64(stakingAddress.TargetRolls),
+			FinalRollCount:     int64(stakingAddress.FinalRolls),
+			ActiveRollCount:    int64(stakingAddress.ActiveRolls),
+			FinalBalance:       stakingAddress.FinalBalance,
+			CandidateRollCount: int64(stakingAddress.CandidateRolls),
+			CandidateBalance:   stakingAddress.CandidateBalance,
+			Thread:             int64(stakingAddress.Thread),
 		})
 	}
 }

@@ -1,6 +1,6 @@
 // EXTERNALS
 import { toast } from '@massalabs/react-ui-kit';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,10 +24,12 @@ const STAKING_ADDRESS_ENDPOINT =
  * Uses react-query's useMutation for POST, PUT, and DELETE operations
  */
 export function useStakingAddress() {
-  const queryClient = useQueryClient();
   const addStakingAddressToStore = useStakingStore(
     (state) => state.addStakingAddress,
   );
+  const removeStakingAddressFromStore = useStakingStore((state) => state.removeStakingAddress);
+  const updateStakingAddressInStore = useStakingStore((state) => state.updateStakingAddress);
+
   const navigate = useNavigate();
   // Add a new staking address
   const addStakingAddress = useMutation<
@@ -74,9 +76,14 @@ export function useStakingAddress() {
     mutationFn: async (payload: UpdateStakingAddressBody) => {
       await axios.put(STAKING_ADDRESS_ENDPOINT, payload);
     },
-    onSuccess: () => {
-      // Invalidate and refetch staking addresses after successful update
-      queryClient.invalidateQueries({ queryKey: ['staking-addresses'] });
+    onSuccess: (_, payload) => {
+      // Show success toast
+      toast.success(Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.rollTargetUpdated'));
+
+      // Update the staking address in the store
+      updateStakingAddressInStore(payload.address, {
+        target_rolls: payload.target_rolls,
+      });
     },
   });
 
@@ -91,11 +98,12 @@ export function useStakingAddress() {
     mutationFn: async (payload: RemoveStakingAddressBody) => {
       await axios.delete(STAKING_ADDRESS_ENDPOINT, { data: payload });
     },
-    onSuccess: () => {
-      // Invalidate and refetch staking addresses after successful removal
-      queryClient.invalidateQueries({ queryKey: ['staking-addresses'] });
+    onSuccess: (_, payload) => {
       // Show success toast
       toast.success(Intl.t('staking.delete-address.address-deleted'));
+
+      // Remove the staking address from the store
+      removeStakingAddressFromStore(payload.address);
     },
     onError: (error: AxiosError) => {
       console.error('Failed deleting staking address:', error);

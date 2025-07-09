@@ -101,14 +101,14 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
       );
       return (
         ' ' +
-        Intl.t('staking.updateRollTarget.confirmModal.rollBuy', {
+        Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.rollBuy', {
           rollsToBuy: maxRollsToBuy.toString(),
         })
       );
     } else if (newTarget < currentTarget) {
       return (
         ' ' +
-        Intl.t('staking.updateRollTarget.confirmModal.rollSell', {
+        Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.rollSell', {
           rollsToSell: (currentTarget - newTarget).toString(),
         })
       );
@@ -331,11 +331,11 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
         isOpen={isConfirmModalOpen}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmUpdate}
-        title={Intl.t('staking.updateRollTarget.confirmModal.title')}
+        title={Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.title')}
       >
         <div className="flex flex-col gap-4">
           <p className="mas-body text-f-primary">
-            {Intl.t('staking.updateRollTarget.confirmModal.body', {
+            {Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.body', {
               currentTargetRolls: address.target_rolls.toString(),
               newTargetRolls: newTargetRolls.toString(),
             })}

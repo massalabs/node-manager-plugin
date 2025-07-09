@@ -38,5 +38,8 @@ api/restapi/embedded_spec.go
 api/restapi/server.go
 api/restapi/doc.go
 
+**/*_mock.go
+
 # node manager plugin executable and massa node binaries
 build
+

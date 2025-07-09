@@ -312,28 +312,28 @@ definitions:
       address:
         type: string
         description: The address of the staking address
-      targetRolls:
+      target_rolls:
         type: integer
         description: The target rolls of the staking address
-      finalRolls:
+      final_roll_count:
         type: integer
         description: The final rolls of the staking address
-      activeRolls:
+      active_roll_count:
         type: integer
         description: The active rolls of the staking address
-      finalBalance:
+      final_balance:
         type: number
         description: The final balance of the staking address
-      candidateRolls:
+      candidate_roll_count:
         type: integer
         description: The candidate rolls of the staking address
-      candidateBalance:
+      candidate_balance:
         type: number
         description: The candidate balance of the staking address
       thread:
         type: integer
         description: The thread of the staking address
-      deferredCredits:
+      deferred_credits:
         type: array
         items:
           $ref: "#/definitions/DeferredCredit"
@@ -371,7 +371,7 @@ definitions:
       address:
         type: string
         description: The address of the staking address
-      targetRolls:  
+      target_rolls:  
         type: number
         description: The target rolls of the staking address
 

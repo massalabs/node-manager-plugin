@@ -1,0 +1,36 @@
+all: false
+filename: '{{.InterfaceName | snakecase}}_mock.go'
+force-file-write: true
+formatter: goimports
+include-auto-generated: false
+log-level: info
+structname: '{{.Mock}}{{.InterfaceName}}'
+recursive: false
+require-template-schema-exists: true
+template: testify
+template-schema: '{{.Template}}.schema.json'
+packages:
+  github.com/massalabs/node-manager-plugin/int/client-driver:
+    config:
+      all: true
+      dir: './client-driver'
+  github.com/massalabs/node-manager-plugin/int/node-api:
+    config:
+      all: true
+      dir: './node-api'
+  github.com/massalabs/node-manager-plugin/int/db:
+    config:
+      all: true
+      dir: './db'
+  github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager:
+    config:
+      all: true
+      dir: './node-bin-dir-manager'
+  github.com/massalabs/node-manager-plugin/int/NodeStatus:
+    config:
+      all: true
+      dir: './NodeStatus'
+  github.com/massalabs/node-manager-plugin/int/staking-manager:
+    config:
+      all: true
+      dir: './staking-manager'

@@ -8,8 +8,21 @@ import (
 	WalletPkg "github.com/massalabs/station-massa-wallet/pkg/wallet"
 )
 
-// getPrivateKeyFromNickname returns the private key and address from a nickname
-func getPrivateKeyFromNickname(pwd, nickname string) (string, string, error) {
+// MassaWalletManager defines the interface for managing Massa wallet operations
+type MassaWalletManager interface {
+	GetPrivateKeyFromNickname(pwd, nickname string) (string, string, error)
+}
+
+// massaWalletManager implements the MassaWalletManager interface
+type massaWalletManager struct{}
+
+// NewMassaWalletManager creates a new instance of MassaWalletManager
+func NewMassaWalletManager() MassaWalletManager {
+	return &massaWalletManager{}
+}
+
+// GetPrivateKeyFromNickname returns the private key and address from a nickname
+func (m *massaWalletManager) GetPrivateKeyFromNickname(pwd, nickname string) (string, string, error) {
 	wallet, err := WalletPkg.New("")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create wallet from nickname %s: %v", nickname, err)

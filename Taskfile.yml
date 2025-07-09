@@ -11,6 +11,7 @@ tasks:
   install:
     cmds:
       - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+      - cmd: go install github.com/vektra/mockery/v3@v3.5.0
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"
 
@@ -20,6 +21,7 @@ tasks:
       - cmd: go generate -x -v ./...
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"
+      - cmd: mockery
 
   setup-node-folder:
     cmds:

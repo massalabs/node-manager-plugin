@@ -24,7 +24,6 @@ type PluginConfig struct {
 	RestartCooldown                int    `yaml:"restart_cooldown"`
 	StakingAddressDataPollInterval int    `yaml:"staking_address_data_poll_interval"`
 	DBPath                         string `yaml:"db_path"`
-	PwdHash                        string `yaml:"pwd_hash"`
 }
 
 func defaultPluginConfig() (PluginConfig, error) {
