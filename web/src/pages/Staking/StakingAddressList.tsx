@@ -91,7 +91,7 @@ const StakingAddressList: React.FC = () => {
         <StakingAddressDetails
           isOpen={isDetailsOpen}
           onClose={handleCloseDetails}
-          address={selectedAddress}
+          address={selectedAddress.address}
         />
       )}
     </>

@@ -18,6 +18,7 @@ type DB interface {
 	DeleteRollsTarget(address string, network utils.Network) error
 	PostHistory(histories []ValueHistory, network utils.Network) error
 	GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error)
+	DeleteAddressHistory(address string, network utils.Network) error
 }
 
 type dB struct {
@@ -126,22 +127,18 @@ func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
 	return addresses, nil
 }
 
-// ExistsRollsTarget checks if an address exists in the rolls_target table for a specific network
-
-func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, error) {
-	query := `SELECT COUNT(*) FROM rolls_target WHERE address = ? AND network = ?`
-
-	var count int
-	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
-	}
-
-	return count > 0, nil
-}
-
 // UpdateRollsTarget updates the roll_target for a specific address and network
 func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error {
+
+	exists, err := d.existsRollsTarget(address, network)
+	if err != nil {
+		return fmt.Errorf("failed to check if roll target for address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	if !exists {
+		return nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, fmt.Sprintf("target rolls for address %s (%s) not found in database", address, string(network)))
+	}
+
 	query := `UPDATE rolls_target SET roll_target = ? WHERE address = ? AND network = ?`
 
 	result, err := d.db.Exec(query, rollTarget, address, string(network))
@@ -274,4 +271,50 @@ func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory,
 	}
 
 	return histories, nil
+}
+
+func (d *dB) DeleteAddressHistory(address string, network utils.Network) error {
+
+	exists, err := d.existsAddressHistory(address, network)
+	if err != nil {
+		return fmt.Errorf("failed to check if history data exists for address %s on network %s: %w", address, string(network), err)
+	}
+
+	if !exists {
+		return nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, fmt.Sprintf("history data not found for address %s on network %s", address, string(network)))
+	}
+
+	query := `DELETE FROM value_history_mainnet WHERE address = ? AND network = ?`
+
+	_, err = d.db.Exec(query, address, string(network))
+	if err != nil {
+		return fmt.Errorf("failed to delete address history: %w", err)
+	}
+
+	return nil
+}
+
+// ExistsRollsTarget checks if an address exists in the rolls_target table for a specific network
+func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, error) {
+	query := `SELECT COUNT(*) FROM rolls_target WHERE address = ? AND network = ?`
+
+	var count int
+	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	return count > 0, nil
+}
+
+func (d *dB) existsAddressHistory(address string, network utils.Network) (bool, error) {
+	query := `SELECT COUNT(*) FROM value_history_mainnet WHERE address = ? AND network = ?`
+
+	var count int
+	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	return count > 0, nil
 }

@@ -13,6 +13,7 @@ const (
 
 type NodeAPI interface {
 	GetAddresses(addresses []string) ([]byte, error)
+	GetOperation(operationID string) (*node.Operation, error)
 	GetStatus() (*node.State, error)
 }
 
@@ -46,6 +47,15 @@ func (n *nodeAPI) GetAddresses(addresses []string) ([]byte, error) {
 	}
 
 	return js, nil
+}
+
+func (n *nodeAPI) GetOperation(operationID string) (*node.Operation, error) {
+	operations, err := node.Operations(n.nodeClient, []string{operationID})
+	if err != nil {
+		return nil, err
+	}
+
+	return &operations[0], nil
 }
 
 func (n *nodeAPI) GetStatus() (*node.State, error) {

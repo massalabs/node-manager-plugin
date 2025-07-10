@@ -14,16 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockMassaWalletManager is a mock implementation of MassaWalletManager for testing
-type MockMassaWalletManager struct {
-	mock.Mock
-}
-
-func (m *MockMassaWalletManager) GetPrivateKeyFromNickname(pwd, nickname string) (string, string, error) {
-	args := m.Called(pwd, nickname)
-	return args.String(0), args.String(1), args.Error(2)
-}
-
 // setupLog initializes the logger for testing and returns a cleanup function
 func setupLog(t *testing.T) func() {
 	tempDir := t.TempDir()
@@ -432,13 +422,13 @@ func TestConvertToStakingAddress(t *testing.T) {
 					FinalBalance:     "1000.5",
 					CandidateBalance: "500.25",
 					Thread:           1,
-					DeferredCredits: []DeferredCredit{
+					DeferredCredits: []DeferredCreditDtoNode{
 						{
 							Slot: Slot{
 								Period: 100,
 								Thread: 1,
 							},
-							Amount: 50.0,
+							Amount: "50.0",
 						},
 					},
 				},
@@ -449,7 +439,7 @@ func TestConvertToStakingAddress(t *testing.T) {
 					FinalBalance:     "2000.75",
 					CandidateBalance: "1500.50",
 					Thread:           2,
-					DeferredCredits:  []DeferredCredit{},
+					DeferredCredits:  []DeferredCreditDtoNode{},
 				},
 			},
 			walletInfos: map[string]clientDriverPkg.WalletInfo{
@@ -506,7 +496,7 @@ func TestConvertToStakingAddress(t *testing.T) {
 					FinalBalance:     "invalid_balance",
 					CandidateBalance: "500.25",
 					Thread:           1,
-					DeferredCredits:  []DeferredCredit{},
+					DeferredCredits:  []DeferredCreditDtoNode{},
 				},
 			},
 			walletInfos: map[string]clientDriverPkg.WalletInfo{
@@ -528,7 +518,7 @@ func TestConvertToStakingAddress(t *testing.T) {
 					FinalBalance:     "1000.5",
 					CandidateBalance: "invalid_balance",
 					Thread:           1,
-					DeferredCredits:  []DeferredCredit{},
+					DeferredCredits:  []DeferredCreditDtoNode{},
 				},
 			},
 			walletInfos: map[string]clientDriverPkg.WalletInfo{
@@ -557,7 +547,7 @@ func TestConvertToStakingAddress(t *testing.T) {
 					FinalBalance:     "1000.5",
 					CandidateBalance: "500.25",
 					Thread:           1,
-					DeferredCredits:  []DeferredCredit{},
+					DeferredCredits:  []DeferredCreditDtoNode{},
 				},
 			},
 			walletInfos: map[string]clientDriverPkg.WalletInfo{

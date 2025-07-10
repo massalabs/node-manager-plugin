@@ -21,6 +21,10 @@ tasks:
       - cmd: go generate -x -v ./...
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"
+      - task:generate-mocks
+
+  generate-mocks:
+    cmds:
       - cmd: mockery
 
   setup-node-folder:

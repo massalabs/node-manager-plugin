@@ -27,6 +27,8 @@ export function useStakingListener() {
 
     eventSource.onmessage = (event) => {
       console.log('Staking addresses update received:', event.data);
+      console.log('eventSource:', eventSource);
+
       try {
         const stakingAddresses: StakingAddress[] = JSON.parse(event.data);
         setStakingAddresses(stakingAddresses);
@@ -37,6 +39,7 @@ export function useStakingListener() {
 
     eventSource.onerror = (err) => {
       console.error('Staking addresses retrieving SSE error:', err);
+      console.log('eventSource:', eventSource);
       eventSource.close();
       goToErrorPage(
         navigate,

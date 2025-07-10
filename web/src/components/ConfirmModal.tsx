@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import {
   PopupModal,
@@ -22,6 +22,25 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   children,
 }) => {
+  
+  // Handle keyboard events
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isOpen && event.key === 'Enter') {
+        event.preventDefault();
+        onConfirm();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onConfirm]);
+
   if (!isOpen) {
     return null;
   }

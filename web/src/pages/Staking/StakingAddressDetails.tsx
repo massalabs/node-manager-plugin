@@ -17,11 +17,12 @@ import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
 import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { DeferredCredit, StakingAddress } from '@/models/staking';
+import { useStakingStore } from '@/store/stakingStore';
 
 interface StakingAddressDetailsProps {
   isOpen: boolean;
   onClose: () => void;
-  address: StakingAddress;
+  address: string;
 }
 
 const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
@@ -29,12 +30,36 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   onClose,
   address,
 }) => {
-  const [targetRolls, setTargetRolls] = useState(address.target_rolls);
+  const [currentAddress, setCurrentAddress] = useState<StakingAddress | null>(null);
+  const [targetRolls, setTargetRolls] = useState(0);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [newTargetRolls, setNewTargetRolls] = useState(0);
+  const [targetRollChangeMsg, setTargetRollChangeMsg] = useState('');
 
   const { updateStakingAddress } = useStakingAddress();
   const { data: nodeInfo } = useFetchNodeInfo();
+  const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
+
+  // Effect to trigger SidePanel dropdown when isOpen becomes true
+  useEffect(() => {
+    if (isOpen) {
+      clickSidePanelButton();
+    }
+  }, [isOpen]);
+
+  // Effect to update the current address and target rolls when the staking addresses list changes
+  useEffect(() => {
+    const currentAddress = stakingAddresses.find(
+      (stakingAddress) => stakingAddress.address === address,
+    );
+
+    if (!currentAddress) {
+      return;
+    }
+
+    setCurrentAddress(currentAddress);
+    setTargetRolls(currentAddress.target_rolls ?? 0);
+  }, [stakingAddresses, address]);
 
   // Helper function to format MAS with 2 decimal places
   const formatMas = (masAmount: number): string => {
@@ -55,13 +80,6 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
     }
   };
 
-  // Effect to trigger SidePanel dropdown when isOpen becomes true
-  useEffect(() => {
-    if (isOpen) {
-      clickSidePanelButton();
-    }
-  }, [isOpen]);
-
   const pannelClose = () => {
     clickSidePanelButton();
     onClose();
@@ -69,16 +87,20 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
 
   const handleValidateClick = () => {
     const newTarget = targetRolls;
-    if (newTarget !== address.target_rolls) {
+    if (newTarget !== currentAddress?.target_rolls) {
       setNewTargetRolls(targetRolls);
       setIsConfirmModalOpen(true);
+      setTargetRollChangeMsg(getTargetChangeMessage());
     }
   };
 
   const handleConfirmUpdate = () => {
+    if (!currentAddress) {
+      return;
+    }
     const newTarget = newTargetRolls;
     updateStakingAddress.mutate({
-      address: address.address,
+      address: currentAddress?.address,
       target_rolls: newTarget,
     });
     setIsConfirmModalOpen(false);
@@ -89,10 +111,13 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   };
 
   const getTargetChangeMessage = () => {
-    const currentTarget = address.target_rolls;
+    if (!currentAddress) {
+      return '';
+    }
+    const currentTarget = currentAddress.target_rolls;
     const newTarget = newTargetRolls;
     const rollPrice = Number(nodeInfo?.config?.rollPrice) || 100;
-    const finalBalance = address.final_balance;
+    const finalBalance = currentAddress.final_balance;
 
     if (newTarget > currentTarget && Math.floor(finalBalance / rollPrice) > 0) {
       const maxRollsToBuy = Math.min(
@@ -126,7 +151,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   };
 
   const getDeferredCreditsTable = () => {
-    if (!address.deferred_credits || address.deferred_credits.length === 0) {
+    if (!currentAddress?.deferred_credits || currentAddress?.deferred_credits.length === 0) {
       return <p className="text-gray-400">No deferred credits</p>;
     }
 
@@ -143,7 +168,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
           </tr>
         </thead>
         <tbody className="bg-secondary divide-y divide-gray-600">
-          {address.deferred_credits.map((credit, index) => {
+          {currentAddress?.deferred_credits.map((credit, index) => {
             const releaseDate = getDeferredCreditReleaseDate(credit);
 
             return (
@@ -190,8 +215,8 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   </h3>
                   <div className="flex-1 min-w-0">
                     <Clipboard
-                      rawContent={address.address}
-                      displayedContent={maskAddress(address.address)}
+                      rawContent={currentAddress?.address ?? ''}
+                      displayedContent={maskAddress(currentAddress?.address ?? '')}
                     />
                   </div>
                 </div>
@@ -203,7 +228,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   <h3 className="text-sm font-medium text-gray-300 whitespace-nowrap">
                     Thread:
                   </h3>
-                  <p className="text-f-primary text-sm">{address.thread}</p>
+                  <p className="text-f-primary text-sm">{currentAddress?.thread}</p>
                 </div>
               </div>
             </div>
@@ -218,14 +243,14 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                 </h3>
                 <Balance
                   size="xs"
-                  amount={formatMas(address.candidate_balance)}
+                  amount={formatMas(currentAddress?.candidate_balance ?? 0)}
                 />
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-300 mb-1">
                   Final Balance
                 </h3>
-                <Balance size="xs" amount={formatMas(address.final_balance)} />
+                <Balance size="xs" amount={formatMas(currentAddress?.final_balance ?? 0)} />
               </div>
             </div>
 
@@ -237,13 +262,13 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                 <h3 className="text-sm font-medium text-gray-300 mb-1">
                   Candidate Rolls
                 </h3>
-                <p className="text-f-primary">{address.candidate_roll_count}</p>
+                <p className="text-f-primary">{currentAddress?.candidate_roll_count}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-300 mb-1">
                   Final Rolls
                 </h3>
-                <p className="text-f-primary">{address.final_roll_count}</p>
+                <p className="text-f-primary">{currentAddress?.final_roll_count}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-300 mb-1 flex items-center gap-1">
@@ -256,7 +281,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                     <FiInfo className="w-3 h-3 text-gray-400" />
                   </Tooltip>
                 </h3>
-                <p className="text-f-primary">{address.active_roll_count}</p>
+                <p className="text-f-primary">{currentAddress?.active_roll_count}</p>
               </div>
             </div>
 
@@ -276,7 +301,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                       </Tooltip>
                     </span>
                     <span className="text-sm text-gray-400 mr-5">
-                      ({address.deferred_credits?.length || 0})
+                      ({currentAddress?.deferred_credits?.length || 0})
                     </span>
                   </div>
                 }
@@ -312,9 +337,9 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                 <Button
                   variant="primary"
                   onClick={handleValidateClick}
-                  disabled={Number(targetRolls) === address.target_rolls}
+                  disabled={Number(targetRolls) === currentAddress?.target_rolls}
                   customClass={`px-3 py-1 text-sm ${
-                    Number(targetRolls) === address.target_rolls
+                    Number(targetRolls) === currentAddress?.target_rolls
                       ? 'bg-gray-500 hover:bg-gray-500 opacity-75 cursor-not-allowed'
                       : 'bg-green-500 hover:bg-green-600'
                   }`}
@@ -336,10 +361,10 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
         <div className="flex flex-col gap-4">
           <p className="mas-body text-f-primary">
             {Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.body', {
-              currentTargetRolls: address.target_rolls.toString(),
+              currentTargetRolls: currentAddress?.target_rolls.toString() ?? '0',
               newTargetRolls: newTargetRolls.toString(),
             })}
-            {getTargetChangeMessage()}
+            {targetRollChangeMsg}
           </p>
         </div>
       </ConfirmModal>

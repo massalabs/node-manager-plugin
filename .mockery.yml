@@ -13,24 +13,24 @@ packages:
   github.com/massalabs/node-manager-plugin/int/client-driver:
     config:
       all: true
-      dir: './client-driver'
+      dir: './int/client-driver'
   github.com/massalabs/node-manager-plugin/int/node-api:
     config:
       all: true
-      dir: './node-api'
+      dir: './int/node-api'
   github.com/massalabs/node-manager-plugin/int/db:
     config:
       all: true
-      dir: './db'
+      dir: './int/db'
   github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager:
     config:
       all: true
-      dir: './node-bin-dir-manager'
+      dir: './int/node-bin-dir-manager'
   github.com/massalabs/node-manager-plugin/int/NodeStatus:
     config:
       all: true
-      dir: './NodeStatus'
+      dir: './int/NodeStatus'
   github.com/massalabs/node-manager-plugin/int/staking-manager:
     config:
       all: true
-      dir: './staking-manager'
+      dir: './int/staking-manager'

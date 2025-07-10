@@ -1,26 +1,17 @@
 package stakingManager
 
 import (
-	"path/filepath"
+	"slices"
 	"testing"
 
 	clientDriver "github.com/massalabs/node-manager-plugin/int/client-driver"
-	"github.com/massalabs/station/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestHandleRollsUpdates(t *testing.T) {
-	// Initialize logger for testing
-	tempDir := t.TempDir()
-	logPath := filepath.Join(tempDir, "test.log")
-	err := logger.InitializeGlobal(logPath)
-	if err != nil {
-		t.Fatalf("failed to initialize logger: %v", err)
-	}
-	defer func() {
-		logger.Close()
-	}()
+	cleanup := setupLog(t)
+	defer cleanup()
 
 	// Constants for testing
 	const (
@@ -312,6 +303,564 @@ func TestHandleRollsUpdates(t *testing.T) {
 
 			// Assert that all expected calls were made
 			mockClient.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateStakingAddresses(t *testing.T) {
+	cleanup := setupLog(t)
+	defer cleanup()
+
+	tests := []struct {
+		name           string
+		existingAddrs  []StakingAddress
+		newAddresses   []StakingAddress
+		expectedResult bool
+	}{
+		{
+			name: "Should return true when number of addresses changes",
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 10,
+				},
+				{
+					Address:     "addr2",
+					TargetRolls: 5,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when candidate rolls change",
+			existingAddrs: []StakingAddress{
+				{
+					Address:        "addr1",
+					CandidateRolls: 5,
+					TargetRolls:    10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:        "addr1",
+					CandidateRolls: 8,
+					TargetRolls:    10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when candidate balance changes",
+			existingAddrs: []StakingAddress{
+				{
+					Address:          "addr1",
+					CandidateBalance: 100.0,
+					TargetRolls:      10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:          "addr1",
+					CandidateBalance: 150.0,
+					TargetRolls:      10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when final rolls change",
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "addr1",
+					FinalRolls:  5,
+					TargetRolls: 10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					FinalRolls:  7,
+					TargetRolls: 10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when active rolls change",
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "addr1",
+					ActiveRolls: 3,
+					TargetRolls: 10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					ActiveRolls: 6,
+					TargetRolls: 10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when final balance changes",
+			existingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 200.0,
+					TargetRolls:  10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 250.0,
+					TargetRolls:  10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when deferred credits change",
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 10,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 50.0,
+						},
+					},
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 10,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 75.0,
+						},
+					},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return true when deferred credits are added",
+			existingAddrs: []StakingAddress{
+				{
+					Address:         "addr1",
+					TargetRolls:     10,
+					DeferredCredits: []DeferredCredit{},
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 10,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 50.0,
+						},
+					},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Should return false when no changes occur",
+			existingAddrs: []StakingAddress{
+				{
+					Address:          "addr1",
+					CandidateRolls:   5,
+					CandidateBalance: 100.0,
+					FinalRolls:       7,
+					ActiveRolls:      6,
+					FinalBalance:     200.0,
+					TargetRolls:      10,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 50.0,
+						},
+					},
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:          "addr1",
+					CandidateRolls:   5,
+					CandidateBalance: 100.0,
+					FinalRolls:       7,
+					ActiveRolls:      6,
+					FinalBalance:     200.0,
+					TargetRolls:      10,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 50.0,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "Should handle multiple addresses with mixed changes",
+			existingAddrs: []StakingAddress{
+				{
+					Address:        "addr1",
+					CandidateRolls: 5,
+					TargetRolls:    10,
+				},
+				{
+					Address:        "addr2",
+					CandidateRolls: 8,
+					TargetRolls:    10,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:        "addr1",
+					CandidateRolls: 7, // Changed
+					TargetRolls:    10,
+				},
+				{
+					Address:        "addr2",
+					CandidateRolls: 8, // Unchanged
+					TargetRolls:    10,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			name:           "Should handle empty addresses",
+			existingAddrs:  []StakingAddress{},
+			newAddresses:   []StakingAddress{},
+			expectedResult: false,
+		},
+		{
+			name: "Should preserve target rolls when updating",
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 15, // This should be preserved
+					FinalRolls:  5,
+				},
+			},
+			newAddresses: []StakingAddress{
+				{
+					Address:     "addr1",
+					TargetRolls: 20, // This should be ignored
+					FinalRolls:  7,  // This should be updated
+				},
+			},
+			expectedResult: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create staking manager instance
+			sm := &stakingManager{
+				stakingAddresses: make([]StakingAddress, len(tt.existingAddrs)),
+			}
+			copy(sm.stakingAddresses, tt.existingAddrs)
+
+			// Execute the function under test
+			result := sm.updateStakingAddresses(tt.newAddresses)
+
+			// Assert the result
+			assert.Equal(t, tt.expectedResult, result, "Expected result mismatch")
+
+			// Assert the updated addresses
+			assert.Equal(t, len(tt.newAddresses), len(sm.stakingAddresses), "Number of addresses mismatch")
+
+			for i, newAddr := range tt.newAddresses {
+				if i < len(sm.stakingAddresses) {
+					actualAddr := sm.stakingAddresses[i]
+					assert.Equal(t, newAddr.Address, actualAddr.Address, "Address mismatch at index %d", i)
+					assert.Equal(t, newAddr.CandidateRolls, actualAddr.CandidateRolls, "CandidateRolls mismatch at index %d", i)
+					assert.Equal(t, newAddr.CandidateBalance, actualAddr.CandidateBalance, "CandidateBalance mismatch at index %d", i)
+					assert.Equal(t, newAddr.FinalRolls, actualAddr.FinalRolls, "FinalRolls mismatch at index %d", i)
+					assert.Equal(t, newAddr.ActiveRolls, actualAddr.ActiveRolls, "ActiveRolls mismatch at index %d", i)
+					assert.Equal(t, newAddr.FinalBalance, actualAddr.FinalBalance, "FinalBalance mismatch at index %d", i)
+					assert.Equal(t, len(newAddr.DeferredCredits), len(actualAddr.DeferredCredits), "DeferredCredits length mismatch at index %d", i)
+
+					// Check that target rolls are preserved from existing addresses
+					if len(tt.existingAddrs) > 0 {
+						index := slices.IndexFunc(tt.existingAddrs, func(existingAddr StakingAddress) bool {
+							return existingAddr.Address == newAddr.Address
+						})
+						if index >= 0 {
+							assert.Equal(t, tt.existingAddrs[index].TargetRolls, actualAddr.TargetRolls, "TargetRolls should be preserved from existing address at index %d", i)
+						}
+					}
+
+					for j, newCredit := range newAddr.DeferredCredits {
+						if j < len(actualAddr.DeferredCredits) {
+							actualCredit := actualAddr.DeferredCredits[j]
+							assert.Equal(t, newCredit.Amount, actualCredit.Amount, "DeferredCredit amount mismatch at index %d, credit %d", i, j)
+							assert.Equal(t, newCredit.Slot.Period, actualCredit.Slot.Period, "DeferredCredit slot period mismatch at index %d, credit %d", i, j)
+							assert.Equal(t, newCredit.Slot.Thread, actualCredit.Slot.Thread, "DeferredCredit slot thread mismatch at index %d, credit %d", i, j)
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestGetTotalValue(t *testing.T) {
+	cleanup := setupLog(t)
+	defer cleanup()
+
+	const rollPrice = 100.0
+
+	tests := []struct {
+		name           string
+		stakingAddrs   []StakingAddress
+		expectedResult float64
+	}{
+		{
+			name:           "Should return zero for empty addresses",
+			stakingAddrs:   []StakingAddress{},
+			expectedResult: 0.0,
+		},
+		{
+			name: "Should calculate total value for single address with balance only",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:         "addr1",
+					FinalBalance:    500.0,
+					FinalRolls:      0,
+					DeferredCredits: []DeferredCredit{},
+				},
+			},
+			expectedResult: 500.0,
+		},
+		{
+			name: "Should calculate total value for single address with rolls only",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:         "addr1",
+					FinalBalance:    0.0,
+					FinalRolls:      5,
+					DeferredCredits: []DeferredCredit{},
+				},
+			},
+			expectedResult: 500.0, // 5 rolls × 100.0 roll price
+		},
+		{
+			name: "Should calculate total value for single address with deferred credits only",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 0.0,
+					FinalRolls:   0,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 250.0,
+						},
+						{
+							Slot: Slot{
+								Period: 101,
+								Thread: 2,
+							},
+							Amount: 150.0,
+						},
+					},
+				},
+			},
+			expectedResult: 400.0, // 250.0 + 150.0
+		},
+		{
+			name: "Should calculate total value for single address with all components",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 1000.0,
+					FinalRolls:   3,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 200.0,
+						},
+					},
+				},
+			},
+			expectedResult: 1500.0, // 1000.0 + (3 × 100.0) + 200.0
+		},
+		{
+			name: "Should calculate total value for multiple addresses",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 500.0,
+					FinalRolls:   2,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 100.0,
+						},
+					},
+				},
+				{
+					Address:      "addr2",
+					FinalBalance: 750.0,
+					FinalRolls:   1,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 101,
+								Thread: 1,
+							},
+							Amount: 50.0,
+						},
+						{
+							Slot: Slot{
+								Period: 102,
+								Thread: 2,
+							},
+							Amount: 75.0,
+						},
+					},
+				},
+			},
+			expectedResult: 1775.0, // (500 + 200 + 100) + (750 + 100 + 50 + 75)
+		},
+		{
+			name: "Should handle large numbers",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 1000000.0,
+					FinalRolls:   1000,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 500000.0,
+						},
+					},
+				},
+			},
+			expectedResult: 1600000.0, // 1000000.0 + (1000 × 100.0) + 500000.0
+		},
+		{
+			name: "Should handle addresses with no deferred credits",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:         "addr1",
+					FinalBalance:    500.0,
+					FinalRolls:      2,
+					DeferredCredits: []DeferredCredit{},
+				},
+				{
+					Address:         "addr2",
+					FinalBalance:    300.0,
+					FinalRolls:      1,
+					DeferredCredits: []DeferredCredit{},
+				},
+			},
+			expectedResult: 1100.0, // (500 + 200) + (300 + 100)
+		},
+		{
+			name: "Should handle addresses with only deferred credits",
+			stakingAddrs: []StakingAddress{
+				{
+					Address:      "addr1",
+					FinalBalance: 0.0,
+					FinalRolls:   0,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 100,
+								Thread: 1,
+							},
+							Amount: 100.0,
+						},
+					},
+				},
+				{
+					Address:      "addr2",
+					FinalBalance: 0.0,
+					FinalRolls:   0,
+					DeferredCredits: []DeferredCredit{
+						{
+							Slot: Slot{
+								Period: 101,
+								Thread: 1,
+							},
+							Amount: 200.0,
+						},
+						{
+							Slot: Slot{
+								Period: 102,
+								Thread: 2,
+							},
+							Amount: 300.0,
+						},
+					},
+				},
+			},
+			expectedResult: 600.0, // 100.0 + (200.0 + 300.0)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create staking manager instance
+			sm := &stakingManager{
+				stakingAddresses: tt.stakingAddrs,
+				miscellaneous: Miscellaneous{
+					RollPrice: rollPrice,
+				},
+			}
+
+			// Execute the function under test
+			result := sm.getTotalValue()
+
+			// Assert the result with tolerance for floating point precision
+			assert.InDelta(t, tt.expectedResult, result, 0.01, "Total value calculation mismatch")
 		})
 	}
 }

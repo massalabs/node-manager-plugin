@@ -24,6 +24,11 @@ type Slot struct {
 	Thread uint8  `json:"thread"`
 }
 
+type DeferredCreditDtoNode struct {
+	Slot   Slot   `json:"slot"`
+	Amount string `json:"amount"`
+}
+
 type DeferredCredit struct {
 	Slot   Slot    `json:"slot"`
 	Amount float64 `json:"amount"`
@@ -36,13 +41,18 @@ type Miscellaneous struct {
 }
 
 type getAddressesResponse struct {
-	Address          string           `json:"address"`
-	FinalRolls       uint64           `json:"final_roll_count"`
-	CandidateRolls   uint64           `json:"candidate_roll_count"`
-	FinalBalance     string           `json:"final_balance"`
-	CandidateBalance string           `json:"candidate_balance"`
-	Thread           uint8            `json:"thread"`
-	DeferredCredits  []DeferredCredit `json:"deferred_credits"`
+	Address          string                  `json:"address"`
+	FinalRolls       uint64                  `json:"final_roll_count"`
+	CandidateRolls   uint64                  `json:"candidate_roll_count"`
+	FinalBalance     string                  `json:"final_balance"`
+	CandidateBalance string                  `json:"candidate_balance"`
+	Thread           uint8                   `json:"thread"`
+	DeferredCredits  []DeferredCreditDtoNode `json:"deferred_credits"`
+}
+
+type pendingOperation struct {
+	id            string
+	expectedRolls uint64
 }
 
 // StakingAddress represents a staking address with its information
@@ -56,6 +66,7 @@ type StakingAddress struct {
 	Thread           uint8            `json:"thread"`
 	DeferredCredits  []DeferredCredit `json:"deferred_credits"`
 	TargetRolls      uint64           `json:"target_rolls"`
+	pendingOperation *pendingOperation
 }
 
 type StakingManager interface {
@@ -113,17 +124,13 @@ func NewStakingManager(
 }
 
 func (s *stakingManager) GetStakingAddresses(pwd string) ([]StakingAddress, AddressChangedDispatcher, error) {
-	stakingAddresses, err := s.clientDriver.GetStakingAddresses()
-	if err != nil {
-		return nil, nil, err
+	if len(s.stakingAddresses) == 0 {
+		if err := s.initStakingAddresses(); err != nil {
+			return nil, nil, err
+		}
 	}
 
-	addresses, err := s.getAddressesDataFromNode(stakingAddresses)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return addresses, s.addressChangedDispatcher, nil
+	return copyAddresses(s.stakingAddresses), s.addressChangedDispatcher, nil
 }
 
 // AddStakingAddress add an address to the massa node for staking
@@ -210,6 +217,14 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 		currentNetwork = utils.NetworkBuildnet
 	}
 
+	if err := s.db.DeleteAddressHistory(address, currentNetwork); err != nil {
+		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
+			logger.Info("[RemoveStakingAddress] history data for address %s (%s) not found in database. Nothing to remove from DB", address, string(currentNetwork))
+		} else {
+			return fmt.Errorf("failed to removehistory data for address %s (%s) from database: %w", address, string(currentNetwork), err)
+		}
+	}
+
 	if err := s.db.DeleteRollsTarget(address, currentNetwork); err != nil {
 		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
 			logger.Info("[RemoveStakingAddress] target rolls for address %s and network %s is not in database. Nothing to remove from DB", address, string(currentNetwork))
@@ -235,22 +250,31 @@ func (s *stakingManager) SetTargetRolls(address string, targetRolls uint64) erro
 		return nil
 	}
 
-	// update target rolls in ram list
-	s.stakingAddresses[index].TargetRolls = targetRolls
-
 	// Update database
 	currentNetwork := utils.NetworkMainnet
 	if !config.GlobalPluginInfo.GetIsMainnet() {
 		currentNetwork = utils.NetworkBuildnet
 	}
+
 	err := s.db.UpdateRollsTarget(address, targetRolls, currentNetwork)
 	if err != nil {
-		// If database update fails, try to add the record
-		err = s.db.AddRollsTarget(address, targetRolls, currentNetwork)
-		if err != nil {
-			return fmt.Errorf("failed to update database: %w", err)
+		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
+			logger.Info("[SetTargetRolls] target rolls for address %s (%s) not found in database. Adding it", address, string(currentNetwork))
+
+			// If database update fails, try to add the record
+			if err = s.db.AddRollsTarget(address, targetRolls, currentNetwork); err != nil {
+				return fmt.Errorf("failed to add target rolls for address %s (%s) to database: %w", address, string(currentNetwork), err)
+			}
+		} else {
+			return fmt.Errorf("failed to update target rolls for address %s (%s) in database: %w", address, string(currentNetwork), err)
 		}
 	}
+
+	// update target rolls in ram list
+	s.stakingAddresses[index].TargetRolls = targetRolls
+
+	// publish the new staking addresses list to the front
+	s.addressChangedDispatcher.Publish(s.stakingAddresses)
 
 	return nil
 }
@@ -357,7 +381,7 @@ func (s *stakingManager) initStakingAddresses() error {
 	}
 	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
 	if err != nil {
-		return fmt.Errorf("failed to load roll targets from database: %w", err)
+		return fmt.Errorf("failed to load rolul targets from database: %w", err)
 	}
 
 	// Update in-memory addresses with database roll targets
@@ -376,6 +400,8 @@ func (s *stakingManager) initStakingAddresses() error {
 	return nil
 }
 
+// getAddressesDataFromNode gets the addresses data from the node and convert it to the StakingAddress struct
+// It doesn't handle roll target. Returned stakingAddresses.TargetRolls is 0.
 func (s *stakingManager) getAddressesDataFromNode(addresses []string) ([]StakingAddress, error) {
 	js, err := s.nodeAPI.GetAddresses(addresses)
 	if err != nil {
@@ -408,6 +434,7 @@ func (s *stakingManager) convertToStakingAddress(addresses []getAddressesRespons
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse candidate balance: %v", err)
 		}
+
 		stakingAddresses[i] = StakingAddress{
 			Address:          addr.Address,
 			FinalRolls:       addr.FinalRolls,
@@ -416,8 +443,20 @@ func (s *stakingManager) convertToStakingAddress(addresses []getAddressesRespons
 			FinalBalance:     finalBalance,
 			CandidateBalance: candidateBalance,
 			Thread:           addr.Thread,
-			DeferredCredits:  addr.DeferredCredits,
 		}
+
+		stakingAddresses[i].DeferredCredits = make([]DeferredCredit, len(addr.DeferredCredits))
+		for j, credit := range addr.DeferredCredits {
+			amount, err := strconv.ParseFloat(credit.Amount, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse deferred credit amount: %v", err)
+			}
+			stakingAddresses[i].DeferredCredits[j] = DeferredCredit{
+				Slot:   credit.Slot,
+				Amount: amount,
+			}
+		}
+
 	}
 
 	return stakingAddresses, nil
