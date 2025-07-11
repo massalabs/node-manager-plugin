@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios';
+
 import { Path } from './routes';
 export type ErrorData = {
   message: string;

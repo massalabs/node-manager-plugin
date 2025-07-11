@@ -16,7 +16,12 @@ export default function Error() {
           ? errorData.title
           : Intl.t('errors.unexpected-error.title')}
       </h1>
-      <p className="mas-body p-5 w-screen max-w-md overflow-y-auto border border-white bg-black max-h-screen/4 rounded-lg text-center">
+      <p
+        className={
+          'mas-body p-5 w-screen max-w-md overflow-y-auto border ' +
+          'border-white bg-black max-h-screen/4 rounded-lg text-center'
+        }
+      >
         {errorData
           ? errorData.message
           : Intl.t('errors.unexpected-error.description')}

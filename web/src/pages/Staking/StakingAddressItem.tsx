@@ -65,7 +65,7 @@ const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
           {address.final_balance.toFixed(2)} MAS
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-f-primary">
-          {address.final_roll_count}
+          {address.active_roll_count}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm">
           {getStakingStatusBadge()}

@@ -13,8 +13,8 @@ import {
   RemoveStakingAddressBody,
 } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
-import { goToErrorPage } from '@/utils/routes';
 import { getErrorMessage } from '@/utils/error';
+import { goToErrorPage } from '@/utils/routes';
 
 const STAKING_ADDRESS_ENDPOINT =
   import.meta.env.VITE_BASE_API + '/stakingAddresses';
@@ -27,8 +27,12 @@ export function useStakingAddress() {
   const addStakingAddressToStore = useStakingStore(
     (state) => state.addStakingAddress,
   );
-  const removeStakingAddressFromStore = useStakingStore((state) => state.removeStakingAddress);
-  const updateStakingAddressInStore = useStakingStore((state) => state.updateStakingAddress);
+  const removeStakingAddressFromStore = useStakingStore(
+    (state) => state.removeStakingAddress,
+  );
+  const updateStakingAddressInStore = useStakingStore(
+    (state) => state.updateStakingAddress,
+  );
 
   const navigate = useNavigate();
   // Add a new staking address
@@ -78,7 +82,11 @@ export function useStakingAddress() {
     },
     onSuccess: (_, payload) => {
       // Show success toast
-      toast.success(Intl.t('staking.stakingAddressDetails.updateRollTarget.confirmModal.rollTargetUpdated'));
+      toast.success(
+        Intl.t(
+          'staking.stakingAddressDetails.updateRollTarget.confirmModal.rollTargetUpdated',
+        ),
+      );
 
       // Update the staking address in the store
       updateStakingAddressInStore(payload.address, {

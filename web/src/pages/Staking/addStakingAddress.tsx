@@ -54,7 +54,7 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
       setAccounts(availableAccounts);
     } catch (error) {
       console.error('Error loading accounts:', error);
-      goToErrorPage(  
+      goToErrorPage(
         navigate,
         Intl.t('errors.load-massa-wallet-accounts.title'),
         Intl.t('errors.load-massa-wallet-accounts.description', {

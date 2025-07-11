@@ -129,7 +129,6 @@ func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
 
 // UpdateRollsTarget updates the roll_target for a specific address and network
 func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error {
-
 	exists, err := d.existsRollsTarget(address, network)
 	if err != nil {
 		return fmt.Errorf("failed to check if roll target for address %s exists for network %s: %w", address, string(network), err)
@@ -172,7 +171,6 @@ func (d *dB) AddRollsTarget(address string, rollTarget uint64, network utils.Net
 
 // DeleteRollsTarget deletes an address from the rolls_target table for a specific network
 func (d *dB) DeleteRollsTarget(address string, network utils.Network) error {
-
 	exists, err := d.existsRollsTarget(address, network)
 	if err != nil {
 		return fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
@@ -274,7 +272,6 @@ func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory,
 }
 
 func (d *dB) DeleteAddressHistory(address string, network utils.Network) error {
-
 	exists, err := d.existsAddressHistory(address, network)
 	if err != nil {
 		return fmt.Errorf("failed to check if history data exists for address %s on network %s: %w", address, string(network), err)

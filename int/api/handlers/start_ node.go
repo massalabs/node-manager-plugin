@@ -35,7 +35,7 @@ func HandleStartNode(nodeManager nodeManagerPkg.INodeManager, statusDispatcher n
 			pwd = registeredPwd
 		} else {
 			// Validate the password
-			if err := checkPwd(pwd, pluginConfig, nodeDirManager); err != nil {
+			if err := checkPwd(pwd, pluginConfig, nodeDirManager, !params.Body.UseBuildnet); err != nil {
 				return operations.NewStartNodeInternalServerError().WithPayload(&models.Error{
 					Message: err.Error(),
 				})
@@ -62,7 +62,12 @@ func HandleStartNode(nodeManager nodeManagerPkg.INodeManager, statusDispatcher n
 }
 
 // checkAndUpdatePwd validates the provided password against stored hash or tests it with WalletInfo
-func checkPwd(pwd string, pluginConfig *config.PluginConfig, nodeDirManager *nodeDirManagerPkg.NodeDirManager) error {
+func checkPwd(
+	pwd string,
+	pluginConfig *config.PluginConfig,
+	nodeDirManager *nodeDirManagerPkg.NodeDirManager,
+	isMainnet bool,
+) error {
 	// // If pwdHash exists, check that the provided password matches the hash
 	// if pluginConfig.PwdHash != "" {
 	// 	hash := sha256.Sum256([]byte(pwd))
@@ -79,9 +84,20 @@ func checkPwd(pwd string, pluginConfig *config.PluginConfig, nodeDirManager *nod
 	// // If no pwdHash exists, test the password with WalletInfo
 	// logger.Infof("No stored password hash found, testing password with WalletInfo")
 
+	// hasClientAddresses, err := (*nodeDirManager).HasClientAddresses(isMainnet)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to check if there are addresses in the client wallet: %w", err)
+	// }
+
+	// if !hasClientAddresses {
+	// 	return nil
+	// }
+
+	// logger.Infof("There are addresses in the client wallet. We have to check the password")
+
 	// Create client driver to test the password
 	clientDriver, err := clientDriverPkg.NewClientDriver(
-		config.GlobalPluginInfo.GetIsMainnet(),
+		isMainnet,
 		*nodeDirManager,
 		time.Duration(pluginConfig.ClientTimeout)*time.Second, // 30 second timeout
 	)

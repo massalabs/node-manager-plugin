@@ -22,7 +22,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   children,
 }) => {
-  
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

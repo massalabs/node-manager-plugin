@@ -15,6 +15,7 @@ const (
 	nodeBinFolder        = "massa-node"
 	clientBinName        = "massa-client"
 	clientBinFolder      = "massa-client"
+	walletFolder         = "wallets"
 )
 
 type NodeDirManager interface {
@@ -22,6 +23,7 @@ type NodeDirManager interface {
 	GetVersion(isMainnet bool) (string, error)
 	GetClientBin(isMainnet bool) (string, error)
 	GetNodeBin(isMainnet bool) (string, error)
+	HasClientAddresses(isMainnet bool) (bool, error)
 }
 
 type nodeDirManager struct {
@@ -102,6 +104,32 @@ func (ndm *nodeDirManager) GetNodeBin(isMainnet bool) (string, error) {
 	}
 
 	return binPath, nil
+}
+
+func (ndm *nodeDirManager) HasClientAddresses(isMainnet bool) (bool, error) {
+	version, err := ndm.GetVersion(isMainnet)
+	if err != nil {
+		return false, err
+	}
+
+	clientPath := filepath.Join(ndm.nodeFolderPath, version, clientBinFolder)
+
+	if _, err := os.Stat(clientPath); os.IsNotExist(err) {
+		return false, fmt.Errorf("client folder not found at %s", clientPath)
+	}
+
+	walletPath := filepath.Join(clientPath, walletFolder)
+
+	if _, err := os.Stat(walletPath); os.IsNotExist(err) {
+		return false, fmt.Errorf("wallet folder not found at %s", walletPath)
+	}
+
+	entries, err := os.ReadDir(walletPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to read directory %s: %v", walletPath, err)
+	}
+
+	return len(entries) > 0, nil
 }
 
 func (ndm *nodeDirManager) init() error {

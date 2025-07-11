@@ -8,6 +8,8 @@ import (
 	configPkg "github.com/massalabs/node-manager-plugin/int/config"
 	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
 	nodeAPIPkg "github.com/massalabs/node-manager-plugin/int/node-api"
+
+	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
 	"github.com/stretchr/testify/assert"
@@ -301,7 +303,7 @@ func TestSetTargetRolls(t *testing.T) {
 		address       string
 		targetRolls   uint64
 		existingAddr  *StakingAddress
-		setupMocks    func(*dbPkg.MockDB, *testing.T)
+		setupMocks    func(*dbPkg.MockDB, *MockAddressChangedDispatcher)
 		expectedError string
 	}{
 		{
@@ -312,8 +314,14 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, t *testing.T) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
 				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
+				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
+					{
+						Address:     "test_address",
+						TargetRolls: 10,
+					},
+				}).Return().Once()
 			},
 			expectedError: "",
 		},
@@ -321,7 +329,7 @@ func TestSetTargetRolls(t *testing.T) {
 			name:        "Should fail when address not found",
 			address:     "non_existent_address",
 			targetRolls: 10,
-			setupMocks: func(mockDB *dbPkg.MockDB, t *testing.T) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
 				// No mocks needed as the function should fail early
 			},
 			expectedError: "address not found for address non_existent_address",
@@ -334,7 +342,7 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, t *testing.T) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
 				// No mocks needed as the function should return early
 			},
 			expectedError: "",
@@ -347,9 +355,17 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, t *testing.T) {
-				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(assert.AnError).Once()
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
+					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
+				).Once()
 				mockDB.On("AddRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
+				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
+					{
+						Address:     "test_address",
+						TargetRolls: 10,
+					},
+				}).Return().Once()
 			},
 			expectedError: "",
 		},
@@ -361,11 +377,13 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, t *testing.T) {
-				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(assert.AnError).Once()
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
+					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
+				).Once()
 				mockDB.On("AddRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(assert.AnError).Once()
 			},
-			expectedError: "failed to update database",
+			expectedError: "failed to add target rolls for address test_address (mainnet) to database: ",
 		},
 	}
 
@@ -373,13 +391,15 @@ func TestSetTargetRolls(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mocks
 			mockDB := dbPkg.NewMockDB(t)
+			mockAddressChangedDispatcher := NewMockAddressChangedDispatcher(t)
 
 			// Setup mocks
-			tt.setupMocks(mockDB, t)
+			tt.setupMocks(mockDB, mockAddressChangedDispatcher)
 
 			// Create staking manager instance
 			sm := &stakingManager{
-				db: mockDB,
+				db:                       mockDB,
+				addressChangedDispatcher: mockAddressChangedDispatcher,
 			}
 
 			// Add existing address if provided
@@ -400,6 +420,7 @@ func TestSetTargetRolls(t *testing.T) {
 
 			// Assert that all expected calls were made
 			mockDB.AssertExpectations(t)
+			mockAddressChangedDispatcher.AssertExpectations(t)
 		})
 	}
 }

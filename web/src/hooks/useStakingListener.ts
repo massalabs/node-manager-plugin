@@ -6,7 +6,12 @@ import intl from '@/i18n/i18n';
 import { StakingAddress } from '@/models/staking';
 import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
-import { getErrorMessage, goToErrorPage, isStopStakingMonitoring, NodeStatus } from '@/utils';
+import {
+  getErrorMessage,
+  goToErrorPage,
+  isStopStakingMonitoring,
+  NodeStatus,
+} from '@/utils';
 
 export function useStakingListener() {
   const eventSourceRef = useRef<EventSource | null>(null);

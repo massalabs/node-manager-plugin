@@ -249,9 +249,13 @@ It return whether the rolls update process can be pursued or not
 func (s *stakingManager) checkIfPendingOperationIsCompleted(index int, candidateRolls uint64) (bool, error) {
 	pendingOp := s.stakingAddresses[index].pendingOperation
 
+	if pendingOp == nil {
+		return true, nil
+	}
+
 	// if there is a pending operation, check if it has been completed
-	if pendingOp != nil && pendingOp.expectedRolls == candidateRolls {
-		//the pending operation is completed, so we can remove it from the staking addresses list
+	if pendingOp.expectedRolls == candidateRolls {
+		// the pending operation is completed, so we can remove it from the staking addresses list
 		s.stakingAddresses[index].pendingOperation = nil
 		logger.Infof("Pending operation for address %s has been completed", s.stakingAddresses[index].Address)
 		return true, nil
@@ -262,13 +266,21 @@ func (s *stakingManager) checkIfPendingOperationIsCompleted(index int, candidate
 			return false, fmt.Errorf("failed to get operation %s: %v", pendingOp.id, err)
 		}
 
+		if operation == nil || operation.Detail == nil {
+			return false, fmt.Errorf("operation or operation detail is nil")
+		}
+
 		status, err := s.nodeAPI.GetStatus()
 		if err != nil {
 			return false, fmt.Errorf("failed to get node status: %v", err)
 		}
 
+		if status.LastSlot == nil {
+			return false, fmt.Errorf("node status last slot is nil")
+		}
+
 		// if the operation has been expired, we can remove it from the staking addresses list
-		if operation.Detail.Content.ExpirePeriod > uint(status.LastSlot.Period) {
+		if operation.Detail.Content.ExpirePeriod < uint(status.LastSlot.Period) {
 			s.stakingAddresses[index].pendingOperation = nil
 			logger.Debugf("Pending operation '%s' for address %s has been expired", pendingOp.id, s.stakingAddresses[index].Address)
 			return true, nil

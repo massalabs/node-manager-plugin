@@ -217,13 +217,13 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 		currentNetwork = utils.NetworkBuildnet
 	}
 
-	if err := s.db.DeleteAddressHistory(address, currentNetwork); err != nil {
-		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
-			logger.Info("[RemoveStakingAddress] history data for address %s (%s) not found in database. Nothing to remove from DB", address, string(currentNetwork))
-		} else {
-			return fmt.Errorf("failed to removehistory data for address %s (%s) from database: %w", address, string(currentNetwork), err)
-		}
-	}
+	// if err := s.db.DeleteAddressHistory(address, currentNetwork); err != nil {
+	// 	if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
+	// 		logger.Info("[RemoveStakingAddress] history data for address %s (%s) not found in database. Nothing to remove from DB", address, string(currentNetwork))
+	// 	} else {
+	// 		return fmt.Errorf("failed to removehistory data for address %s (%s) from database: %w", address, string(currentNetwork), err)
+	// 	}
+	// }
 
 	if err := s.db.DeleteRollsTarget(address, currentNetwork); err != nil {
 		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
