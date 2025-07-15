@@ -48,13 +48,14 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 			logger.Error("failed to initialize staking addresses: %v", err)
 		}
 	}
-
 	totalValue := s.getTotalValue()
-
 	s.mu.Unlock()
 
 	ticker := time.NewTicker(time.Duration(s.stakingAddressDataPollInterval) * time.Second)
 	defer ticker.Stop()
+
+	totValueTicker := time.NewTicker(time.Duration(s.config.TotValueRegisterInterval) * time.Second)
+	defer totValueTicker.Stop()
 
 	for {
 		select {
@@ -78,40 +79,28 @@ func (s *stakingManager) stakingAddressMonitoring(ctx context.Context) {
 				continue
 			}
 
-			/* If the front is listening to address data changes (if the addressChangedDispatcher has subscribers),
-			update the staking addresses list in ram and publish the new staking address data to front
-			*/
 			if s.addressChangedDispatcher.HasSubscribers() {
 				updated := s.updateStakingAddresses(newAddresses)
-				// if the staking addresses list has been updated, publish the new staking address data to front
 				if updated {
 					s.addressChangedDispatcher.Publish(s.stakingAddresses)
 				}
 			}
 			s.mu.Unlock()
 
-			// Handle whether we need to buy or sell rolls to reach the roll target
 			s.handleRollsUpdates(newAddresses)
 
-			// get total value of all staking addresses and save to database if it has changed
-			newTotalValue := s.getTotalValue()
-			if newTotalValue != totalValue {
-				logger.Debugf("total value has changed from %f to %f, saving to database", totalValue, newTotalValue)
-				currentNetwork := utils.NetworkMainnet
-				if !configPkg.GlobalPluginInfo.GetIsMainnet() {
-					currentNetwork = utils.NetworkBuildnet
-				}
-				if err := s.db.PostHistory([]db.ValueHistory{
-					{
-						Timestamp:  time.Now(),
-						TotalValue: newTotalValue,
-					},
-				}, currentNetwork); err != nil {
-					logger.Errorf("failed to save total value to database: %v", err)
-				}
-				totalValue = newTotalValue
+			totalValue = s.getTotalValue()
+		case <-totValueTicker.C:
+			currentNetwork := utils.NetworkMainnet
+			if !configPkg.GlobalPluginInfo.GetIsMainnet() {
+				currentNetwork = utils.NetworkBuildnet
 			}
-
+			if err := s.db.PostHistory(db.ValueHistory{
+				Timestamp:  time.Now(),
+				TotalValue: totalValue,
+			}, currentNetwork); err != nil {
+				logger.Errorf("failed to save total value to database: %v", err)
+			}
 		}
 	}
 }

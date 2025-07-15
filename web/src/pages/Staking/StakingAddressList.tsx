@@ -62,7 +62,7 @@ const StakingAddressList: React.FC = () => {
                   Balance
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">
-                  Rolls
+                  Active Rolls
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/6">
                   Status

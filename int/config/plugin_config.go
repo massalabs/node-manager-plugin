@@ -24,6 +24,8 @@ type PluginConfig struct {
 	RestartCooldown                int    `yaml:"restart_cooldown"`
 	StakingAddressDataPollInterval int    `yaml:"staking_address_data_poll_interval"`
 	DBPath                         string `yaml:"db_path"`
+	TotValueRegisterInterval       int    `yaml:"tot_value_register_interval"`
+	TotValueDelAfter               int    `yaml:"tot_value_del_after"`
 }
 
 func defaultPluginConfig() (PluginConfig, error) {
@@ -41,6 +43,8 @@ func defaultPluginConfig() (PluginConfig, error) {
 		RestartCooldown:                5,  // Time to wait before restarting the node
 		StakingAddressDataPollInterval: 30, // Time to wait before polling the staking address data
 		DBPath:                         filepath.Join(filepath.Dir(execPath), "./db.sqlite"),
+		TotValueRegisterInterval:       180,      // 3 minutes
+		TotValueDelAfter:               31536000, // 1 year
 	}, nil
 }
 

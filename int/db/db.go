@@ -16,9 +16,9 @@ type DB interface {
 	UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error
 	AddRollsTarget(address string, rollTarget uint64, network utils.Network) error
 	DeleteRollsTarget(address string, network utils.Network) error
-	PostHistory(histories []ValueHistory, network utils.Network) error
+	PostHistory(history ValueHistory, network utils.Network) error
 	GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error)
-	DeleteAddressHistory(address string, network utils.Network) error
+	DeleteOldValueHistory(cutoff time.Time) error
 }
 
 type dB struct {
@@ -67,14 +67,14 @@ func (d *dB) initTables() error {
 	valueHistoryMainnetTable := `
 	CREATE TABLE IF NOT EXISTS value_history_mainnet (
 		timestamp DATETIME PRIMARY KEY,
-		total_value INTEGER NOT NULL
+		total_value REAL NOT NULL
 	);`
 
 	// Create value_history_buildnet table
 	valueHistoryBuildnetTable := `
 	CREATE TABLE IF NOT EXISTS value_history_buildnet (
 		timestamp DATETIME PRIMARY KEY,
-		total_value INTEGER NOT NULL
+		total_value REAL NOT NULL
 	);`
 
 	// Create rolls_target table
@@ -199,12 +199,8 @@ func (d *dB) DeleteRollsTarget(address string, network utils.Network) error {
 	return nil
 }
 
-// PostHistory adds a list of value history records to the appropriate network table
-func (d *dB) PostHistory(histories []ValueHistory, network utils.Network) error {
-	if len(histories) == 0 {
-		return nil
-	}
-
+// PostHistory adds a single value history record to the appropriate network table
+func (d *dB) PostHistory(history ValueHistory, network utils.Network) error {
 	var tableName string
 	switch network {
 	case utils.NetworkMainnet:
@@ -215,19 +211,9 @@ func (d *dB) PostHistory(histories []ValueHistory, network utils.Network) error 
 		return fmt.Errorf("unsupported network: %s", string(network))
 	}
 
-	// Build a single INSERT statement with multiple VALUES
-	query := fmt.Sprintf(`INSERT INTO %s (timestamp, total_value) VALUES `, tableName)
-	args := make([]interface{}, 0, len(histories)*2)
+	query := fmt.Sprintf(`INSERT INTO %s (timestamp, total_value) VALUES (?, ?)`, tableName)
 
-	for i, history := range histories {
-		if i > 0 {
-			query += ", "
-		}
-		query += "(?, ?)"
-		args = append(args, history.Timestamp, history.TotalValue)
-	}
-
-	_, err := d.db.Exec(query, args...)
+	_, err := d.db.Exec(query, history.Timestamp, history.TotalValue)
 	if err != nil {
 		return fmt.Errorf("failed to insert %s: %w", tableName, err)
 	}
@@ -271,21 +257,18 @@ func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory,
 	return histories, nil
 }
 
-func (d *dB) DeleteAddressHistory(address string, network utils.Network) error {
-	exists, err := d.existsAddressHistory(address, network)
+// DeleteOldValueHistory deletes value history entries older than a given timestamp for a specific network
+func (d *dB) DeleteOldValueHistory(cutoff time.Time) error {
+	query := fmt.Sprint(`DELETE FROM value_history_mainnet WHERE timestamp < ?`)
+	_, err := d.db.Exec(query, cutoff)
 	if err != nil {
-		return fmt.Errorf("failed to check if history data exists for address %s on network %s: %w", address, string(network), err)
+		return fmt.Errorf("failed to delete old value history from value_history_mainnet: %w", err)
 	}
 
-	if !exists {
-		return nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, fmt.Sprintf("history data not found for address %s on network %s", address, string(network)))
-	}
-
-	query := `DELETE FROM value_history_mainnet WHERE address = ? AND network = ?`
-
-	_, err = d.db.Exec(query, address, string(network))
+	query = fmt.Sprintf(`DELETE FROM value_history_buildnet WHERE timestamp < ?`)
+	_, err = d.db.Exec(query, cutoff)
 	if err != nil {
-		return fmt.Errorf("failed to delete address history: %w", err)
+		return fmt.Errorf("failed to delete old value history from value_history_buildnet: %w", err)
 	}
 
 	return nil
@@ -294,18 +277,6 @@ func (d *dB) DeleteAddressHistory(address string, network utils.Network) error {
 // ExistsRollsTarget checks if an address exists in the rolls_target table for a specific network
 func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, error) {
 	query := `SELECT COUNT(*) FROM rolls_target WHERE address = ? AND network = ?`
-
-	var count int
-	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
-	}
-
-	return count > 0, nil
-}
-
-func (d *dB) existsAddressHistory(address string, network utils.Network) (bool, error) {
-	query := `SELECT COUNT(*) FROM value_history_mainnet WHERE address = ? AND network = ?`
 
 	var count int
 	err := d.db.QueryRow(query, address, string(network)).Scan(&count)

@@ -230,16 +230,17 @@ paths:
       produces:
         - application/json
       parameters:
-        - in: query
-          name: since
+        - in: body
+          name: body
           required: true
-          type: string
-          description: The date since which we want to get the value history
-      responses:  
+          schema:
+            type: object
+            $ref: "#/definitions/GetValueHistoryBody"
+      responses:
         "200":
           description: Value history retrieved successfully
           schema:
-            $ref: "#/definitions/ValueHistory"
+            $ref: "#/definitions/ValueHistorySamples"
         "500":
           description: Error retrieving value history
           schema:
@@ -401,3 +402,29 @@ definitions:
         totalValue:
           type: number
           description: The total value at this timestamp
+
+  GetValueHistoryBody:
+    type: object
+    properties:
+      since:
+        type: string
+        description: The timestamp since when we want to retrieve total value history
+      sampleNum:
+        type: integer
+        description: How many data points should be returned
+      isMainnet:
+        type: boolean
+        description: If true, retrieve mainnet data (default buildnet)
+
+  ValueHistorySamples:
+    type: array
+    items:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: The timestamp of the sample
+        value:
+          type: number
+          description: The value at this timestamp

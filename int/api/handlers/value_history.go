@@ -9,42 +9,54 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	"github.com/massalabs/node-manager-plugin/int/db"
-	"github.com/massalabs/node-manager-plugin/int/utils"
+	historymanager "github.com/massalabs/node-manager-plugin/int/history-manager"
 )
 
-func HandleGetValueHistory(database db.DB) func(operations.GetValueHistoryParams) middleware.Responder {
+// ValueHistorySample is the response item
+// type ValueHistorySample struct {
+// 	Timestamp time.Time  `json:"timestamp"`
+// 	Value     *float64   `json:"value"`
+// }
+
+type valueHistoryRequest struct {
+	Since      string `json:"since"`
+	SampleNum  int    `json:"sampleNum"`
+	IsBuildnet bool   `json:"isBuildnet,omitempty"`
+}
+
+func HandleGetValueHistory(database db.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {
 	return func(params operations.GetValueHistoryParams) middleware.Responder {
-		// Parse the since parameter
-		since, err := time.Parse(time.RFC3339, params.Since)
+
+		if params.Body.SampleNum < 1 {
+			return createErrorResponse(400, "SampleNum must be greater than 0")
+		}
+
+		since, err := time.Parse(time.RFC3339, params.Body.Since)
 		if err != nil {
-			return operations.NewGetValueHistoryInternalServerError().WithPayload(&models.Error{
-				Message: "Invalid date format. Expected RFC3339 format",
-			})
+			return createErrorResponse(400, "Invalid date format. Expected RFC3339 format")
 		}
 
-		// Determine the current network
-		currentNetwork := utils.NetworkMainnet
-		if !config.GlobalPluginInfo.GetIsMainnet() {
-			currentNetwork = utils.NetworkBuildnet
+		now := time.Now()
+		interval := now.Sub(since) / time.Duration(params.Body.SampleNum)
+		if interval < time.Duration(config.TotValueRegisterInterval) {
+			return createErrorResponse(400, "SampleNum is too large")
 		}
 
-		// Get history from database
-		histories, err := database.GetHistory(since, currentNetwork)
+		result, err := historyMgr.SampleValueHistory(since, int64(params.Body.SampleNum), params.Body.IsMainnet, interval)
 		if err != nil {
-			return operations.NewGetValueHistoryInternalServerError().WithPayload(&models.Error{
-				Message: err.Error(),
-			})
+			return createErrorResponse(500, err.Error())
 		}
 
-		// Convert to API models
-		var apiHistories []*models.ValueHistoryItems0
-		for _, history := range histories {
-			apiHistories = append(apiHistories, &models.ValueHistoryItems0{
-				Timestamp:  strfmt.DateTime(history.Timestamp),
-				TotalValue: history.TotalValue,
-			})
+		samples := make(models.ValueHistorySamples, len(result))
+		for i, r := range result {
+			item := &models.ValueHistorySamplesItems0{
+				Timestamp: strfmt.DateTime(r.Timestamp),
+			}
+			if r.Value != nil {
+				item.Value = *r.Value
+			}
+			samples[i] = item
 		}
-
-		return operations.NewGetValueHistoryOK().WithPayload(apiHistories)
+		return operations.NewGetValueHistoryOK().WithPayload(samples)
 	}
 }

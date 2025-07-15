@@ -93,6 +93,7 @@ type stakingManager struct {
 	nodeDirManager                 nodeDirManagerPkg.NodeDirManager
 	clientTimeout                  uint64
 	walletManager                  MassaWalletManager
+	config                         *config.PluginConfig
 }
 
 func NewStakingManager(
@@ -103,6 +104,7 @@ func NewStakingManager(
 	stakingAddressDataPollInterval uint64,
 	clientTimeout uint64,
 	walletManager MassaWalletManager,
+	config *config.PluginConfig,
 ) StakingManager {
 	sm := &stakingManager{
 		nodeAPI:                        nodeAPI,
@@ -114,6 +116,7 @@ func NewStakingManager(
 		nodeDirManager:                 nodeDirManager,
 		clientTimeout:                  clientTimeout,
 		walletManager:                  walletManager,
+		config:                         config,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

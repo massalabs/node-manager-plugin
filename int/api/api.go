@@ -11,6 +11,7 @@ import (
 	"github.com/massalabs/node-manager-plugin/int/api/html"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	"github.com/massalabs/node-manager-plugin/int/db"
+	historymanager "github.com/massalabs/node-manager-plugin/int/history-manager"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
@@ -34,6 +35,7 @@ type API struct {
 	config           *config.PluginConfig
 	stakingManager   stakingManagerPkg.StakingManager
 	db               db.DB
+	historyMgr       *historymanager.HistoryManager
 }
 
 // NewAPI creates a new API with the provided plugin directory
@@ -61,6 +63,8 @@ func NewAPI(config *config.PluginConfig) *API {
 		logger.Fatalf("could not create a database instance, got : %s", err)
 	}
 
+	historyMgr := historymanager.NewHistoryManager(db, int64(config.TotValueDelAfter), int64(config.TotValueRegisterInterval))
+
 	stakingManager := stakingManagerPkg.NewStakingManager(
 		nodeAPI,
 		statusDispatcher,
@@ -69,6 +73,7 @@ func NewAPI(config *config.PluginConfig) *API {
 		uint64(config.StakingAddressDataPollInterval),
 		uint64(config.ClientTimeout),
 		stakingManagerPkg.NewMassaWalletManager(),
+		config,
 	)
 
 	// create the node manager instance
@@ -92,6 +97,7 @@ func NewAPI(config *config.PluginConfig) *API {
 		config:           config,
 		stakingManager:   stakingManager,
 		db:               db,
+		historyMgr:       historyMgr,
 	}
 }
 
@@ -156,7 +162,7 @@ func (a API) registerHandlers() {
 	a.api.AddStakingAddressHandler = operations.AddStakingAddressHandlerFunc(handlers.HandlePostStakingAddresses(a.stakingManager))
 	a.api.UpdateStakingAddressHandler = operations.UpdateStakingAddressHandlerFunc(handlers.HandlePutStakingAddresses(a.stakingManager))
 	a.api.RemoveStakingAddressHandler = operations.RemoveStakingAddressHandlerFunc(handlers.HandleDeleteStakingAddresses(a.stakingManager))
-	a.api.GetValueHistoryHandler = operations.GetValueHistoryHandlerFunc(handlers.HandleGetValueHistory(a.db))
+	a.api.GetValueHistoryHandler = operations.GetValueHistoryHandlerFunc(handlers.HandleGetValueHistory(a.db, a.historyMgr, a.config))
 }
 
 func (a *API) Cleanup() {

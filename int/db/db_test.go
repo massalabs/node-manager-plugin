@@ -121,9 +121,12 @@ func TestValueHistoryOperations(t *testing.T) {
 		{Timestamp: now, TotalValue: 1200},
 	}
 
-	err = db.PostHistory(histories, utils.NetworkMainnet)
-	if err != nil {
-		t.Fatalf("Failed to post history: %v", err)
+	// Post each history individually
+	for _, history := range histories {
+		err = db.PostHistory(history, utils.NetworkMainnet)
+		if err != nil {
+			t.Fatalf("Failed to post history: %v", err)
+		}
 	}
 
 	// Test posting history for buildnet
@@ -132,9 +135,12 @@ func TestValueHistoryOperations(t *testing.T) {
 		{Timestamp: now, TotalValue: 600},
 	}
 
-	err = db.PostHistory(buildnetHistories, utils.NetworkBuildnet)
-	if err != nil {
-		t.Fatalf("Failed to post buildnet history: %v", err)
+	// Post each buildnet history individually
+	for _, history := range buildnetHistories {
+		err = db.PostHistory(history, utils.NetworkBuildnet)
+		if err != nil {
+			t.Fatalf("Failed to post buildnet history: %v", err)
+		}
 	}
 
 	// Test getting history for mainnet
@@ -167,5 +173,54 @@ func TestValueHistoryOperations(t *testing.T) {
 
 	if len(retrievedHistories) != 1 {
 		t.Fatalf("Expected 1 history record for mainnet, got %d", len(retrievedHistories))
+	}
+}
+
+func TestDeleteOldValueHistory(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "testdb.db")
+	db, err := NewDB(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to create database: %v", err)
+	}
+	defer db.Close()
+
+	now := time.Now()
+	histories := []ValueHistory{
+		{Timestamp: now.Add(-48 * time.Hour), TotalValue: 1000},
+		{Timestamp: now.Add(-24 * time.Hour), TotalValue: 1100},
+		{Timestamp: now, TotalValue: 1200},
+	}
+
+	// Post each history individually
+	for _, history := range histories {
+		err = db.PostHistory(history, utils.NetworkMainnet)
+		if err != nil {
+			t.Fatalf("Failed to post history: %v", err)
+		}
+	}
+
+	cutoff := now.Add(-36 * time.Hour)
+	err = db.DeleteOldValueHistory(cutoff)
+	if err != nil {
+		t.Fatalf("Failed to delete old value history: %v", err)
+	}
+
+	// Verify that only recent entries remain
+	remaining, err := db.GetHistory(now.Add(-48*time.Hour), utils.NetworkMainnet)
+	if err != nil {
+		t.Fatalf("Failed to get remaining history: %v", err)
+	}
+
+	expectedCount := 2 // Only the 24-hour and current entries should remain
+	if len(remaining) != expectedCount {
+		t.Errorf("Expected %d remaining entries, got %d", expectedCount, len(remaining))
+	}
+
+	// Verify the remaining entries are the correct ones
+	for _, entry := range remaining {
+		if entry.Timestamp.Before(cutoff) {
+			t.Errorf("Found entry with timestamp %v that should have been deleted (cutoff: %v)", entry.Timestamp, cutoff)
+		}
 	}
 }
