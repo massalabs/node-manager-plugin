@@ -93,7 +93,12 @@ func generateTestData(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			log.Printf("Failed to rollback transaction: %v", err)
+		}
+	}()
 
 	// Prepare insert statement
 	insertStmt, err := tx.Prepare("INSERT INTO value_history_buildnet (timestamp, total_value) VALUES (?, ?)")

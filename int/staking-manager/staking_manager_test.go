@@ -7,9 +7,8 @@ import (
 	clientDriverPkg "github.com/massalabs/node-manager-plugin/int/client-driver"
 	configPkg "github.com/massalabs/node-manager-plugin/int/config"
 	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
-	nodeAPIPkg "github.com/massalabs/node-manager-plugin/int/node-api"
-
 	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
+	nodeAPIPkg "github.com/massalabs/node-manager-plugin/int/node-api"
 	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
 	"github.com/stretchr/testify/assert"

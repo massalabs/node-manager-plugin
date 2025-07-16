@@ -230,17 +230,26 @@ paths:
       produces:
         - application/json
       parameters:
-        - in: body
-          name: body
+        - in: query
+          name: since
           required: true
-          schema:
-            type: object
-            $ref: "#/definitions/GetValueHistoryBody"
+          type: string
+          description: The timestamp since when we want to retrieve total value history
+        - in: query
+          name: sampleNum
+          required: true
+          type: integer
+          description: How many data points should be returned
+        - in: query
+          name: isMainnet
+          required: true
+          type: boolean
+          description: If true, retrieve mainnet data (default buildnet)
       responses:
         "200":
           description: Value history retrieved successfully
           schema:
-            $ref: "#/definitions/ValueHistorySamples"
+            $ref: "#/definitions/ValueHistorySamplesResponse"
         "500":
           description: Error retrieving value history
           schema:
@@ -390,41 +399,25 @@ definitions:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
 
-  ValueHistory:
-    type: array
-    items:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-          description: The timestamp of the history entry
-        totalValue:
-          type: number
-          description: The total value at this timestamp
 
-  GetValueHistoryBody:
+  ValueHistorySamplesResponse:
     type: object
     properties:
-      since:
-        type: string
-        description: The timestamp since when we want to retrieve total value history
-      sampleNum:
+      samples:
+        type: array
+        items:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              description: The timestamp of the history entry
+            value:
+              type: number
+              description: The total value at this timestamp
+      emptyDataPointNum:
         type: integer
-        description: How many data points should be returned
-      isMainnet:
-        type: boolean
-        description: If true, retrieve mainnet data (default buildnet)
-
-  ValueHistorySamples:
-    type: array
-    items:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-          description: The timestamp of the sample
-        value:
-          type: number
-          description: The value at this timestamp
+        description: Number of samples with nil value
+    required:
+      - samples
+      - emptyDataPointNum

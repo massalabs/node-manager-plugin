@@ -33,14 +33,21 @@ func init() {
 	}
 }
 
-// SampleValueHistory returns sampleNum samples between since and now, using the closest value <= sample timestamp, not reused.
+/*
+SampleValueHistory returns sampleNum samples between since and now
+Each sample takes the value of the newest entry with timestamp <= sample timestamp if the value of this entry
+has not already been taken by a previous sample.
+If no such entry exists, the sample value is nil.
+
+The returned samples are sorted by timestamp.
+*/
 func (mgr *HistoryManager) SampleValueHistory(since time.Time, sampleNum int64, isMainnet bool, interval time.Duration) ([]ValueHistorySample, error) {
 	net := utils.NetworkBuildnet
 	if isMainnet {
 		net = utils.NetworkMainnet
 	}
 
-	// Retrieve values from since - totValuePostInterval to ensure we have enough data
+	// Retrieve values from since - totValuePostInterval to ensure that if an entry has timestamp "since", it is included
 	retrieveSince := since.Add(-time.Duration(mgr.totValuePostInterval) * time.Second)
 	dbEntries, err := mgr.db.GetHistory(retrieveSince, net)
 	if err != nil {
@@ -52,7 +59,7 @@ func (mgr *HistoryManager) SampleValueHistory(since time.Time, sampleNum int64, 
 		return nil, nil
 	}
 
-	//now := time.Now()
+	// now := time.Now()
 
 	// interval := now.Sub(since) / time.Duration(sampleNum)
 	// used := make(map[int]bool)

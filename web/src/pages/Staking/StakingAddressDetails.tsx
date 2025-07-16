@@ -39,7 +39,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   const [targetRollChangeMsg, setTargetRollChangeMsg] = useState('');
 
   const { updateStakingAddress } = useStakingAddress();
-  const { data: nodeInfo } = useFetchNodeInfo();
+  const { data: nodeInfo } = useFetchNodeInfo(1000 * 60 * 5); // fetch node status every 5 min
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
 
   // Effect to trigger SidePanel dropdown when isOpen becomes true

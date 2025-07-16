@@ -259,13 +259,13 @@ func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory,
 
 // DeleteOldValueHistory deletes value history entries older than a given timestamp for a specific network
 func (d *dB) DeleteOldValueHistory(cutoff time.Time) error {
-	query := fmt.Sprint(`DELETE FROM value_history_mainnet WHERE timestamp < ?`)
+	query := `DELETE FROM value_history_mainnet WHERE timestamp < ?`
 	_, err := d.db.Exec(query, cutoff)
 	if err != nil {
 		return fmt.Errorf("failed to delete old value history from value_history_mainnet: %w", err)
 	}
 
-	query = fmt.Sprintf(`DELETE FROM value_history_buildnet WHERE timestamp < ?`)
+	query = `DELETE FROM value_history_buildnet WHERE timestamp < ?`
 	_, err = d.db.Exec(query, cutoff)
 	if err != nil {
 		return fmt.Errorf("failed to delete old value history from value_history_buildnet: %w", err)

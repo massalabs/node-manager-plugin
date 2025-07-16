@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -12,51 +13,56 @@ import (
 	historymanager "github.com/massalabs/node-manager-plugin/int/history-manager"
 )
 
-// ValueHistorySample is the response item
-// type ValueHistorySample struct {
-// 	Timestamp time.Time  `json:"timestamp"`
-// 	Value     *float64   `json:"value"`
-// }
-
-type valueHistoryRequest struct {
-	Since      string `json:"since"`
-	SampleNum  int    `json:"sampleNum"`
-	IsBuildnet bool   `json:"isBuildnet,omitempty"`
-}
-
 func HandleGetValueHistory(database db.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {
 	return func(params operations.GetValueHistoryParams) middleware.Responder {
-
-		if params.Body.SampleNum < 1 {
+		if params.SampleNum < 1 {
 			return createErrorResponse(400, "SampleNum must be greater than 0")
 		}
 
-		since, err := time.Parse(time.RFC3339, params.Body.Since)
+		if params.Since == "" {
+			return createErrorResponse(400, "Missing required parameter: since")
+		}
+
+		since, err := time.Parse(time.RFC3339, params.Since)
 		if err != nil {
 			return createErrorResponse(400, "Invalid date format. Expected RFC3339 format")
 		}
 
+		if since.After(time.Now()) {
+			return createErrorResponse(400, "Since cannot be in the future")
+		}
+
+		if since.After(time.Now().Add(-time.Second * time.Duration(config.TotValueRegisterInterval))) {
+			return createErrorResponse(400, fmt.Sprintf("Since param is too short, must be at least %d seconds ago", config.TotValueRegisterInterval))
+		}
+
 		now := time.Now()
-		interval := now.Sub(since) / time.Duration(params.Body.SampleNum)
+		interval := now.Sub(since) / time.Duration(params.SampleNum)
 		if interval < time.Duration(config.TotValueRegisterInterval) {
 			return createErrorResponse(400, "SampleNum is too large")
 		}
 
-		result, err := historyMgr.SampleValueHistory(since, int64(params.Body.SampleNum), params.Body.IsMainnet, interval)
+		result, err := historyMgr.SampleValueHistory(since, int64(params.SampleNum), params.IsMainnet, interval)
 		if err != nil {
 			return createErrorResponse(500, err.Error())
 		}
 
-		samples := make(models.ValueHistorySamples, len(result))
+		samples := make([]*models.ValueHistorySamplesResponseSamplesItems0, len(result))
+		emptyDataPointNum := int64(0)
 		for i, r := range result {
-			item := &models.ValueHistorySamplesItems0{
+			samples[i] = &models.ValueHistorySamplesResponseSamplesItems0{
 				Timestamp: strfmt.DateTime(r.Timestamp),
 			}
 			if r.Value != nil {
-				item.Value = *r.Value
+				samples[i].Value = *r.Value
+			} else {
+				emptyDataPointNum++
 			}
-			samples[i] = item
 		}
-		return operations.NewGetValueHistoryOK().WithPayload(samples)
+		response := &models.ValueHistorySamplesResponse{
+			Samples:           samples,
+			EmptyDataPointNum: &emptyDataPointNum,
+		}
+		return operations.NewGetValueHistoryOK().WithPayload(response)
 	}
 }
