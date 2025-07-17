@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import {
   SidePanel,
@@ -11,13 +11,15 @@ import {
   maskAddress,
 } from '@massalabs/react-ui-kit';
 import { FiInfo, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
 import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
-import { DeferredCredit, StakingAddress } from '@/models/staking';
+import { DeferredCredit } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
+import { goToErrorPage } from '@/utils/routes';
 
 interface StakingAddressDetailsProps {
   isOpen: boolean;
@@ -30,18 +32,18 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   onClose,
   address,
 }) => {
-  const [currentAddress, setCurrentAddress] = useState<StakingAddress | null>(
-    null,
-  );
   const [targetRolls, setTargetRolls] = useState(0);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  // const [newTargetRolls, setNewTargetRolls] = useState(0);
   const [targetRollChangeMsg, setTargetRollChangeMsg] = useState('');
 
   const { updateStakingAddress } = useStakingAddress();
-  const { data: nodeInfo } = useFetchNodeInfo(1000 * 60 * 5); // fetch node status every 5 min
-  const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
-
+  const { data: nodeInfo, isError: isNodeInfoError } = useFetchNodeInfo(
+    1000 * 60 * 3,
+  ); // fetch node status every 3 min
+  const currentAddress = useStakingStore((state) =>
+    state.stakingAddresses.find((addr) => addr.address === address),
+  );
+  const navigate = useNavigate();
   // Effect to trigger SidePanel dropdown when isOpen becomes true
   useEffect(() => {
     if (isOpen) {
@@ -49,24 +51,32 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
     }
   }, [isOpen]);
 
+  // handle error when fetching node info
+  useEffect(() => {
+    if (isNodeInfoError) {
+      goToErrorPage(
+        navigate,
+        'Error fetching node info in staking address details',
+        'Please try again later',
+      );
+    }
+  }, [isNodeInfoError, navigate]);
+
   // Effect to update the current address and target rolls when the staking addresses list changes
   useEffect(() => {
-    const currentAddress = stakingAddresses.find(
-      (stakingAddress) => stakingAddress.address === address,
-    );
-
     if (!currentAddress) {
       return;
     }
 
-    setCurrentAddress(currentAddress);
     setTargetRolls(currentAddress.target_rolls ?? 0);
-  }, [stakingAddresses, address]);
+  }, [currentAddress]);
 
   // Helper function to format MAS with 2 decimal places
-  const formatMas = (masAmount: number): string => {
-    return masAmount.toFixed(2);
-  };
+  const formatMas = useMemo(() => {
+    return (masAmount: number): string => {
+      return masAmount.toFixed(2);
+    };
+  }, []);
 
   // SidePanel component doesn't provide a way to handle the open/close state of the panel programmatically
   // so we need to simulate a click on the toggle dropdown button to open and closethe panel
@@ -112,60 +122,64 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
     setIsConfirmModalOpen(false);
   };
 
-  const getTargetChangeMessage = () => {
-    if (!currentAddress) {
+  const getTargetChangeMessage = useMemo(() => {
+    return () => {
+      if (!currentAddress) {
+        return '';
+      }
+      const currentTarget = currentAddress.target_rolls;
+      const newTarget = targetRolls;
+      const rollPrice = Number(nodeInfo?.config?.rollPrice) || 100;
+      const finalBalance = currentAddress.final_balance;
+
+      if (
+        newTarget > currentAddress.candidate_roll_count &&
+        newTarget > currentTarget &&
+        Math.floor(finalBalance / rollPrice) > 0
+      ) {
+        const maxRollsToBuy = Math.min(
+          Math.floor(finalBalance / rollPrice), // number of rolls that can be bought with current MAS balance
+          newTarget - currentAddress.candidate_roll_count, // number of rolls that are needed to reach the new target
+        );
+        return (
+          ' ' +
+          Intl.t(
+            'staking.stakingAddressDetails.updateRollTarget.confirmModal.rollBuy',
+            {
+              rollsToBuy: maxRollsToBuy.toString(),
+            },
+          )
+        );
+      } else if (newTarget < currentAddress.candidate_roll_count) {
+        return (
+          ' ' +
+          Intl.t(
+            'staking.stakingAddressDetails.updateRollTarget.confirmModal.rollSell',
+            {
+              rollsToSell: (
+                currentAddress.candidate_roll_count - newTarget
+              ).toString(),
+            },
+          )
+        );
+      }
       return '';
-    }
-    const currentTarget = currentAddress.target_rolls;
-    const newTarget = targetRolls;
-    const rollPrice = Number(nodeInfo?.config?.rollPrice) || 100;
-    const finalBalance = currentAddress.final_balance;
+    };
+  }, [currentAddress, targetRolls, nodeInfo?.config?.rollPrice]);
 
-    if (
-      newTarget > currentAddress.candidate_roll_count &&
-      newTarget > currentTarget &&
-      Math.floor(finalBalance / rollPrice) > 0
-    ) {
-      const maxRollsToBuy = Math.min(
-        Math.floor(finalBalance / rollPrice), // number of rolls that can be bought with current MAS balance
-        newTarget - currentAddress.candidate_roll_count, // number of rolls that are needed to reach the new target
-      );
-      return (
-        ' ' +
-        Intl.t(
-          'staking.stakingAddressDetails.updateRollTarget.confirmModal.rollBuy',
-          {
-            rollsToBuy: maxRollsToBuy.toString(),
-          },
-        )
-      );
-    } else if (newTarget < currentAddress.candidate_roll_count) {
-      return (
-        ' ' +
-        Intl.t(
-          'staking.stakingAddressDetails.updateRollTarget.confirmModal.rollSell',
-          {
-            rollsToSell: (
-              currentAddress.candidate_roll_count - newTarget
-            ).toString(),
-          },
-        )
-      );
-    }
-    return '';
-  };
+  const getDeferredCreditReleaseDate = useMemo(() => {
+    return (credit: DeferredCredit) => {
+      if (!nodeInfo?.lastSlot) {
+        console.error('Node info last slot is null');
+      }
+      const periodDiff = credit.slot.period - (nodeInfo?.lastSlot?.period || 0);
+      const periodLength = nodeInfo?.config?.t0 || 0;
+      const releaseTime = periodDiff * periodLength;
+      return new Date(Date.now() + releaseTime);
+    };
+  }, [nodeInfo?.config?.t0, nodeInfo?.lastSlot]);
 
-  const getDeferredCreditReleaseDate = (credit: DeferredCredit) => {
-    if (!nodeInfo?.lastSlot) {
-      console.error('Node info last slot is null');
-    }
-    const periodDiff = credit.slot.period - (nodeInfo?.lastSlot?.period || 0);
-    const periodLength = nodeInfo?.config?.t0 || 0;
-    const releaseTime = periodDiff * periodLength;
-    return new Date(Date.now() + releaseTime);
-  };
-
-  const getDeferredCreditsTable = () => {
+  const getDeferredCreditsTable = useMemo(() => {
     if (
       !currentAddress?.deferred_credits ||
       currentAddress?.deferred_credits.length === 0
@@ -203,7 +217,11 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
         </tbody>
       </table>
     );
-  };
+  }, [
+    currentAddress?.deferred_credits,
+    getDeferredCreditReleaseDate,
+    formatMas,
+  ]);
 
   return (
     <>
@@ -337,7 +355,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   </div>
                 }
               >
-                <div className="mt-2">{getDeferredCreditsTable()}</div>
+                <div className="mt-2">{getDeferredCreditsTable}</div>
               </AccordionCategory>
             </div>
 
@@ -399,8 +417,8 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
               'staking.stakingAddressDetails.updateRollTarget.confirmModal.body',
               {
                 currentTargetRolls:
-                  currentAddress?.target_rolls.toString() ?? '0',
-                newTargetRolls: targetRolls.toString(),
+                  currentAddress?.target_rolls?.toString() ?? '0',
+                newTargetRolls: targetRolls?.toString() ?? '0',
               },
             )}
             {targetRollChangeMsg}

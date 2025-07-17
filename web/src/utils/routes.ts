@@ -1,5 +1,7 @@
 import { NavigateFunction } from 'react-router-dom';
 
+import { getBaseAppUrl } from './utils';
+
 export enum Path {
   home = 'home',
   dashboard = 'dashboard',
@@ -8,7 +10,7 @@ export enum Path {
 }
 
 export function routeFor(path: string) {
-  return `${import.meta.env.VITE_BASE_APP}/${path}`;
+  return `${getBaseAppUrl()}/${path}`;
 }
 
 export function goToErrorPage(

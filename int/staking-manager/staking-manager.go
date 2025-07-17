@@ -127,6 +127,11 @@ func NewStakingManager(
 }
 
 func (s *stakingManager) GetStakingAddresses(pwd string) ([]StakingAddress, AddressChangedDispatcher, error) {
+	if !s.nodeIsUp {
+		return nil, nil, fmt.Errorf("massa node is not up")
+
+	}
+
 	if len(s.stakingAddresses) == 0 {
 		if err := s.initStakingAddresses(); err != nil {
 			return nil, nil, err

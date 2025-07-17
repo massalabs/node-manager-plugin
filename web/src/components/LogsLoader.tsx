@@ -6,6 +6,7 @@ import axios from 'axios';
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { networks } from '@/utils/const';
+import { getApiUrl } from '@/utils/utils';
 
 export default function LogsLoader() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,7 +15,7 @@ export default function LogsLoader() {
   const handleDownload = async () => {
     try {
       setIsLoading(true);
-      const baseApi = import.meta.env.VITE_BASE_API || '/api';
+      const baseApi = getApiUrl() || '/api';
       const response = await axios.get(
         `${baseApi}/nodeLogs?isMainnet=${network === networks.mainnet}`,
       );

@@ -15,8 +15,9 @@ import Error from '@/pages/Error.tsx';
 import Home from '@/pages/Home/Home.tsx';
 import StakingPage from '@/pages/Staking/StakingPage.tsx';
 import { Path } from '@/utils/routes.ts';
+import { getBaseAppUrl } from '@/utils/utils.ts';
 
-const baseURL = import.meta.env.VITE_BASE_APP;
+const baseURL = getBaseAppUrl();
 
 const queryClient = new QueryClient();
 

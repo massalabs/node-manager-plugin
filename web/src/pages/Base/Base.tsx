@@ -12,13 +12,14 @@ import { useTheme } from '@/hooks/useTheme';
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { Path, routeFor } from '@/utils/routes';
+import { getBaseAppUrl } from '@/utils/utils';
 
 // Custom NodeLogo component to replace MassaLogo
 const NodeLogo: React.FC<{ size?: number }> = ({ size = 32 }) => {
   return (
     <div className="bg-primary w-fit rounded-full p-1">
       <img
-        src={import.meta.env.VITE_BASE_APP + '/favicon.svg'}
+        src={getBaseAppUrl() + '/favicon.svg'}
         alt="Node Logo"
         width={size}
         height={size}

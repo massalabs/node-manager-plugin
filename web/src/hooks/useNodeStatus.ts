@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { getErrorMessage, goToErrorPage, NodeStatus } from '@/utils';
+import { getApiUrl } from '@/utils/utils';
 
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -20,7 +21,7 @@ This function can be used in dependency array, so it needs to be a stable refere
       eventSourceRef.current.close();
     }
 
-    const baseApi = import.meta.env.VITE_BASE_API || '/api';
+    const baseApi = getApiUrl() || '/api';
     const eventSource = new EventSource(`${baseApi}/status`);
 
     eventSource.onmessage = (event) => {

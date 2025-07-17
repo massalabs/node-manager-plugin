@@ -31,8 +31,8 @@ const HistoryGraph: React.FC = () => {
   // when the node is up, fetch the value history for 1 month
   useEffect(() => {
     if (nodeStatus === 'on') {
-      fetchValueHistory(SinceFetch.M1);
-      setSelectedSince(SinceFetch.M1);
+      fetchValueHistory(SinceFetch.D1);
+      setSelectedSince(SinceFetch.D1);
     }
   }, [nodeStatus, fetchValueHistory]);
 
@@ -89,7 +89,7 @@ const HistoryGraph: React.FC = () => {
               tickFormatter={tickFormatter}
               minTickGap={20}
             />
-            <YAxis dataKey="value" domain={['dataMin - 10', 'dataMax + 10']} />
+            <YAxis dataKey="value" domain={['dataMin - 5%', 'dataMax + 5%']} />
             <CartesianGrid strokeDasharray="3 3" />
             <Tooltip />
             <Area

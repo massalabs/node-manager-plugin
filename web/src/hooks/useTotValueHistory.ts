@@ -10,13 +10,15 @@ import {
   ValueHistorySamplesResponse,
 } from '../models/history';
 import { StakingAddress } from '../models/staking';
+import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
+import { networks } from '@/utils/const';
 import { getErrorMessage } from '@/utils/error';
 import { goToErrorPage } from '@/utils/routes';
 
 const ROLL_PRICE = 100.0;
 
-function getTotalValue(addresses: StakingAddress[]): number {
+export function getTotalValue(addresses: StakingAddress[]): number {
   let totalValue = 0;
   for (const addr of addresses) {
     let deferredCredits = 0;
@@ -32,13 +34,16 @@ function getTotalValue(addresses: StakingAddress[]): number {
 export function useTotValueHistory() {
   const [valueHistory, setValueHistory] = useState<ValueHistoryPoint[]>([]);
   const [since, setSince] = useState<SinceFetch>(SinceFetch.DEFAULT);
+
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
+  const network = useNodeStore((state) => state.network);
+  const version = useNodeStore((state) => state.version);
+
   const navigate = useNavigate();
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  
-
-  const GetParamsFromSince = useCallback((since: SinceFetch) => {
+  const getParamsFromSince = useCallback((since: SinceFetch) => {
     let sinceParam = '';
     let sampleNum = 0;
     const now = Date.now();
@@ -64,39 +69,45 @@ export function useTotValueHistory() {
         sampleNum = 1000;
         break;
       default:
-        sinceParam = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString(); // 1 month (approx)
-        sampleNum = 1000;
+        sinceParam = new Date(now - 24 * 60 * 60 * 1000).toISOString(); // 1 day
+        sampleNum = 400;
         break;
     }
     return { sinceParam, sampleNum };
   }, []);
 
-    const updateValueHistory = useCallback(() => {
-        const value = getTotalValue(stakingAddresses);
-        setValueHistory((prev) => [
-        ...prev,
-        { timestamp: new Date().toISOString(), value },
-        ]);
-    }, [stakingAddresses]);
+  const updateValueHistory = useCallback(() => {
+    const value = getTotalValue(stakingAddresses);
+    setValueHistory((prev) => [
+      ...prev,
+      { timestamp: new Date().toISOString(), value },
+    ]);
+  }, [stakingAddresses]);
 
-    // allow to continusly update value history at the same interval it is updated in the backend.
-    useEffect(() => {
-        // Clear previous interval if any
-        if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        }
+  // allow to continusly update value history at the same interval it is updated in the backend.
+  useEffect(() => {
+    // Clear previous interval if any
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-        // Start interval for live value appending
-        const sinceDate = new Date(since).getTime();
-        const { sampleNum } = GetParamsFromSince(since);
-        const intervalMs = Math.floor((Date.now() - sinceDate) / sampleNum);
-        intervalRef.current = setInterval(updateValueHistory, intervalMs);
-    }, [since, updateValueHistory, GetParamsFromSince]);
+    // Start interval for live value appending
+    const { sinceParam, sampleNum } = getParamsFromSince(since);
+    const sinceDate = new Date(sinceParam).getTime();
+
+    const intervalMs = Math.floor((Date.now() - sinceDate) / sampleNum);
+    intervalRef.current = setInterval(updateValueHistory, intervalMs);
+  }, [since, updateValueHistory, getParamsFromSince]);
 
   const fetchValueHistory = useCallback(
     async (since: SinceFetch) => {
-      const { sinceParam, sampleNum } = GetParamsFromSince(since);
+      const { sinceParam, sampleNum } = getParamsFromSince(since);
+
+      if (version === '') {
+        // it means that the page has been reloaded and the network is not set yet
+        return;
+      }
 
       try {
         const res = await axios.get<ValueHistorySamplesResponse>(
@@ -105,7 +116,7 @@ export function useTotValueHistory() {
             params: {
               since: sinceParam,
               sampleNum,
-              isMainnet: false,
+              isMainnet: network == networks.mainnet,
             },
           },
         );
@@ -116,8 +127,6 @@ export function useTotValueHistory() {
         }
         setValueHistory(res.data.samples);
         setSince(since);
-
-    
       } catch (err) {
         goToErrorPage(
           navigate,
@@ -127,7 +136,7 @@ export function useTotValueHistory() {
         return;
       }
     },
-    [navigate, GetParamsFromSince],
+    [navigate, getParamsFromSince, network, version],
   );
 
   // Cleanup interval on unmount

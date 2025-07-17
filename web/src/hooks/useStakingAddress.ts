@@ -15,9 +15,9 @@ import {
 import { useStakingStore } from '@/store/stakingStore';
 import { getErrorMessage } from '@/utils/error';
 import { goToErrorPage } from '@/utils/routes';
+import { getApiUrl } from '@/utils/utils';
 
-const STAKING_ADDRESS_ENDPOINT =
-  import.meta.env.VITE_BASE_API + '/stakingAddresses';
+const STAKING_ADDRESS_ENDPOINT = getApiUrl() + '/stakingAddresses';
 
 /**
  * Hook providing utilities for staking address operations

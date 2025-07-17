@@ -12,6 +12,7 @@ import {
   isStopStakingMonitoring,
   NodeStatus,
 } from '@/utils';
+import { getApiUrl } from '@/utils/utils';
 
 export function useStakingListener() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -27,7 +28,7 @@ export function useStakingListener() {
       eventSourceRef.current.close();
     }
 
-    const baseApi = import.meta.env.VITE_BASE_API || '/api';
+    const baseApi = getApiUrl() || '/api';
     const eventSource = new EventSource(`${baseApi}/stakingAddresses`);
 
     eventSource.onmessage = (event) => {

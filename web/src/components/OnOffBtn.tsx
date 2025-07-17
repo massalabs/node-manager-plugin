@@ -5,7 +5,7 @@ import { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/ConfirmModal';
-import { usePost } from '@/hooks/api/usePost';
+import { usePost } from '@/hooks/usePost';
 import Intl from '@/i18n/i18n';
 import { startNodeBody, startNodeReponse } from '@/models/nodeInfos';
 import { useNodeStore } from '@/store/nodeStore';
