@@ -2,9 +2,9 @@
 import { toast } from '@massalabs/react-ui-kit';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 // LOCALS
+import { useError } from '@/contexts/ErrorContext';
 import Intl from '@/i18n/i18n';
 import {
   StakingAddress,
@@ -14,7 +14,6 @@ import {
 } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
 import { getErrorMessage } from '@/utils/error';
-import { goToErrorPage } from '@/utils/routes';
 import { getApiUrl } from '@/utils/utils';
 
 const STAKING_ADDRESS_ENDPOINT = getApiUrl() + '/stakingAddresses';
@@ -34,7 +33,7 @@ export function useStakingAddress() {
     (state) => state.updateStakingAddress,
   );
 
-  const navigate = useNavigate();
+  const { setError } = useError();
   // Add a new staking address
   const addStakingAddress = useMutation<
     StakingAddress,
@@ -59,13 +58,12 @@ export function useStakingAddress() {
     },
     onError: (error: AxiosError) => {
       console.error('Failed adding staking address:', error);
-      goToErrorPage(
-        navigate,
-        Intl.t('errors.staking-address-add.title'),
-        Intl.t('errors.staking-address-add.description', {
+      setError({
+        title: Intl.t('errors.staking-address-add.title'),
+        message: Intl.t('errors.staking-address-add.description', {
           error: getErrorMessage(error),
         }),
-      );
+      });
     },
   });
 
@@ -115,13 +113,12 @@ export function useStakingAddress() {
     },
     onError: (error: AxiosError) => {
       console.error('Failed deleting staking address:', error);
-      goToErrorPage(
-        navigate,
-        Intl.t('errors.staking-address-delete.title'),
-        Intl.t('errors.staking-address-delete.description', {
+      setError({
+        title: Intl.t('errors.staking-address-delete.title'),
+        message: Intl.t('errors.staking-address-delete.description', {
           error: getErrorMessage(error),
         }),
-      );
+      });
     },
   });
 

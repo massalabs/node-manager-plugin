@@ -59,10 +59,6 @@ func (mgr *HistoryManager) SampleValueHistory(since time.Time, sampleNum int64, 
 		return nil, nil
 	}
 
-	// now := time.Now()
-
-	// interval := now.Sub(since) / time.Duration(sampleNum)
-	// used := make(map[int]bool)
 	result := make([]ValueHistorySample, sampleNum)
 	dbEntryIndex := 0
 	for i := int64(0); i < sampleNum; i++ {
@@ -78,19 +74,9 @@ func (mgr *HistoryManager) SampleValueHistory(since time.Time, sampleNum int64, 
 			dbEntryIndex++
 		}
 
-		// for j, entry := range dbEntries {
-		// 	if used[j] {
-		// 		continue
-		// 	}
-
-		// 	if chosen == -1 || entry.Timestamp.After(dbEntries[chosen].Timestamp) {
-		// 		chosen = j
-		// 	}
-		// }
 		if chosen != -1 {
 			v := dbEntries[chosen].TotalValue
 			val = &v
-			// used[chosen] = true
 		}
 		result[i] = ValueHistorySample{Timestamp: ts, Value: val}
 	}

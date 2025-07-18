@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { useNavigate } from 'react-router-dom';
-
+import { useError } from '@/contexts/ErrorContext';
 import intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
-import { getErrorMessage, goToErrorPage, NodeStatus } from '@/utils';
+import { getErrorMessage, NodeStatus } from '@/utils';
 import { getApiUrl } from '@/utils/utils';
 
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const setStatus = useNodeStore((state) => state.setStatus);
-
-  const navigate = useNavigate();
+  const { setError } = useError();
 
   /* use useCallback to avoid recreating a new function instance each time the hook is re-rendering
 This function can be used in dependency array, so it needs to be a stable reference
@@ -33,17 +31,16 @@ This function can be used in dependency array, so it needs to be a stable refere
     eventSource.onerror = (err) => {
       console.error('node status retrieving SSE error:', err);
       eventSource.close();
-      goToErrorPage(
-        navigate,
-        intl.t('errors.node-status.title'),
-        intl.t('errors.node-status.description', {
+      setError({
+        title: intl.t('errors.node-status.title'),
+        message: intl.t('errors.node-status.description', {
           error: getErrorMessage(err),
         }),
-      );
+      });
     };
 
     eventSourceRef.current = eventSource;
-  }, [navigate, setStatus]);
+  }, [setStatus, setError]);
 
   useEffect(() => {
     // Cleanup on unmount

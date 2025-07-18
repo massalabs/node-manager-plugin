@@ -12,19 +12,35 @@ import (
 func HandleGetPluginInfos(nodeDirManager *nodeDirManagerPkg.NodeDirManager) func(operations.GetPluginInfosParams) middleware.Responder {
 	return func(params operations.GetPluginInfosParams) middleware.Responder {
 		isMainnet := config.GlobalPluginInfo.GetIsMainnet()
-		version, err := (*nodeDirManager).GetVersion(isMainnet)
+		mainnetVersion, err := (*nodeDirManager).GetVersion(true)
 		if err != nil {
-			logger.Errorf("failed to get node version: %v", err)
+			logger.Errorf("failed to retrieve node version for mainnet: %v", err)
+			return operations.NewGetPluginInfosInternalServerError().WithPayload(&models.Error{
+				Message: err.Error(),
+			})
+		}
+
+		buildnetVersion, err := (*nodeDirManager).GetVersion(false)
+		if err != nil {
+			logger.Errorf("failed to retrieve node version for buildnet: %v", err)
 			return operations.NewGetPluginInfosInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),
 			})
 		}
 		return operations.NewGetPluginInfosOK().WithPayload(&models.PluginInfos{
-			Version:        version,
-			AutoRestart:    config.GlobalPluginInfo.GetAutoRestart(),
-			PluginVersion:  config.Version,
-			HasPwdMainnet:  config.GlobalPluginInfo.GetPwdByNetwork(true) != "",
-			HasPwdBuildnet: config.GlobalPluginInfo.GetPwdByNetwork(false) != "",
+			Networks: []*models.Network{
+				{
+					Version: mainnetVersion,
+					HasPwd:  config.GlobalPluginInfo.GetPwdByNetwork(true) != "",
+				},
+				{
+					Version: buildnetVersion,
+					HasPwd:  config.GlobalPluginInfo.GetPwdByNetwork(false) != "",
+				},
+			},
+			AutoRestart:   config.GlobalPluginInfo.GetAutoRestart(),
+			PluginVersion: config.Version,
+			IsMainnet:     isMainnet,
 		})
 	}
 }

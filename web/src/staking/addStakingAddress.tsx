@@ -8,14 +8,14 @@ import {
   Password,
   maskAddress,
 } from '@massalabs/react-ui-kit';
-import { useNavigate } from 'react-router-dom';
 
-import { getStationAccounts } from './utils/station';
 import ConfirmModal from '@/components/ConfirmModal';
+import { useError } from '@/contexts/ErrorContext';
 import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { useStakingStore } from '@/store/stakingStore';
-import { getErrorMessage, goToErrorPage } from '@/utils';
+import { getErrorMessage } from '@/utils';
+import { getStationAccounts } from '@/utils/station';
 
 type Account = {
   address: string;
@@ -40,8 +40,7 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
 
   const { addStakingAddress } = useStakingAddress();
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
-  const navigate = useNavigate();
-
+  const { setError } = useError();
   const loadAccounts = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,17 +53,16 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
       setAccounts(availableAccounts);
     } catch (error) {
       console.error('Error loading accounts:', error);
-      goToErrorPage(
-        navigate,
-        Intl.t('errors.load-massa-wallet-accounts.title'),
-        Intl.t('errors.load-massa-wallet-accounts.description', {
+      setError({
+        title: Intl.t('errors.load-massa-wallet-accounts.title'),
+        message: Intl.t('errors.load-massa-wallet-accounts.description', {
           error: getErrorMessage(error),
         }),
-      );
+      });
     } finally {
       setLoading(false);
     }
-  }, [navigate, stakingAddresses]);
+  }, [stakingAddresses, setError]);
 
   useEffect(() => {
     if (isOpen) {

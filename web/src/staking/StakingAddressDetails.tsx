@@ -11,15 +11,14 @@ import {
   maskAddress,
 } from '@massalabs/react-ui-kit';
 import { FiInfo, FiX } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
 
 import ConfirmModal from '@/components/ConfirmModal';
+import { useError } from '@/contexts/ErrorContext';
 import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
 import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { DeferredCredit } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
-import { goToErrorPage } from '@/utils/routes';
 
 interface StakingAddressDetailsProps {
   isOpen: boolean;
@@ -36,6 +35,8 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [targetRollChangeMsg, setTargetRollChangeMsg] = useState('');
 
+  const { setError } = useError();
+
   const { updateStakingAddress } = useStakingAddress();
   const { data: nodeInfo, isError: isNodeInfoError } = useFetchNodeInfo(
     1000 * 60 * 3,
@@ -43,7 +44,6 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   const currentAddress = useStakingStore((state) =>
     state.stakingAddresses.find((addr) => addr.address === address),
   );
-  const navigate = useNavigate();
   // Effect to trigger SidePanel dropdown when isOpen becomes true
   useEffect(() => {
     if (isOpen) {
@@ -54,13 +54,12 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   // handle error when fetching node info
   useEffect(() => {
     if (isNodeInfoError) {
-      goToErrorPage(
-        navigate,
-        'Error fetching node info in staking address details',
-        'Please try again later',
-      );
+      setError({
+        title: 'Error fetching node info in staking address details',
+        message: 'Please try again later',
+      });
     }
-  }, [isNodeInfoError, navigate]);
+  }, [isNodeInfoError, setError]);
 
   // Effect to update the current address and target rolls when the staking addresses list changes
   useEffect(() => {
@@ -313,7 +312,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   </Tooltip>
                 </h3>
                 <p className="text-f-primary">
-                  {currentAddress?.active_roll_count}
+                  {currentAddress?.active_roll_count ?? 0}
                 </p>
               </div>
               <div>
@@ -321,7 +320,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   Final Rolls
                 </h3>
                 <p className="text-f-primary">
-                  {currentAddress?.final_roll_count}
+                  {currentAddress?.final_roll_count ?? 0}
                 </p>
               </div>
               <div>
@@ -329,7 +328,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                   Candidate Rolls
                 </h3>
                 <p className="text-f-primary">
-                  {currentAddress?.candidate_roll_count}
+                  {currentAddress?.candidate_roll_count ?? 0}
                 </p>
               </div>
             </div>

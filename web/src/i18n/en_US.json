@@ -4,7 +4,51 @@
     "dashboard": "Dashboard",
     "stacking": "Staking"
   },
+  "node": {
+    "title": "Your node",
+    "status": {
+      "label": "Status",
+      "up": "Up",
+      "down": "Down",
+      "crashed": "Crashed",
+      "desynced": "Desynced",
+      "stopping": "Stopping",
+      "starting": "Starting",
+      "bootstrapping": "Bootstrapping",
+      "unknown": "Unknown"
+    },
+    "autoRestart": {
+      "label": "Auto restart",
+      "description": "Automatically restart the node if it crash or desync",
+      "enabled": "Auto restart enabled",
+      "disabled": "Auto restart disabled",
+      "error": "Error while setting auto-restart"
+    },
+    "startSuccess": "Massa node started successfully",
+    "stopSuccess": "Massa node stopped successfully",
+    "stopError": "Error while stopping the massa node",
+    "button": {
+      "run": "Run a node",
+      "close": "Close the node"
+    },
+    "logs": {
+      "export": "export logs",
+      "mainnet": "mainnet",
+      "buildnet": "buildnet",
+      "noLogs": "No logs found",
+      "error": "Error while downloading logs"
+    },
+    "password": {
+      "title": "Enter Node Password",
+      "description": "Please enter the password to start the node",
+      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again."
+    }
+  },
   "errors": {
+    "plugin-init": {
+      "title": "Plugin Initialization Error",
+      "description": "Failed to initialize plugin: {error}"
+    },
     "start-node": {
       "title": "Node setup Error",
       "description": "Got error while starting the node: {error}"
@@ -16,6 +60,10 @@
     "massa-wallet-check": {
       "title": "Massa Wallet Check Error",
       "description": "Got error while checking if Massa Wallet is installed: {error}"
+    },
+    "get-staking-addresses": {
+      "title": "Failed Loading Staking Addresses",
+      "description": "Got error while loading staking addresses: {error}"
     },
     "load-massa-wallet-accounts": {
       "title": "Failed Loading Massa Wallet Accounts",
@@ -65,6 +113,9 @@
     "node-not-running": "The node needs to be up to retrieve staking addresses",
     "loading": "Loading staking addresses...",
     "addresses-found": "Found {count} staking address(es)",
+    "empty-state": {
+      "message": "To start staking add an address"
+    },
     "download-wallet": {
       "title": "Download Massa Wallet",
       "description": "Massa station wallet plugin is not installed or not activated. Please install or activate it to be able to import your staking addresses.",

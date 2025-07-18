@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { toast } from '@massalabs/react-ui-kit';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 import {
   ValueHistoryPoint,
@@ -10,11 +9,11 @@ import {
   ValueHistorySamplesResponse,
 } from '../models/history';
 import { StakingAddress } from '../models/staking';
+import { useError } from '@/contexts/ErrorContext';
 import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
 import { networks } from '@/utils/const';
 import { getErrorMessage } from '@/utils/error';
-import { goToErrorPage } from '@/utils/routes';
 
 const ROLL_PRICE = 100.0;
 
@@ -36,10 +35,9 @@ export function useTotValueHistory() {
   const [since, setSince] = useState<SinceFetch>(SinceFetch.DEFAULT);
 
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
-  const network = useNodeStore((state) => state.network);
-  const version = useNodeStore((state) => state.version);
-
-  const navigate = useNavigate();
+  const network = useNodeStore((state) => state.currentNetwork);
+  const pluginVersion = useNodeStore((state) => state.pluginVersion);
+  const { setError } = useError();
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -92,19 +90,24 @@ export function useTotValueHistory() {
       intervalRef.current = null;
     }
 
+    if (valueHistory.length === 0) {
+      return;
+    }
+
     // Start interval for live value appending
     const { sinceParam, sampleNum } = getParamsFromSince(since);
     const sinceDate = new Date(sinceParam).getTime();
 
     const intervalMs = Math.floor((Date.now() - sinceDate) / sampleNum);
     intervalRef.current = setInterval(updateValueHistory, intervalMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [since, updateValueHistory, getParamsFromSince]);
 
   const fetchValueHistory = useCallback(
     async (since: SinceFetch) => {
       const { sinceParam, sampleNum } = getParamsFromSince(since);
 
-      if (version === '') {
+      if (pluginVersion === '') {
         // it means that the page has been reloaded and the network is not set yet
         return;
       }
@@ -128,15 +131,14 @@ export function useTotValueHistory() {
         setValueHistory(res.data.samples);
         setSince(since);
       } catch (err) {
-        goToErrorPage(
-          navigate,
-          'Error fetching value history',
-          getErrorMessage(err),
-        );
+        setError({
+          title: 'Error fetching value history',
+          message: getErrorMessage(err),
+        });
         return;
       }
     },
-    [navigate, getParamsFromSince, network, version],
+    [getParamsFromSince, network, pluginVersion, setError],
   );
 
   // Cleanup interval on unmount

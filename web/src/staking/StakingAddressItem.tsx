@@ -11,11 +11,13 @@ import { StakingAddress } from '@/models/staking';
 interface StakingAddressItemProps {
   address: StakingAddress;
   onOpenDetails: (address: StakingAddress) => void;
+  isSelected: boolean;
 }
 
 const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
   address,
   onOpenDetails,
+  isSelected,
 }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { removeStakingAddress } = useStakingAddress();
@@ -53,7 +55,11 @@ const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
 
   return (
     <>
-      <tr className="border-b border-gray-600 hover:bg-gray-700">
+      <tr
+        className={`border-b border-gray-600 hover:bg-gray-700 ${
+          isSelected ? 'bg-gray-700' : ''
+        }`}
+      >
         <td className="px-6 py-4 whitespace-nowrap text-sm w-1/10">
           <Clipboard
             rawContent={address.address}

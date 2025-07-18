@@ -13,7 +13,6 @@ import (
 	"github.com/massalabs/station/pkg/logger"
 )
 
-// TODO: Replace with actual operation when GetStakingAddressesParams is created
 func HandleAddressChangedFeeder(stakingManager stakingManagerPkg.StakingManager) func(operations.GetStakingAddressesParams) middleware.Responder {
 	return func(params operations.GetStakingAddressesParams) middleware.Responder {
 		return middleware.ResponderFunc(

@@ -1,5 +1,5 @@
 import { getTotalValue } from './useTotValueHistory';
-import { StakingAddress } from '../models/staking';
+import { StakingAddress } from '@/models/staking';
 
 // Mock data
 const mockStakingAddresses: StakingAddress[] = [

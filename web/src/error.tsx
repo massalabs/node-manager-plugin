@@ -1,11 +1,12 @@
-import { Link, useLocation } from 'react-router-dom';
-
 import Intl from '@/i18n/i18n';
-import { routeFor, ErrorData } from '@/utils';
+import { ErrorData } from '@/utils/error';
 
-export default function Error() {
-  const location = useLocation();
-  const errorData: ErrorData = location.state?.error || null;
+interface ErrorProps {
+  errorData: ErrorData;
+  onReturn: () => void;
+}
+
+export default function Error({ errorData, onReturn }: ErrorProps) {
   return (
     <div
       id="error-page"
@@ -19,16 +20,16 @@ export default function Error() {
       <p
         className={
           'mas-body p-5 w-screen max-w-md overflow-y-auto border ' +
-          'border-white bg-black max-h-screen/4 rounded-lg text-center'
+          'border-white bg-black max-h-screen/4 rounded-lg text-center text-white'
         }
       >
         {errorData
           ? errorData.message
           : Intl.t('errors.unexpected-error.description')}
       </p>
-      <Link to={routeFor('index')} className="underline mt-5">
+      <button onClick={onReturn} className="underline mt-5">
         {Intl.t('errors.back-to-home-link')}
-      </Link>
+      </button>
     </div>
   );
 }

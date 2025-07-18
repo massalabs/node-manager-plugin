@@ -1,13 +1,11 @@
-import React from 'react';
-
-import { Toggle, Tooltip, toast } from '@massalabs/react-ui-kit';
+import { toast } from '@massalabs/react-ui-kit';
 
 import { usePost } from '@/hooks/usePost';
 import Intl from '@/i18n/i18n';
 import { autoRestartBody } from '@/models/nodeInfos';
 import { useNodeStore } from '@/store/nodeStore';
 
-const AutoRestart: React.FC = () => {
+export const useAutoRestart = () => {
   const autoRestart = useNodeStore((state) => state.autoRestart);
   const setAutoRestart = useNodeStore((state) => state.setAutoRestart);
 
@@ -21,31 +19,19 @@ const AutoRestart: React.FC = () => {
       onSuccess: () => {
         setAutoRestart(checked);
         if (checked) {
-          toast.success(Intl.t('home.auto-restart.enabled'));
+          toast.success(Intl.t('node.autoRestart.enabled'));
         } else {
-          toast.success(Intl.t('home.auto-restart.disabled'));
+          toast.success(Intl.t('node.autoRestart.disabled'));
         }
       },
       onError: () => {
-        toast.error(Intl.t('home.auto-restart.error'));
+        toast.error(Intl.t('node.autoRestart.error'));
       },
     });
   };
 
-  return (
-    <div className="flex justify-center gap-5">
-      <label htmlFor="auto-restart-toggle" className="flex items-center gap-2">
-        <Tooltip body={Intl.t('home.auto-restart.description')} />
-        {Intl.t('home.auto-restart.label')}
-      </label>
-
-      <Toggle
-        id="auto-restart-toggle"
-        checked={autoRestart}
-        onChange={handleToggleChange}
-      />
-    </div>
-  );
+  return {
+    autoRestart,
+    handleToggleChange,
+  };
 };
-
-export default AutoRestart;

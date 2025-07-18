@@ -42,22 +42,13 @@ func HandleStartNode(nodeManager nodeManagerPkg.INodeManager, statusDispatcher n
 			}
 		}
 
-		// // If the password is valid and the password hash is not set, update the password hash in the config
-		// if pluginConfig.PwdHash == "" {
-		// 	if err := updatePwdHash(pwd, pluginConfig); err != nil {
-		// 		return operations.NewStartNodeInternalServerError().WithPayload(&models.Error{
-		// 			Message: fmt.Errorf("Password is valid but failed to update password hash in the config: %v", err).Error(),
-		// 		})
-		// 	}
-		// }
-
-		version, err := nodeManager.StartNode(!params.Body.UseBuildnet, pwd)
+		err := nodeManager.StartNode(!params.Body.UseBuildnet, pwd)
 		if err != nil {
 			return operations.NewStartNodeInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),
 			})
 		}
-		return operations.NewStartNodeOK().WithPayload(&models.StartNodeResponse{Version: version})
+		return operations.NewStartNodeOK()
 	}
 }
 
@@ -68,34 +59,6 @@ func checkPwd(
 	nodeDirManager *nodeDirManagerPkg.NodeDirManager,
 	isMainnet bool,
 ) error {
-	// // If pwdHash exists, check that the provided password matches the hash
-	// if pluginConfig.PwdHash != "" {
-	// 	hash := sha256.Sum256([]byte(pwd))
-	// 	providedHash := hex.EncodeToString(hash[:])
-
-	// 	if providedHash != pluginConfig.PwdHash {
-	// 		return fmt.Errorf("password does not match stored hash")
-	// 	}
-
-	// 	logger.Infof("Password validated against stored hash")
-	// 	return nil
-	// }
-
-	// // If no pwdHash exists, test the password with WalletInfo
-	// logger.Infof("No stored password hash found, testing password with WalletInfo")
-
-	// hasClientAddresses, err := (*nodeDirManager).HasClientAddresses(isMainnet)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to check if there are addresses in the client wallet: %w", err)
-	// }
-
-	// if !hasClientAddresses {
-	// 	return nil
-	// }
-
-	// logger.Infof("There are addresses in the client wallet. We have to check the password")
-
-	// Create client driver to test the password
 	clientDriver, err := clientDriverPkg.NewClientDriver(
 		isMainnet,
 		*nodeDirManager,
@@ -113,17 +76,3 @@ func checkPwd(
 
 	return nil
 }
-
-// func updatePwdHash(pwd string, pluginConfig *config.PluginConfig) error {
-// 	hash := sha256.Sum256([]byte(pwd))
-// 	pwdHash := hex.EncodeToString(hash[:])
-// 	err := config.UpdateConfigField("PwdHash", pwdHash)
-// 	if err != nil {
-// 		return fmt.Errorf("Failed to save password hash to config: %v", err)
-// 	}
-// 	logger.Infof("Password hash saved to config")
-
-// 	// Update the config pointer of the plugin with the new password hash
-// 	pluginConfig.PwdHash = pwdHash
-// 	return nil
-// }

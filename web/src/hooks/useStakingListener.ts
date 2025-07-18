@@ -1,17 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-import { useNavigate } from 'react-router-dom';
-
+import { useError } from '@/contexts/ErrorContext';
 import intl from '@/i18n/i18n';
 import { StakingAddress } from '@/models/staking';
 import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
-import {
-  getErrorMessage,
-  goToErrorPage,
-  isStopStakingMonitoring,
-  NodeStatus,
-} from '@/utils';
+import { getErrorMessage, isStopStakingMonitoring, NodeStatus } from '@/utils';
 import { getApiUrl } from '@/utils/utils';
 
 export function useStakingListener() {
@@ -20,8 +14,7 @@ export function useStakingListener() {
     (state) => state.setStakingAddresses,
   );
   const status = useNodeStore((state) => state.status);
-
-  const navigate = useNavigate();
+  const { setError } = useError();
 
   const startListeningStakingAddresses = useCallback(() => {
     if (eventSourceRef.current) {
@@ -47,20 +40,19 @@ export function useStakingListener() {
       console.error('Staking addresses retrieving SSE error:', err);
       console.log('eventSource:', eventSource);
       eventSource.close();
-      goToErrorPage(
-        navigate,
-        intl.t('errors.get-staking-addresses.title'),
-        intl.t('errors.get-staking-addresses.description', {
+      setError({
+        title: intl.t('errors.get-staking-addresses.title'),
+        message: intl.t('errors.get-staking-addresses.description', {
           error: getErrorMessage(err),
         }),
-      );
+      });
     };
 
     eventSourceRef.current = eventSource;
-  }, [setStakingAddresses, navigate]);
+  }, [setStakingAddresses, setError]);
 
   useEffect(() => {
-    if (status === NodeStatus.ON || status === NodeStatus.BOOTSTRAPPING) {
+    if (status === NodeStatus.ON) {
       startListeningStakingAddresses();
     }
 

@@ -70,7 +70,8 @@ paths:
         "200":
           description: massa node launched with success
           schema:
-            $ref: "#/definitions/StartNodeResponse"
+            type: string
+            description: Success
           
         "500":
           description: Error launching node
@@ -282,31 +283,32 @@ definitions:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
 
+  Network:
+    type: object
+    properties:
+      version: # network value is contained in the version name. Ex: MAIN.3.0
+        type: string
+        description: The version of the nodee network
+      hasPwd:
+        type: boolean
+        description: Whether the node has a password set for the network
+
   PluginInfos:
     type: object
     properties:
-      version:
-        type: string
-        description: The version of the node
+      networks:
+        type: array
+        items:
+          $ref: "#/definitions/Network"
+      isMainnet:
+        type: boolean
+        description: Whether the node is running on mainnet or not
       pluginVersion:
         type: string
         description: The version of the plugin
       autoRestart:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
-      hasPwdMainnet:
-        type: boolean
-        description: Whether the node has a password set for mainnet
-      hasPwdBuildnet:
-        type: boolean
-        description: Whether the node has a password set for buildnet
-
-  StartNodeResponse:
-    type: object
-    properties:
-      version:
-        type: string
-        description: The version of the launched node
 
   StakingAddresses:
     type: object

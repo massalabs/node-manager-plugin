@@ -11,9 +11,10 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-import { useTotValueHistory } from '../../hooks/useTotValueHistory';
+import { useTotValueHistory } from '@/hooks/useTotValueHistory';
 import { SinceFetch } from '@/models/history';
 import { useNodeStore } from '@/store/nodeStore';
+import { NodeStatus } from '@/utils';
 
 const SINCE_OPTIONS = [
   SinceFetch.H1,
@@ -30,7 +31,7 @@ const HistoryGraph: React.FC = () => {
 
   // when the node is up, fetch the value history for 1 month
   useEffect(() => {
-    if (nodeStatus === 'on') {
+    if (nodeStatus === NodeStatus.ON) {
       fetchValueHistory(SinceFetch.D1);
       setSelectedSince(SinceFetch.D1);
     }
@@ -48,24 +49,29 @@ const HistoryGraph: React.FC = () => {
   };
 
   return (
-    <div className="bg-secondary rounded-lg shadow p-6 h-full w-4/5 mx-auto relative">
+    <div className="bg-secondary rounded-2xl p-8 h-full w-full relative border border-gray-700">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-f-primary">$MAS history</h3>
-        <div className="flex gap-2">
-          {SINCE_OPTIONS.map((since) => (
-            <button
-              key={since}
-              className={`w-8 h-8 rounded border flex items-center justify-center text-xs font-bold transition-colors ${
-                selectedSince === since
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-200 text-gray-700'
-              }`}
-              onClick={() => handleSinceClick(since)}
-            >
-              {since}
-            </button>
-          ))}
-        </div>
+        <h3 className="text-lg font-semibold text-white">$MAS History</h3>
+        {nodeStatus === NodeStatus.ON && (
+          <div className="flex gap-2">
+            {SINCE_OPTIONS.map((since) => (
+              <button
+                key={since}
+                className={
+                  'w-8 h-8 rounded border flex items-center justify-center text-xs' +
+                  `font-bold transition-colors ${
+                    selectedSince === since
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-600 text-gray-300 border-gray-500'
+                  }`
+                }
+                onClick={() => handleSinceClick(since)}
+              >
+                {since}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {valueHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full">
@@ -89,7 +95,7 @@ const HistoryGraph: React.FC = () => {
               tickFormatter={tickFormatter}
               minTickGap={20}
             />
-            <YAxis dataKey="value" domain={['dataMin - 5%', 'dataMax + 5%']} />
+            <YAxis dataKey="value" domain={['dataMin - 10', 'dataMax + 10']} />
             <CartesianGrid strokeDasharray="3 3" />
             <Tooltip />
             <Area

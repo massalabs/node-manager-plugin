@@ -3,6 +3,7 @@ package stakingManager
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"time"
@@ -292,5 +293,5 @@ func (s *stakingManager) getTotalValue() float64 {
 		}
 		totalValue += address.FinalBalance + float64(address.FinalRolls)*float64(s.miscellaneous.RollPrice) + deferredCredits
 	}
-	return totalValue
+	return math.Floor(totalValue*1000) / 1000 // keep only 3 digit after the comma
 }

@@ -18,7 +18,7 @@ import (
 )
 
 type INodeManager interface {
-	StartNode(isMainnet bool, pwd string) (string, error)
+	StartNode(isMainnet bool, pwd string) error
 	StopNode() error
 	Logs(isMainnet bool) (string, error)
 
@@ -66,30 +66,30 @@ func NewNodeManager(
 }
 
 // StartNode starts the massa node process
-func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, error) {
+func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) error {
 	nodeMana.mu.Lock()
 	defer nodeMana.mu.Unlock()
 
 	if IsRunning(nodeMana.status) {
 		logger.Infof("massa node is already running")
-		return "", fmt.Errorf("massa node is already running")
+		return fmt.Errorf("massa node is already running")
 	}
 
 	nodeMana.setStatus(nodeStatus.NodeStatusStarting)
 
 	nodeLogger, err := nodeMana.getLogger(isMainnet)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	_, err = nodeLogger.Write([]byte(fmt.Sprintf("\n\n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
 	if err != nil {
-		return "", fmt.Errorf("failed to write to node logger: %v", err)
+		return fmt.Errorf("failed to write to node logger: %v", err)
 	}
 
 	nodeMana.processExitedChan, err = nodeMana.nodeDriver.StartNode(isMainnet, pwd, nodeLogger)
 	if err != nil {
-		return "", fmt.Errorf("failed to start node: %v", err)
+		return fmt.Errorf("failed to start node: %v", err)
 	}
 
 	nodeMana.setStatus(nodeStatus.NodeStatusBootstrapping)
@@ -106,12 +106,7 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) (string, erro
 	// launch node stopped handler goroutine
 	go nodeMana.handleNodeStopped()
 
-	version, err := nodeMana.nodeDirManager.GetVersion(isMainnet)
-	if err != nil {
-		return "", fmt.Errorf("failed to get node version: %v", err)
-	}
-
-	return version, nil
+	return nil
 }
 
 func (nodeMana *NodeManager) StopNode() error {
@@ -221,7 +216,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 				}
 
 				// Start the node
-				_, err := nodeMana.StartNode(config.GlobalPluginInfo.GetIsMainnet(), "")
+				err := nodeMana.StartNode(config.GlobalPluginInfo.GetIsMainnet(), "")
 				if err != nil {
 					logger.Errorf("Failed to restart node: %v", err)
 				}
@@ -249,7 +244,7 @@ func (nodeMana *NodeManager) handleNodeStopped() {
 			logger.Info("Auto-restarting node due to error")
 			nodeMana.setStatus(status)
 			time.Sleep(time.Duration(nodeMana.config.RestartCooldown) * time.Second)
-			_, err := nodeMana.StartNode(
+			err := nodeMana.StartNode(
 				config.GlobalPluginInfo.GetIsMainnet(),
 				config.GlobalPluginInfo.GetPwd(),
 			)

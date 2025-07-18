@@ -58,9 +58,7 @@ func NewAPI(config *config.PluginConfig) *API {
 	nodeMonitor := nodeManagerPkg.NewNodeMonitor(prometheusDriver, statusDispatcher, nodeAPI)
 
 	nodeDriver := nodeDriverPkg.NewNodeDriver(nodeDirManager)
-	//db, err := db.NewDB(config.DBPath)
-
-	db, err := db.NewDB("int/db/test_data/test_data_total_value_history.db")
+	db, err := db.NewDB(config.DBPath)
 	if err != nil {
 		logger.Fatalf("could not create a database instance, got : %s", err)
 	}

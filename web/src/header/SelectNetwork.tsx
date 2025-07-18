@@ -4,15 +4,19 @@ import { Dropdown } from '@massalabs/react-ui-kit';
 import shallow from 'zustand/shallow';
 
 import { useNodeStore } from '@/store/nodeStore';
-import { isRunning } from '@/utils';
-import { networks } from '@/utils/const';
+import { getNetworkFromVersion, isRunning } from '@/utils';
 
-/* ChooseNetwork allows to choose which on network the node will be launched: mainnet or buildnet
+function getNetworkNameFromVersion(version: string) {
+  return getNetworkFromVersion(version) + ' v' + version.slice(5);
+}
+
+/* SelectNetwork allows to choose on which network the node will be launched: mainnet or buildnet
 If the node is running, this component is disabled*/
 export const SelectNetwork: React.FC = () => {
-  const { currentNetwork, setNetwork, status } = useNodeStore(
+  const { currentNetwork, versions, setNetwork, status } = useNodeStore(
     (state) => ({
-      currentNetwork: state.network,
+      currentNetwork: state.currentNetwork,
+      versions: state.networksData.map((network) => network.version),
       setNetwork: state.setNetwork,
       status: state.status,
     }),
@@ -21,18 +25,16 @@ export const SelectNetwork: React.FC = () => {
 
   const nodeIsRunning = isRunning(status);
 
-  const availableNetworks = Object.values(networks);
-
-  const availableNetworksItems = availableNetworks.map((network) => ({
-    item: network,
+  const availableNetworksItems = versions.map((version) => ({
+    item: getNetworkNameFromVersion(version),
     onClick: () => {
-      setNetwork(network);
+      setNetwork(getNetworkFromVersion(version));
     },
   }));
 
   const selectedNetworkKey: number = parseInt(
-    Object.keys(availableNetworks).find(
-      (_, idx) => availableNetworks[idx] === currentNetwork,
+    Object.keys(versions).find(
+      (_, idx) => getNetworkFromVersion(versions[idx]) === currentNetwork,
     ) || '0',
   );
 
