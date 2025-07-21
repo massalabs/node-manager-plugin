@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	clientDriverPkg "github.com/massalabs/node-manager-plugin/int/client-driver"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
 	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"

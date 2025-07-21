@@ -9,13 +9,13 @@ import {
   maskAddress,
 } from '@massalabs/react-ui-kit';
 
+import { getStationAccounts } from '../utils/station';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useError } from '@/contexts/ErrorContext';
-import { useStakingAddress } from '@/hooks/useStakingAddress';
+import { useStakingAddress } from '@/hooks/staking-manager/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { useStakingStore } from '@/store/stakingStore';
 import { getErrorMessage } from '@/utils';
-import { getStationAccounts } from '@/utils/station';
 
 type Account = {
   address: string;
@@ -47,9 +47,9 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
       const stationAccounts = await getStationAccounts();
       // Filter out accounts that are already in the stakingStore
       const existingAddresses = stakingAddresses.map((addr) => addr.address);
-      const availableAccounts = stationAccounts.filter(
-        (account) => !existingAddresses.includes(account.address),
-      );
+      const availableAccounts = stationAccounts.filter((account) => {
+        return account && !existingAddresses.includes(account.address);
+      });
       setAccounts(availableAccounts);
     } catch (error) {
       console.error('Error loading accounts:', error);

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	"github.com/massalabs/node-manager-plugin/int/prometheus"
 	"github.com/massalabs/station/pkg/logger"

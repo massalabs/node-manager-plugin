@@ -14,6 +14,7 @@ import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
 import { networks } from '@/utils/const';
 import { getErrorMessage } from '@/utils/error';
+import { getApiUrl } from '@/utils/utils';
 
 const ROLL_PRICE = 100.0;
 
@@ -114,7 +115,7 @@ export function useTotValueHistory() {
 
       try {
         const res = await axios.get<ValueHistorySamplesResponse>(
-          '/api/valueHistory',
+          getApiUrl() + '/valueHistory',
           {
             params: {
               since: sinceParam,

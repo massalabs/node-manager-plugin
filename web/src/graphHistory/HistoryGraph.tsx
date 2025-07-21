@@ -48,8 +48,17 @@ const HistoryGraph: React.FC = () => {
       : str.slice(5, 16);
   };
 
+  // Custom Y-axis tick formatter
+  const yAxisTickFormatter = (value: number) => {
+    if (typeof value !== 'number') return value;
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+  };
+
   return (
-    <div className="bg-secondary rounded-2xl p-8 h-full w-full relative border border-gray-700">
+    <div className="bg-secondary rounded-2xl px-10 py-8 h-full w-full relative border border-gray-700">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-white">$MAS History</h3>
         {nodeStatus === NodeStatus.ON && (
@@ -82,7 +91,7 @@ const HistoryGraph: React.FC = () => {
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart
             data={valueHistory}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 30, left: 40, bottom: 0 }}
           >
             <defs>
               <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -95,7 +104,11 @@ const HistoryGraph: React.FC = () => {
               tickFormatter={tickFormatter}
               minTickGap={20}
             />
-            <YAxis dataKey="value" domain={['dataMin - 10', 'dataMax + 10']} />
+            <YAxis
+              dataKey="value"
+              domain={['dataMin - 10', 'dataMax + 10']}
+              tickFormatter={yAxisTickFormatter}
+            />
             <CartesianGrid strokeDasharray="3 3" />
             <Tooltip />
             <Area

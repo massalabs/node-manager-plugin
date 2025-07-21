@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	configPkg "github.com/massalabs/node-manager-plugin/int/config"
-	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/staking-manager"
+	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
 	"github.com/massalabs/station/pkg/logger"
 )
 

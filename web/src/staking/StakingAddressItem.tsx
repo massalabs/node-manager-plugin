@@ -4,7 +4,7 @@ import { Clipboard, maskAddress, Tag } from '@massalabs/react-ui-kit';
 import { FiTrash2, FiEdit3 } from 'react-icons/fi';
 
 import ConfirmModal from '@/components/ConfirmModal';
-import { useStakingAddress } from '@/hooks/useStakingAddress';
+import { useStakingAddress } from '@/hooks/staking-manager/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { StakingAddress } from '@/models/staking';
 
@@ -68,10 +68,10 @@ const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
           />
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-f-primary">
-          {address.final_balance.toFixed(2)} MAS
+          {address.final_balance?.toFixed(2) ?? 0} MAS
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-f-primary">
-          {address.active_roll_count}
+          {address.active_roll_count ?? 0}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm">
           {getStakingStatusBadge()}

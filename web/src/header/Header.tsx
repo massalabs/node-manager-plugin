@@ -23,7 +23,7 @@ export const Header: React.FC = () => {
   const pluginVersion = useNodeStore((state) => state.pluginVersion);
 
   return (
-    <div className="flex justify-between items-center p-4 bg-primary">
+    <div className="flex justify-between items-center p-4 bg-primary mb-10">
       {/* Left side - Logo and Plugin Version */}
       <div className="flex items-center gap-2">
         <NodeLogo />

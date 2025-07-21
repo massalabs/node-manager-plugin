@@ -5,7 +5,7 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	configPkg "github.com/massalabs/node-manager-plugin/int/config"
-	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/staking-manager"
+	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
 )
 
 func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.AddStakingAddressParams) middleware.Responder {
@@ -17,15 +17,20 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 				Message: err.Error(),
 			})
 		}
+		targetRolls := int64(stakingAddress.TargetRolls)
+		finalRolls := int64(stakingAddress.FinalRolls)
+		activeRolls := int64(stakingAddress.ActiveRolls)
+		candidateRolls := int64(stakingAddress.CandidateRolls)
+		thread := int64(stakingAddress.Thread)
 		return operations.NewAddStakingAddressOK().WithPayload(&models.StakingAddress{
-			Address:            stakingAddress.Address,
-			TargetRolls:        int64(stakingAddress.TargetRolls),
-			FinalRollCount:     int64(stakingAddress.FinalRolls),
-			ActiveRollCount:    int64(stakingAddress.ActiveRolls),
-			FinalBalance:       stakingAddress.FinalBalance,
-			CandidateRollCount: int64(stakingAddress.CandidateRolls),
-			CandidateBalance:   stakingAddress.CandidateBalance,
-			Thread:             int64(stakingAddress.Thread),
+			Address:            &stakingAddress.Address,
+			TargetRolls:        &targetRolls,
+			FinalRollCount:     &finalRolls,
+			ActiveRollCount:    &activeRolls,
+			FinalBalance:       &stakingAddress.FinalBalance,
+			CandidateRollCount: &candidateRolls,
+			CandidateBalance:   &stakingAddress.CandidateBalance,
+			Thread:             &thread,
 		})
 	}
 }

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 
+import { useStakingListener } from './staking-manager/useStakingListener';
 import { useNodeStatus } from './useNodeStatus';
-import { useStakingListener } from './useStakingListener';
+import { isMassaWalletInstalled } from '../utils/station';
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
 import { getErrorMessage } from '@/utils';
 import { networks } from '@/utils/const';
 import { ErrorData } from '@/utils/error';
-import { isMassaWalletInstalled } from '@/utils/station';
 import { getPluginInfos } from '@/utils/utils';
 
 export const useInit = (setError: (error: ErrorData | null) => void) => {
@@ -53,10 +53,10 @@ export const useInit = (setError: (error: ErrorData | null) => void) => {
   useEffect(() => {
     // Check if Massa Wallet is installed
     isMassaWalletInstalled()
-      .then((isInstalled) => {
+      .then((isInstalled: boolean) => {
         setMassaWalletInstalled(isInstalled);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('Error checking if Massa Wallet is installed:', error);
         setError({
           title: Intl.t('errors.massa-wallet-check.title'),

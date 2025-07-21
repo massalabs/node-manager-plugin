@@ -9,8 +9,8 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	historymanager "github.com/massalabs/node-manager-plugin/int/core/history-manager"
 	"github.com/massalabs/node-manager-plugin/int/db"
-	historymanager "github.com/massalabs/node-manager-plugin/int/history-manager"
 )
 
 func HandleGetValueHistory(database db.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {

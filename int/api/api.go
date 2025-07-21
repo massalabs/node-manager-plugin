@@ -6,18 +6,18 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/massalabs/node-manager-plugin/api/restapi"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	"github.com/massalabs/node-manager-plugin/int/api/handlers"
 	"github.com/massalabs/node-manager-plugin/int/api/html"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
+	historymanager "github.com/massalabs/node-manager-plugin/int/core/history-manager"
+	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/core/node-manager"
+	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
 	"github.com/massalabs/node-manager-plugin/int/db"
-	historymanager "github.com/massalabs/node-manager-plugin/int/history-manager"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
-	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
 	prometheusPkg "github.com/massalabs/node-manager-plugin/int/prometheus"
-	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/staking-manager"
 	"github.com/massalabs/station-massa-hello-world/pkg/plugin"
 	"github.com/massalabs/station/pkg/logger"
 )
@@ -59,6 +59,7 @@ func NewAPI(config *config.PluginConfig) *API {
 
 	nodeDriver := nodeDriverPkg.NewNodeDriver(nodeDirManager)
 	db, err := db.NewDB(config.DBPath)
+	// db, err := db.NewDB("int/db/test_data/test_data_total_value_history.db")
 	if err != nil {
 		logger.Fatalf("could not create a database instance, got : %s", err)
 	}

@@ -4,8 +4,8 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
-	NodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
+	NodeManagerPkg "github.com/massalabs/node-manager-plugin/int/core/node-manager"
 	"github.com/massalabs/station/pkg/logger"
 )
 

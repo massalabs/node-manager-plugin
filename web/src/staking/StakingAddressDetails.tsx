@@ -14,8 +14,8 @@ import { FiInfo, FiX } from 'react-icons/fi';
 
 import ConfirmModal from '@/components/ConfirmModal';
 import { useError } from '@/contexts/ErrorContext';
+import { useStakingAddress } from '@/hooks/staking-manager/useStakingAddress';
 import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
-import { useStakingAddress } from '@/hooks/useStakingAddress';
 import Intl from '@/i18n/i18n';
 import { DeferredCredit } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';

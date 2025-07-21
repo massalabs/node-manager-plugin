@@ -8,11 +8,11 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	clientDriverPkg "github.com/massalabs/node-manager-plugin/int/client-driver"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
+	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/core/node-manager"
 	nodeDirManagerPkg "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
-	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
 )
 
 func HandleStartNode(nodeManager nodeManagerPkg.INodeManager, statusDispatcher nodeStatusPkg.NodeStatusDispatcher, nodeDirManager *nodeDirManagerPkg.NodeDirManager, pluginConfig *config.PluginConfig) func(operations.StartNodeParams) middleware.Responder {

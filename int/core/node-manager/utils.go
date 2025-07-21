@@ -3,7 +3,7 @@ package nodeManager
 import (
 	"strings"
 
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 )
 
 func IsRunning(nodeStatus nodeStatusPkg.NodeStatus) bool {

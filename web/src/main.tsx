@@ -60,9 +60,9 @@ const MainContent: React.FC = () => {
     <div className="min-h-screen theme-dark bg-primary text-f-primary">
       <div>
         <Header />
-        <div className="p-[5%]">
+        <div className="p-[2%]">
           {/* First row: NodeManager and HistoryGraph */}
-          <div className="flex gap-[5%] mb-[5%] h-[400px]">
+          <div className="flex gap-[3%] mb-[5%] h-[400px]">
             <div className="w-1/3">
               <NodeManager />
             </div>

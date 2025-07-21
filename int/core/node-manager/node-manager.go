@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	nodeStatus "github.com/massalabs/node-manager-plugin/int/NodeStatus"
-	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/NodeStatus"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	nodeStatus "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
+	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	NodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriver "github.com/massalabs/node-manager-plugin/int/node-driver"
 	"github.com/massalabs/station/pkg/logger"

@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeStatus "github.com/massalabs/node-manager-plugin/int/NodeStatus"
+	nodeStatus "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	"github.com/massalabs/station/pkg/logger"
 )
 

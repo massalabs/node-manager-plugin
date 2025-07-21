@@ -15,7 +15,8 @@
       "stopping": "Stopping",
       "starting": "Starting",
       "bootstrapping": "Bootstrapping",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "bootstrappingTooltip": "Load the state from other node: may take some time."
     },
     "autoRestart": {
       "label": "Auto restart",

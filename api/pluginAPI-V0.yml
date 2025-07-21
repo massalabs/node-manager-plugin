@@ -349,6 +349,16 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/DeferredCredit"
+    required:
+      - address
+      - target_rolls
+      - final_roll_count
+      - active_roll_count
+      - final_balance
+      - candidate_roll_count
+      - candidate_balance
+      - thread
+      - deferred_credits
 
   DeferredCredit:
     type: object

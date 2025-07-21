@@ -48,7 +48,7 @@ export const SelectNetwork: React.FC = () => {
         filter: nodeIsRunning
           ? 'grayscale(0.7) brightness(1.2)'
           : 'brightness(1.5)',
-        opacity: nodeIsRunning ? 0.6 : 1,
+        opacity: nodeIsRunning ? 0.4 : 1,
       }}
     />
   );

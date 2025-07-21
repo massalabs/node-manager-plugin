@@ -69,7 +69,7 @@ export const OnOffBtn: React.FC = () => {
         disabled={isDisabled}
         className={
           'w-full bg-white text-gray-800 font-medium py-3 px-6 rounded-lg hover:bg-gray-100' +
-          'disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
+          'disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center gap-2'
         }
       >
         {isStarting && (

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { Spinner } from '@massalabs/react-ui-kit';
+import { Spinner, Tooltip } from '@massalabs/react-ui-kit';
+import { FiInfo } from 'react-icons/fi';
 
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
@@ -76,16 +77,26 @@ export const Status: React.FC = () => {
     status === NodeStatus.STOPPING;
 
   return (
-    <div
-      className={
-        `w-[20%] inline-flex items-center justify-center gap-2 px-6` +
-        `py-1 rounded-full text-xs font-medium bg-opacity-20 ${getStatusColor(
-          status,
-        )} ${getStatusTextColor(status)}`
-      }
-    >
-      {isLoading && <Spinner size={16} />}
-      {getStatusText(status)}
+    <div className="w-[30%] flex items-center justify-end">
+      {status === NodeStatus.BOOTSTRAPPING && (
+        <Tooltip
+          triggerClassName="mx-1"
+          body={Intl.t('node.status.bootstrappingTooltip')}
+        >
+          <FiInfo className="w-3 h-3 text-gray-400" />
+        </Tooltip>
+      )}
+      <div
+        className={
+          'inline-flex items-center justify-center gap-2 rounded-full px-3 py-1' +
+          `text-xs font-medium bg-opacity-20 ${getStatusColor(
+            status,
+          )} ${getStatusTextColor(status)}`
+        }
+      >
+        {isLoading && <Spinner size={16} />}
+        {getStatusText(status)}
+      </div>
     </div>
   );
 };

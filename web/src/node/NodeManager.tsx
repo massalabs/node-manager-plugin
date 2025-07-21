@@ -46,8 +46,8 @@ export const NodeManager: React.FC = () => {
       {nodeRunning && (
         <div className="mb-8">
           <div className="text-white text-sm flex justify-between">
-            <span className="text-gray-300">localhost:33035</span>
             <span className="font-medium">Public API:</span>
+            <span className="text-gray-300">localhost:33035</span>
           </div>
         </div>
       )}
