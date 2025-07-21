@@ -15,9 +15,9 @@ import (
 	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
 	"github.com/massalabs/node-manager-plugin/int/db"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
+	metricsPkg "github.com/massalabs/node-manager-plugin/int/node-api/metrics"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
-	prometheusPkg "github.com/massalabs/node-manager-plugin/int/prometheus"
 	"github.com/massalabs/station-massa-hello-world/pkg/plugin"
 	"github.com/massalabs/station/pkg/logger"
 )
@@ -52,10 +52,10 @@ func NewAPI(config *config.PluginConfig) *API {
 		logger.Fatalf("could not create a node dir manager instance, got : %s", err)
 	}
 
-	prometheusDriver := prometheusPkg.NewPrometheus()
+	metricsDriver := metricsPkg.NewMetrics()
 	statusDispatcher := nodeStatusPkg.NewNodeStatusDispatcher()
 	nodeAPI := nodeAPI.NewNodeAPI()
-	nodeMonitor := nodeManagerPkg.NewNodeMonitor(prometheusDriver, statusDispatcher, nodeAPI)
+	nodeMonitor := nodeManagerPkg.NewNodeMonitor(metricsDriver, statusDispatcher, nodeAPI)
 
 	nodeDriver := nodeDriverPkg.NewNodeDriver(nodeDirManager)
 	db, err := db.NewDB(config.DBPath)

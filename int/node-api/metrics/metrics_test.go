@@ -1,4 +1,4 @@
-package prometheus
+package metrics
 
 import (
 	"testing"
@@ -91,10 +91,10 @@ final_cursor_period invalid`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prometheus := Prometheus{
+			metrics := Metrics{
 				metricsIndexes: make(map[string]int),
 			}
-			gotDesync, err := prometheus.checkDesync([]byte(tt.prometheusData))
+			gotDesync, err := metrics.checkDesync([]byte(tt.prometheusData))
 
 			if tt.wantErr {
 				if err == nil {

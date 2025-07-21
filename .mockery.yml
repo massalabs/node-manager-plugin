@@ -30,7 +30,8 @@ packages:
     config:
       all: true
       dir: './int/NodeStatus'
-  github.com/massalabs/node-manager-plugin/int/staking-manager:
+  github.com/massalabs/node-manager-plugin/int/core/staking-manager:
     config:
       all: true
-      dir: './int/staking-manager'
+      exclude-interface-regex: 'StakingManager'
+      dir: './int/core/staking-manager'

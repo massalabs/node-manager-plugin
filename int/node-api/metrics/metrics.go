@@ -1,4 +1,4 @@
-package prometheus
+package metrics
 
 import (
 	"fmt"
@@ -14,27 +14,27 @@ const (
 	finalCursorMetric  = "final_cursor_period"
 )
 
-// driver to interact with prometheus
-type PrometheusDriver interface {
+// driver to interact with node's returned metrics
+type MetricsDriver interface {
 	HasDesync() (bool, error)
 }
 
-// Prometheus implements the PrometheusDriver interface
-type Prometheus struct {
+// Metrics implements the MetricsDriver interface
+type Metrics struct {
 	client         *http.Client
 	metricsIndexes map[string]int
 }
 
-// NewPrometheus creates a new Prometheus driver
-func NewPrometheus() PrometheusDriver {
-	return &Prometheus{
+// NewMetrics creates a new Metrics driver
+func NewMetrics() MetricsDriver {
+	return &Metrics{
 		client:         &http.Client{Timeout: 10 * time.Second},
 		metricsIndexes: make(map[string]int),
 	}
 }
 
 // HasDesync checks if the node is desynced or not
-func (p *Prometheus) HasDesync() (bool, error) {
+func (p *Metrics) HasDesync() (bool, error) {
 	prometheusData, err := p.getPrometheusMetrics()
 	if err != nil {
 		return false, fmt.Errorf("failed to get prometheus metrics: %w", err)
@@ -42,8 +42,8 @@ func (p *Prometheus) HasDesync() (bool, error) {
 	return p.checkDesync(prometheusData)
 }
 
-// getPrometheusMetrics fetches the prometheus metrics from the node
-func (p *Prometheus) getPrometheusMetrics() ([]byte, error) {
+// getPrometheusMetrics fetches the prometheus metrics from the node's metrics endpoint
+func (p *Metrics) getPrometheusMetrics() ([]byte, error) {
 	resp, err := p.client.Get("http://localhost:31248/metrics")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch metrics: %w", err)
@@ -64,10 +64,8 @@ func (p *Prometheus) getPrometheusMetrics() ([]byte, error) {
 
 /*
 checkDesync checks if the node is desynced by comparing current_cursor_period and final_cursor_period
-Prometheus data is parsing is custom because the desync formula is simple.
-But if more complex task are required, using a prometheus library may be a better option.
 */
-func (p *Prometheus) checkDesync(prometheusData []byte) (bool, error) {
+func (p *Metrics) checkDesync(prometheusData []byte) (bool, error) {
 	lines := strings.Split(string(prometheusData), "\n")
 
 	activeCursorStr, found := p.findValueInPrometheusData(lines, activeCursorMetric)
@@ -94,11 +92,11 @@ func (p *Prometheus) checkDesync(prometheusData []byte) (bool, error) {
 }
 
 /*
-findValueInPrometheusData finds the value of a metric in prometheus data.
+findValueInPrometheusData finds the value of a metric in prometheus formated data.
 Prometheus data should be provided as a []string corresponding to the list of lines.
 It returns the value and true if the metric is found, otherwise returns an empty string and false
 */
-func (p *Prometheus) findValueInPrometheusData(prometheusDataLines []string, metric string) (string, bool) {
+func (p *Metrics) findValueInPrometheusData(prometheusDataLines []string, metric string) (string, bool) {
 	// If the metric line index is found in the map, we can use it
 	if index, ok := p.metricsIndexes[metric]; ok {
 		if strings.HasPrefix(prometheusDataLines[index], metric) {

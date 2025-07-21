@@ -6,14 +6,14 @@ import (
 
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
-	"github.com/massalabs/node-manager-plugin/int/prometheus"
+	"github.com/massalabs/node-manager-plugin/int/node-api/metrics"
 	"github.com/massalabs/station/pkg/logger"
 )
 
 // NodeMonitoring defines the interface for monitoring node status
 type NodeMonitoring interface {
 	/*
-		MonitorDesync fetches prometheus metrics from the node and check if the node is desynced
+		MonitorDesync fetches prometheus formated metrics from the node and check if the node is desynced
 		It returns a notification channel that will send a struct{} if the node is desynced
 	*/
 	MonitorDesync(ctx context.Context, interval time.Duration) <-chan struct{}
@@ -27,19 +27,19 @@ type NodeMonitoring interface {
 
 // NodeMonitor implements the NodeMonitoring interface
 type NodeMonitor struct {
-	prometheusDriver prometheus.PrometheusDriver
+	metricsDriver    metrics.MetricsDriver
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher
 	nodeAPI          nodeAPI.NodeAPI
 }
 
 // NewNodeMonitor creates a new NodeMonitor instance
 func NewNodeMonitor(
-	prometheusDriver prometheus.PrometheusDriver,
+	metricsDriver metrics.MetricsDriver,
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher,
 	nodeAPI nodeAPI.NodeAPI,
 ) NodeMonitoring {
 	return &NodeMonitor{
-		prometheusDriver: prometheusDriver,
+		metricsDriver:    metricsDriver,
 		statusDispatcher: statusDispatcher,
 		nodeAPI:          nodeAPI,
 	}
@@ -89,7 +89,7 @@ func (nm *NodeMonitor) MonitorBootstrapping(ctx context.Context, interval time.D
 }
 
 // MonitorDesync return a channel that will send a struct{} when the node is desynced
-// It launch a goroutine that continuously fetch prometheus metrics from the node and check if the node is desynced
+// It launch a goroutine that continuously fetch metrics from the node and check if the node is desynced
 func (nm *NodeMonitor) MonitorDesync(ctx context.Context, interval time.Duration) <-chan struct{} {
 	desyncChan := make(chan struct{})
 	wasTemporaryDesynced := false
@@ -106,7 +106,7 @@ func (nm *NodeMonitor) MonitorDesync(ctx context.Context, interval time.Duration
 				logger.Debug("Stop desync monitor goroutine because received cancelAsyncTask signal")
 				return
 			case <-ticker.C:
-				isTemporaryDesynced, err := nm.prometheusDriver.HasDesync()
+				isTemporaryDesynced, err := nm.metricsDriver.HasDesync()
 				if err != nil {
 					logger.Error("failed to check desync, got error: %v", err)
 					continue
