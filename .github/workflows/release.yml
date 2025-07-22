@@ -104,7 +104,7 @@ jobs:
       - name : zip package
         shell: bash
         run: |
-          zip -j ${{ env.TARGET_NAME }}.zip web/public/favicon.ico manifest.json ${{ env.TARGET_NAME }}/*
+          zip -j ${{ env.TARGET_NAME }}.zip web/public/favicon.svg manifest.json ${{ env.TARGET_NAME }}/*
           cd build && zip -r ../${{ env.TARGET_NAME }}.zip node-massa
 
       - name: Notarize zip for MacOS ${{ matrix.arch }}
