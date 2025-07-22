@@ -12,10 +12,14 @@ import (
 const (
 	directoryName  = "station-node-manager-plugin"
 	configFileName = "node_manager_config.yaml"
+	pluginLogPath  = "pluginLogs"
+	nodeLogPath    = "nodeLogs"
+	dbName         = "db.sqlite"
 )
 
 type PluginConfig struct {
-	NodeLogPath                    string `yaml:"log_path"`
+	PluginLogPath                  string `yaml:"plugin_log_path"`
+	NodeLogPath                    string `yaml:"node_log_path"`
 	NodeLogMaxSize                 int    `yaml:"log_max_size"`
 	MaxLogBackups                  int    `yaml:"max_log_backups"`
 	ClientTimeout                  int    `yaml:"client_timeout"`
@@ -33,8 +37,10 @@ func defaultPluginConfig() (PluginConfig, error) {
 	if err != nil {
 		return PluginConfig{}, fmt.Errorf("failed to get executable path: %v", err)
 	}
+	execDir := filepath.Dir(execPath)
 	return PluginConfig{
-		NodeLogPath:                    filepath.Join(filepath.Dir(execPath), "./nodeLogs"),
+		PluginLogPath:                  filepath.Join(execDir, pluginLogPath),
+		NodeLogPath:                    filepath.Join(execDir, nodeLogPath),
 		NodeLogMaxSize:                 1,
 		MaxLogBackups:                  10,
 		ClientTimeout:                  30,
@@ -42,37 +48,10 @@ func defaultPluginConfig() (PluginConfig, error) {
 		DesyncCheckInterval:            30, // Interval at which the node is checked if it is desynced
 		RestartCooldown:                5,  // Time to wait before restarting the node
 		StakingAddressDataPollInterval: 30, // Time to wait before polling the staking address data
-		DBPath:                         filepath.Join(filepath.Dir(execPath), "./db.sqlite"),
+		DBPath:                         filepath.Join(execDir, dbName),
 		TotValueRegisterInterval:       180,      // 3 minutes
 		TotValueDelAfter:               31536000, // 1 year
 	}, nil
-}
-
-/*
-Retrieve the directory in which the node manager plugin config is stored
-If the folder doesn't exist, it is created.
-*/
-func PluginDir() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("getting user config directory: %w", err)
-	}
-
-	path := filepath.Join(configDir, directoryName)
-
-	_, err = os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(path, os.ModePerm)
-			if err != nil {
-				return "", fmt.Errorf("creating node manager plugin configuration directory '%s': %w", path, err)
-			}
-		} else {
-			return "", fmt.Errorf("checking directory '%s': %w", path, err)
-		}
-	}
-
-	return path, nil
 }
 
 /*
@@ -80,12 +59,10 @@ RetrieveConfig retrieves the plugin configuration. If the configuration file doe
 it creates the file with a default configuration and returns it.
 */
 func RetrieveConfig() (*PluginConfig, error) {
-	pluginDir, err := PluginDir()
+	configFilePath, err := getConfPath()
 	if err != nil {
-		return &PluginConfig{}, fmt.Errorf("getting plugin directory: %w", err)
+		return nil, fmt.Errorf("failed to get config file path: %v", err)
 	}
-
-	configFilePath := filepath.Join(pluginDir, configFileName)
 
 	// Check if the file exists
 	_, err = os.Stat(configFilePath)
@@ -214,12 +191,11 @@ func UpdateConfigField(fieldName string, value interface{}) error {
 }
 
 func getConfPath() (string, error) {
-	pluginDir, err := PluginDir()
+	execPath, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("getting plugin directory: %w", err)
+		return "", fmt.Errorf("failed to get executable path: %v", err)
 	}
-
-	return filepath.Join(pluginDir, configFileName), nil
+	return filepath.Join(filepath.Dir(execPath), configFileName), nil
 }
 
 func readConfigFile(configFilePath string) (PluginConfig, error) {
