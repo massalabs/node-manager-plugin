@@ -4,6 +4,11 @@ Node manager is a [massa station](https://station.massa.net/) plugin that allows
 
 > *Note: This plugin needs to have the **Massa Wallet plugin** installed.*
 
+## Requirements
+- [Taskfile](https://taskfile.dev/)
+- Node
+- go
+
 
 ## Setup
 Install dev dependencies:

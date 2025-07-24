@@ -35,8 +35,6 @@ tasks:
 
   setup-node-folder:
     cmds:
-      # - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
-
       - cmd: scripts/setup-node-unix.sh {{.MAINNET_VERSION}} {{.BUILDNET_VERSION}} {{.MAINNET_NODEBIN}} {{.BUILDNET_NODEBIN}} {{.NODE_MASSA_DIR}}
         platforms: [linux, darwin]
 
@@ -167,11 +165,6 @@ tasks:
   test:
     cmds:
       - cmd: go test ./...
-
-  install:tools:
-    cmds:
-      - cmd: go install mvdan.cc/gofumpt@latest
-      - cmd: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
   lint:
     cmds:

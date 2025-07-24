@@ -31,7 +31,7 @@ func setupLog(t *testing.T) func() {
 	}
 
 	return func() {
-		if err := logger.Close(); err != nil {
+		if err := logger.Close(); err != nil && !nodeManagerError.IsZapLoggerInvalidArgumentError(err) {
 			t.Errorf("Failed to close logger: %v", err)
 		}
 	}

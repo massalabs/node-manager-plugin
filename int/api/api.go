@@ -14,6 +14,7 @@ import (
 	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/core/node-manager"
 	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
 	"github.com/massalabs/node-manager-plugin/int/db"
+	errorPkg "github.com/massalabs/node-manager-plugin/int/error"
 	nodeAPI "github.com/massalabs/node-manager-plugin/int/node-api"
 	metricsPkg "github.com/massalabs/node-manager-plugin/int/node-api/metrics"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
@@ -176,7 +177,7 @@ func (a *API) Cleanup() {
 	}
 
 	logger.Debug("Closing plugin logger")
-	if err := logger.Close(); err != nil {
+	if err := logger.Close(); err != nil && !errorPkg.IsZapLoggerInvalidArgumentError(err) {
 		logger.Errorf("Failed to close plugin logger: %v", err)
 	}
 }
