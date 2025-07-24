@@ -1,9 +1,8 @@
 package stakingManager
 
 import (
-	"testing"
-
 	"slices"
+	"testing"
 )
 
 // createTestStakingManager creates a stakingManager instance for testing

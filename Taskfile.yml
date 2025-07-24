@@ -12,8 +12,8 @@ tasks:
     cmds:
       - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@latest
       - cmd: go install github.com/vektra/mockery/v3@v3.5.0
-      - cmd: go install mvdan.cc/gofumpt@latest
-      - cmd: go install github.com/luw2007/gci@latest
+      - cmd: go install mvdan.cc/gofumpt@v0.8.0
+      - cmd: go install github.com/daixiang0/gci@v0.13.4 
       - cmd: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.3.0
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"

@@ -1,6 +1,7 @@
 package stakingManager
 
 import (
+	"slices"
 	"testing"
 
 	clientDriver "github.com/massalabs/node-manager-plugin/int/client-driver"
@@ -8,7 +9,6 @@ import (
 	"github.com/massalabs/station/pkg/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"slices"
 )
 
 func TestHandleRollsUpdates(t *testing.T) {

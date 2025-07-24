@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/massalabs/node-manager-plugin/int/db"
 	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
-	"slices"
 )
 
 // fetchMiscellaneousData fetches the node status and store some values in miscellaneous field
