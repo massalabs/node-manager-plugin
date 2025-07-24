@@ -8,7 +8,8 @@ import (
 	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	"github.com/massalabs/node-manager-plugin/int/utils"
 	logger "github.com/massalabs/station/pkg/logger"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 type DB interface {

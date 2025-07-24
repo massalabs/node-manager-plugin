@@ -17,6 +17,8 @@ import { getErrorMessage } from '@/utils/error';
 import { getApiUrl } from '@/utils/utils';
 
 const ROLL_PRICE = 100.0;
+/* The interval at which the value history list is updated with a new item in absence of new value from the backend*/
+const INTERVAL_MS = 1000 * 60 * 10; // 10 minutes
 
 export function getTotalValue(addresses: StakingAddress[]): number {
   let totalValue = 0;
@@ -33,7 +35,7 @@ export function getTotalValue(addresses: StakingAddress[]): number {
 
 export function useTotValueHistory() {
   const [valueHistory, setValueHistory] = useState<ValueHistoryPoint[]>([]);
-  const [since, setSince] = useState<SinceFetch>(SinceFetch.DEFAULT);
+  const totValue = useRef<number>(0);
 
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
   const network = useNodeStore((state) => state.currentNetwork);
@@ -75,34 +77,36 @@ export function useTotValueHistory() {
     return { sinceParam, sampleNum };
   }, []);
 
-  const updateValueHistory = useCallback(() => {
+  /* When staking addresses total value changes, add this value to the value history
+  and update the interval at which the value history is updated with a new item in absence of new value from the backend
+  */
+  useEffect(() => {
     const value = getTotalValue(stakingAddresses);
+
+    // stakingAddresses could change without their value changing (e.g. when a roll target is changed)
+    if (value === totValue.current) {
+      return;
+    }
+    totValue.current = value;
     setValueHistory((prev) => [
       ...prev,
       { timestamp: new Date().toISOString(), value },
     ]);
-  }, [stakingAddresses]);
 
-  // allow to continusly update value history at the same interval it is updated in the backend.
-  useEffect(() => {
     // Clear previous interval if any
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    if (valueHistory.length === 0) {
-      return;
-    }
-
-    // Start interval for live value appending
-    const { sinceParam, sampleNum } = getParamsFromSince(since);
-    const sinceDate = new Date(sinceParam).getTime();
-
-    const intervalMs = Math.floor((Date.now() - sinceDate) / sampleNum);
-    intervalRef.current = setInterval(updateValueHistory, intervalMs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [since, updateValueHistory, getParamsFromSince]);
+    // If no new value is received from the backend, update the value history with the same value
+    intervalRef.current = setInterval(() => {
+      setValueHistory((prev) => [
+        ...prev,
+        { timestamp: new Date().toISOString(), value: totValue.current },
+      ]);
+    }, INTERVAL_MS);
+  }, [stakingAddresses]);
 
   const fetchValueHistory = useCallback(
     async (since: SinceFetch) => {
@@ -130,7 +134,6 @@ export function useTotValueHistory() {
           return;
         }
         setValueHistory(res.data.samples);
-        setSince(since);
       } catch (err) {
         setError({
           title: 'Error fetching value history',
