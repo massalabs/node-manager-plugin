@@ -48,7 +48,11 @@ func (p *Metrics) getPrometheusMetrics() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch metrics: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			fmt.Printf("warning: failed to close metrics response body: %v\n", cerr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("metrics endpoint returned status code: %d", resp.StatusCode)

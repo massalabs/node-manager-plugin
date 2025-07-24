@@ -176,5 +176,7 @@ func (a *API) Cleanup() {
 	}
 
 	logger.Debug("Closing plugin logger")
-	logger.Close()
+	if err := logger.Close(); err != nil {
+		logger.Errorf("Failed to close plugin logger: %v", err)
+	}
 }

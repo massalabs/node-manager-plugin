@@ -48,7 +48,7 @@ func (e *EventBusImpl) Publish(event Event) error {
 		}
 	}
 	if len(failedSubscribers) > 0 {
-		return fmt.Errorf("Could not send event %s to subscribers: %v", event.Type, failedSubscribers)
+		return fmt.Errorf("ould not send event %s to subscribers: %v", event.Type, failedSubscribers)
 	}
 	return nil
 }

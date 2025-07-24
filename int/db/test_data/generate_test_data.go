@@ -46,7 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close db connection: %v", err)
+		}
+	}()
 
 	// Test connection
 	if err := db.Ping(); err != nil {
@@ -105,7 +109,11 @@ func generateTestData(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert statement: %w", err)
 	}
-	defer insertStmt.Close()
+	defer func() {
+		if err := insertStmt.Close(); err != nil {
+			log.Printf("Failed to close db insert statement: %v", err)
+		}
+	}()
 
 	entriesGenerated := 0
 	baseValue := 10000.0 // Starting value in MAS

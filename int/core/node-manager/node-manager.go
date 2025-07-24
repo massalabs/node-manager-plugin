@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/massalabs/node-manager-plugin/int/config"
-	nodeStatus "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
 	NodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriver "github.com/massalabs/node-manager-plugin/int/node-driver"
@@ -55,7 +54,7 @@ func NewNodeManager(
 	}
 
 	return &NodeManager{
-		status:           nodeStatus.NodeStatusOff,
+		status:           nodeStatusPkg.NodeStatusOff,
 		config:           config,
 		NodeLogManager:   nodeLogManager,
 		nodeMonitor:      nodeMonitor,
@@ -75,14 +74,14 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) error {
 		return fmt.Errorf("massa node is already running")
 	}
 
-	nodeMana.setStatus(nodeStatus.NodeStatusStarting)
+	nodeMana.setStatus(nodeStatusPkg.NodeStatusStarting)
 
 	nodeLogger, err := nodeMana.getLogger(isMainnet)
 	if err != nil {
 		return err
 	}
 
-	_, err = nodeLogger.Write([]byte(fmt.Sprintf("\n\n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))))
+	_, err = fmt.Fprintf(nodeLogger, "\n\n>>> new node session (%s): \n", time.Now().Format("2006-01-02 15:04:05"))
 	if err != nil {
 		return fmt.Errorf("failed to write to node logger: %v", err)
 	}
@@ -92,7 +91,7 @@ func (nodeMana *NodeManager) StartNode(isMainnet bool, pwd string) error {
 		return fmt.Errorf("failed to start node: %v", err)
 	}
 
-	nodeMana.setStatus(nodeStatus.NodeStatusBootstrapping)
+	nodeMana.setStatus(nodeStatusPkg.NodeStatusBootstrapping)
 
 	// Update global plugin info
 	config.GlobalPluginInfo.SetIsMainnet(isMainnet)
@@ -118,12 +117,12 @@ func (nodeMana *NodeManager) StopNode() error {
 		return fmt.Errorf("massa node process is already stopped")
 	}
 
-	if nodeMana.status == nodeStatus.NodeStatusStopping {
+	if nodeMana.status == nodeStatusPkg.NodeStatusStopping {
 		logger.Infof("massa node process is already stopping")
 		return fmt.Errorf("massa node process is already stopping")
 	}
 
-	nodeMana.setStatus(nodeStatus.NodeStatusStopping)
+	nodeMana.setStatus(nodeStatusPkg.NodeStatusStopping)
 
 	logger.Infof("Stopping Massa node process...")
 	nodeMana.cancelAsyncTask()
@@ -152,7 +151,7 @@ HandleBootstrapping set the status to NodeStatusBootstrapping then it subscribe 
 When the node has bootstrapped, it updates the status to NodeStatusOn and starts the desync monitor goroutine.
 */
 func (nodeMana *NodeManager) HandleBootstrapping(ctx context.Context) {
-	nodeMana.setStatus(nodeStatus.NodeStatusBootstrapping)
+	nodeMana.setStatus(nodeStatusPkg.NodeStatusBootstrapping)
 
 	logger.Info("Bootstrap started...")
 	for {
@@ -168,7 +167,7 @@ func (nodeMana *NodeManager) HandleBootstrapping(ctx context.Context) {
 				return
 			}
 
-			nodeMana.setStatus(nodeStatus.NodeStatusOn)
+			nodeMana.setStatus(nodeStatusPkg.NodeStatusOn)
 
 			logger.Info("Massa Node is Up")
 
@@ -195,7 +194,7 @@ func (nodeMana *NodeManager) handleNodeDesync(ctx context.Context) {
 				nodeMana.mu.Unlock()
 				return
 			}
-			nodeMana.setStatus(nodeStatus.NodeStatusDesynced)
+			nodeMana.setStatus(nodeStatusPkg.NodeStatusDesynced)
 			nodeMana.mu.Unlock()
 
 			if config.GlobalPluginInfo.GetAutoRestart() {
@@ -233,11 +232,11 @@ It update the status to NodeStatusOff or NodeStatusCrashed
 */
 func (nodeMana *NodeManager) handleNodeStopped() {
 	result := <-nodeMana.processExitedChan // Wait for the command to exit
-	status := nodeStatus.NodeStatusOff
+	status := nodeStatusPkg.NodeStatusOff
 
 	if result.Err != nil && !isUserIntterupted(result.Err) {
 		logger.Errorf("massa node process exited with error: %v", result.Err)
-		status = nodeStatus.NodeStatusCrashed
+		status = nodeStatusPkg.NodeStatusCrashed
 
 		// if auto-restart option is enabled, restart the node
 		if config.GlobalPluginInfo.GetAutoRestart() {
@@ -282,7 +281,7 @@ func (nodeMana *NodeManager) Close() error {
 
 	// close the node logger
 	if err := nodeMana.closeLoggers(); err != nil {
-		return fmt.Errorf("Failed to close node loggers: %v", err)
+		return fmt.Errorf("failed to close node loggers: %v", err)
 	}
 
 	return nil

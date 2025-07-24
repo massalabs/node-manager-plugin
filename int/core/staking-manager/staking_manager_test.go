@@ -31,7 +31,9 @@ func setupLog(t *testing.T) func() {
 	}
 
 	return func() {
-		logger.Close()
+		if err := logger.Close(); err != nil {
+			t.Errorf("Failed to close logger: %v", err)
+		}
 	}
 }
 

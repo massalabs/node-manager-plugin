@@ -7,6 +7,7 @@ import (
 
 	nodeManagerError "github.com/massalabs/node-manager-plugin/int/error"
 	"github.com/massalabs/node-manager-plugin/int/utils"
+	logger "github.com/massalabs/station/pkg/logger"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -109,7 +110,11 @@ func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to query rolls_target: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorf("Failed to close rolls_target rows: %v", err)
+		}
+	}()
 
 	var addresses []AddressInfo
 	for rows.Next() {
@@ -239,7 +244,11 @@ func (d *dB) GetHistory(since time.Time, network utils.Network) ([]ValueHistory,
 	if err != nil {
 		return nil, fmt.Errorf("failed to query %s: %w", tableName, err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorf("Failed to close %s rows: %v", tableName, err)
+		}
+	}()
 
 	var histories []ValueHistory
 	for rows.Next() {

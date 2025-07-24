@@ -12,12 +12,14 @@ tasks:
     cmds:
       - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@latest
       - cmd: go install github.com/vektra/mockery/v3@v3.5.0
+      - cmd: go install mvdan.cc/gofumpt@latest
+      - cmd: go install github.com/luw2007/gci@latest
+      - cmd: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.3.0
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"
 
   generate:
     cmds:
-      - cmd: mkdir -p ./build
       - cmd: go generate -x -v ./...
       - cmd: echo "PATH=$PATH"
       - cmd: echo "GOPATH=$GOPATH"
@@ -39,19 +41,34 @@ tasks:
         platforms: [linux, darwin]
 
       # window
-      - cmd: mkdir -p {{.NODE_MASSA_DIR}} && cd {{.NODE_MASSA_DIR}}
-        platforms: [windows]
-      - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
-        platforms: [windows]
-      - cmd: mkdir {{.MAINNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.MAINNET_NODEBIN}} -DestinationPath {{.MAINNET_VERSION}}; Remove-Item {{.MAINNET_NODEBIN}}"
-        platforms: [windows]
-      - cmd: curl.exe -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
-        platforms: [windows]
-      - cmd: mkdir {{.BUILDNET_VERSION}} && powershell -Command "Expand-Archive -Path {{.BUILDNET_NODEBIN}} -DestinationPath {{.BUILDNET_VERSION}}; Remove-Item {{.BUILDNET_NODEBIN}}"
+      ## create the NODE_MASSA_DIR directory inside the BIN_DIR directory
+      - cmd: powershell -Command "New-Item -Path '{{.NODE_MASSA_DIR}}' -ItemType Directory -Force"
         platforms: [windows]
 
-      # move buildnet and mainnet bin into the NODE_MASSA_DIR directory.
-      - cmd: rm -rf {{.NODE_MASSA_DIR}}/* && mv {{.BUILDNET_VERSION}} {{.NODE_MASSA_DIR}} && mv {{.MAINNET_VERSION}} {{.NODE_MASSA_DIR}}
+      ## handle mainnet
+      ### extract the mainnet node binary zip file and remove the zip file
+      - cmd: curl.exe -Ls -o {{.MAINNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.MAINNET_VERSION}}/{{.MAINNET_NODEBIN}}
+        platforms: [windows]
+      ### "mv <mainnetDir>/massa/* <mainnetDir>/" and remove the <mainnetDir>/massa/ directory
+      - cmd: powershell -Command "New-Item -Path '{{.MAINNET_VERSION}}' -ItemType Directory -Force; Expand-Archive -Path '{{.MAINNET_NODEBIN}}' -DestinationPath '{{.MAINNET_VERSION}}'; Remove-Item '{{.MAINNET_NODEBIN}}'"
+        platforms: [windows]
+      ### "mv <mainnetDir>/massa/* <mainnetDir>/" and remove the <mainnetDir>/massa/ directory
+      - cmd: powershell -Command "Move-Item -Path '{{.MAINNET_VERSION}}\massa\*' -Destination '{{.MAINNET_VERSION}}'; Remove-Item -Path '{{.MAINNET_VERSION}}\massa' -Recurse -Force"
+        platforms: [windows]
+      
+      ## handle buildnet
+      ### download the buildnet node binary zip file
+      - cmd: curl.exe -Ls -o {{.BUILDNET_NODEBIN}} https://github.com/massalabs/massa/releases/download/{{.BUILDNET_VERSION}}/{{.BUILDNET_NODEBIN}}
+        platforms: [windows]
+      ### extract the buildnet node binary zip file and remove the zip file
+      - cmd: powershell -Command "New-Item -Path '{{.BUILDNET_VERSION}}' -ItemType Directory -Force; Expand-Archive -Path '{{.BUILDNET_NODEBIN}}' -DestinationPath '{{.BUILDNET_VERSION}}'; Remove-Item '{{.BUILDNET_NODEBIN}}'"
+        platforms: [windows]
+      ### "mv <buildnetDir>/massa/* <buildnetDir>/" and remove the <buildnetDir>/massa/ directory
+      - cmd: powershell -Command "Move-Item -Path '{{.BUILDNET_VERSION}}\massa\*' -Destination '{{.BUILDNET_VERSION}}'; Remove-Item -Path '{{.BUILDNET_VERSION}}\massa' -Recurse -Force"
+        platforms: [windows]
+
+      # move buildnet and mainnet folder into the NODE_MASSA_DIR directory.
+      - cmd:  powershell -Command "Remove-Item -Path '{{.NODE_MASSA_DIR}}\*' -Recurse -Force; Move-Item -Path '{{.BUILDNET_VERSION}}' -Destination '{{.NODE_MASSA_DIR}}'; Move-Item -Path '{{.MAINNET_VERSION}}' -Destination '{{.NODE_MASSA_DIR}}'"
         platforms: [windows]
 
     vars:
@@ -81,7 +98,7 @@ tasks:
     build:
     desc: Internal build task
     cmds:
-      - cmd: echo Building node-manager {{.APP_NAME}} for {{.OS | default OS}}/{{.ARCH | default ARCH}}
+      - cmd: 'echo Building node-manager {{.APP_NAME}} for $GOOS/$GOARCH'
         silent: true
       - cmd: 'echo Mode: {{if eq .PRODUCTION "true"}}Production{{else}}Development{{end}}'
         silent: true
@@ -94,7 +111,7 @@ tasks:
       BUILD_FLAGS: '{{if eq .PRODUCTION "true"}}-tags production {{end}}-ldflags="{{.VERSION_FLAG}}{{if eq .PRODUCTION "true"}} -w -s{{end}}"'
       BIN_EXT: '{{if eq .OS "windows"}}.exe{{end}}'
     env:
-      GOOS: "{{.OS | default OS}}"
+      GOOS: "{{if eq .OS \"Windows_NT\"}}windows{{else}}{{.OS | default OS}}{{end}}"
       GOARCH: "{{.ARCH | default ARCH}}"
       VERSION: "{{.VERSION | default nil}}"
 
@@ -121,7 +138,7 @@ tasks:
           
   clean:
     cmds:
-      - cmd: rm -rf build
+      - cmd: rm -rf build && rm -rf web/node_modules && rm -rf int/api/html/dist
 
   install-plugin:
     cmds:
@@ -136,15 +153,15 @@ tasks:
       - cmd: cp -r build/node-massa /usr/local/share/massastation/plugins/node-manager-plugin
         platforms: [linux, darwin]
 
-      - cmd: mkdir -p "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: powershell -Command "New-Item -Path 'C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin' -ItemType Directory -Force"
         platforms: [windows]
-      - cmd: cp build/node-manager-plugin.exe "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: powershell -Command "Copy-Item -Path 'build/node-manager-plugin.exe' -Destination 'C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin' -Force"
         platforms: [windows]
-      - cmd: cp web/public/favicon.svg "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: powershell -Command "Copy-Item -Path 'web/public/favicon.svg' -Destination 'C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin' -Force"
         platforms: [windows]
-      - cmd: cp manifest.json "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin"
+      - cmd: powershell -Command "Copy-Item -Path 'manifest.json' -Destination 'C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin' -Force"
         platforms: [windows]
-      - cmd: robocopy build/node-massa "C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin/node-massa" /E
+      - cmd: powershell -Command "Copy-Item -Path 'build/node-massa' -Destination 'C:/Program Files (x86)/MassaStation/plugins/node-manager-plugin/node-massa' -Recurse -Force"
         platforms: [windows]
 
   test:

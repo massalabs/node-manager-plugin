@@ -18,7 +18,11 @@ func TestNewDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db connection: %v", err)
+		}
+	}()
 }
 
 func TestAddressInfoOperations(t *testing.T) {
@@ -30,7 +34,11 @@ func TestAddressInfoOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db connection: %v", err)
+		}
+	}()
 
 	// Test adding address info for mainnet
 	err = db.AddRollsTarget("address1", 100, utils.NetworkMainnet)
@@ -111,7 +119,11 @@ func TestValueHistoryOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db connection: %v", err)
+		}
+	}()
 
 	// Test posting history for mainnet
 	now := time.Now()
@@ -183,7 +195,11 @@ func TestDeleteOldValueHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("Failed to close db connection: %v", err)
+		}
+	}()
 
 	now := time.Now()
 	histories := []ValueHistory{
