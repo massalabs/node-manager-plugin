@@ -1,9 +1,12 @@
 package nodeManager
 
 import (
-	"strings"
+	"errors"
+	"runtime"
+	"syscall"
 
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
+	"golang.org/x/sys/unix"
 )
 
 func IsRunning(nodeStatus nodeStatusPkg.NodeStatus) bool {
@@ -15,8 +18,11 @@ func IsClosedOrClosing(nodeStatus nodeStatusPkg.NodeStatus) bool {
 }
 
 func connRefused(err error) bool {
-	if err == nil {
-		return false
+	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+		var errno syscall.Errno
+		if errors.As(err, &errno) && errno == unix.ECONNREFUSED {
+			return true
+		}
 	}
-	return strings.Contains(err.Error(), "connect: connection refused")
+	return false
 }

@@ -12,13 +12,11 @@ import (
 const (
 	directoryName  = "station-node-manager-plugin"
 	configFileName = "node_manager_config.yaml"
-	pluginLogPath  = "pluginLogs"
 	nodeLogPath    = "nodeLogs"
 	dbName         = "db.sqlite"
 )
 
 type PluginConfig struct {
-	PluginLogPath                  string `yaml:"plugin_log_path"`
 	NodeLogPath                    string `yaml:"node_log_path"`
 	NodeLogMaxSize                 int    `yaml:"log_max_size"`
 	MaxLogBackups                  int    `yaml:"max_log_backups"`
@@ -39,7 +37,6 @@ func defaultPluginConfig() (PluginConfig, error) {
 	}
 	execDir := filepath.Dir(execPath)
 	return PluginConfig{
-		PluginLogPath:                  filepath.Join(execDir, pluginLogPath),
 		NodeLogPath:                    filepath.Join(execDir, nodeLogPath),
 		NodeLogMaxSize:                 1,
 		MaxLogBackups:                  10,

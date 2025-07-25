@@ -10,17 +10,19 @@ import (
 	"github.com/massalabs/station/pkg/logger"
 )
 
+const pluginLogPath = "pluginLogs"
+
 func main() {
-	pluginConfig, err := config.RetrieveConfig()
-	if err != nil {
-		log.Fatalf("failed to load node manager configuration : %v", err)
-	}
+	logPath := filepath.Join(pluginLogPath, "node-manager-plugin.log")
 
-	logPath := filepath.Join(pluginConfig.PluginLogPath, "./node-manager-plugin.log")
-
-	err = logger.InitializeGlobal(logPath)
+	err := logger.InitializeGlobal(logPath)
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
+	}
+
+	pluginConfig, err := config.RetrieveConfig()
+	if err != nil {
+		logger.Fatalf("failed to load node manager configuration : %v", err)
 	}
 
 	// Create and start the API with the plugin directory
