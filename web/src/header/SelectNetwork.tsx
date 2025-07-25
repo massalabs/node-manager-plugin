@@ -7,7 +7,7 @@ import { useNodeStore } from '@/store/nodeStore';
 import { getNetworkFromVersion, isRunning } from '@/utils';
 
 function getNetworkNameFromVersion(version: string) {
-  return getNetworkFromVersion(version) + ' v' + version.slice(5);
+  return getNetworkFromVersion(version) + ' (' + version + ')';
 }
 
 /* SelectNetwork allows to choose on which network the node will be launched: mainnet or buildnet
@@ -46,9 +46,8 @@ export const SelectNetwork: React.FC = () => {
       readOnly={nodeIsRunning}
       style={{
         filter: nodeIsRunning
-          ? 'grayscale(0.7) brightness(1.2)'
-          : 'brightness(1.5)',
-        opacity: nodeIsRunning ? 0.4 : 1,
+          ? 'grayscale(0.7) brightness(1.2) opacity(0.5)'
+          : 'brightness(1.5) opacity(1)',
       }}
     />
   );

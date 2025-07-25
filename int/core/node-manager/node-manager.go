@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/massalabs/node-manager-plugin/int/config"
@@ -234,7 +232,7 @@ func (nodeMana *NodeManager) handleNodeStopped() {
 	result := <-nodeMana.processExitedChan // Wait for the command to exit
 	status := nodeStatusPkg.NodeStatusOff
 
-	if result.Err != nil && !isUserIntterupted(result.Err) {
+	if result.Err != nil && !isUserInterrupted(result.Err) {
 		logger.Errorf("massa node process exited with error: %v", result.Err)
 		status = nodeStatusPkg.NodeStatusCrashed
 
@@ -293,14 +291,25 @@ func (nodeMana *NodeManager) setStatus(status nodeStatusPkg.NodeStatus) {
 	nodeMana.statusDispatcher.Publish(status)
 }
 
-// isUserIntterupted checks if the error is due to user interruption SIGTERM or SIGKILL
-func isUserIntterupted(err error) bool {
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-			if ws.Signal() == syscall.SIGTERM || ws.Signal() == syscall.SIGKILL {
-				return true
-			}
-		}
-	}
-	return false
-}
+// isUserInterrupted checks if the error is due to user interruption SIGTERM or SIGKILL
+// func isUserInterrupted(err error) bool {
+// 	if exitErr, ok := err.(*exec.ExitError); ok {
+// 		if runtime.GOOS == "windows" {
+// 			// Windows specific check
+// 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+// 				// Check for CTRL_C_EVENT (0xC000013A) or other Windows exit codes
+// 				return status.ExitStatus() == windows.CTRL_C_EVENT ||
+// 					status.ExitStatus() == windows.ERROR_OPERATION_ABORTED
+// 			}
+// 		} else {
+// 			// Unix-like systems (Linux, macOS)
+// 			if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+// 				return ws.Signaled() &&
+// 					(ws.Signal() == syscall.SIGTERM ||
+// 						ws.Signal() == syscall.SIGINT ||
+// 						ws.Signal() == syscall.SIGQUIT)
+// 			}
+// 		}
+// 	}
+// 	return false
+// }

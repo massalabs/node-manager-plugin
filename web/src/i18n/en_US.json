@@ -20,7 +20,7 @@
     },
     "autoRestart": {
       "label": "Auto restart",
-      "description": "Automatically restart the node if it crash or desync",
+      "description": "Automatically restart the node if it crashes (due to a bug or a network loss)",
       "enabled": "Auto restart enabled",
       "disabled": "Auto restart disabled",
       "error": "Error while setting auto-restart"
