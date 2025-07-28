@@ -106,6 +106,7 @@ tasks:
       - cmd: 'echo Version: {{.VERSION | default "Development"}}'
         silent: true
       - cmd: go build {{.BUILD_FLAGS}} -o {{.BIN_DIR}}/{{.APP_NAME}}{{.BIN_EXT}} ./main.go
+
     vars:
       PRODUCTION: '{{if ne .VERSION nil}}{{if ne .VERSION ""}}true{{end}}{{end}}'
       VERSION_FLAG: '{{if ne .VERSION nil}}{{if ne .VERSION ""}}-X github.com/massalabs/node-manager-plugin/int/config.Version={{.VERSION}}{{end}}{{end}}'
