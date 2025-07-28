@@ -95,7 +95,7 @@ jobs:
       - name: Download plugin binary artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: 'node-manager-plugin_${{matrix.target}}*'
+          pattern: ${{ env.TARGET_NAME }}
 
       - name: make bin executable
         run: |
