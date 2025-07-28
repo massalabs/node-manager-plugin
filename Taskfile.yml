@@ -72,7 +72,7 @@ tasks:
         platforms: [windows]
 
     vars:
-      OS_NAME: '{{if eq OS "darwin"}}macos{{else}}{{OS}}{{end}}'
+      OS_NAME: '{{if eq OS "darwin"}}{{if or (eq .ARCH "arm64") (eq ARCH "arm64")}}macos_aarch64{{else}}macos{{end}}{{else}}{{OS}}{{end}}'
       ARCHIVE_EXT: '{{if eq OS "windows"}}zip{{else}}tar.gz{{end}}'
       MAINNET_NODEBIN: "massa_{{.MAINNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"
       BUILDNET_NODEBIN: "massa_{{.BUILDNET_VERSION}}_release_{{.OS_NAME}}.{{.ARCHIVE_EXT}}"

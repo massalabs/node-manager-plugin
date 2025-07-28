@@ -91,6 +91,9 @@ jobs:
           else
             task setup-node-folder
           fi
+        env:
+          OS: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
 
       - name: Download plugin binary artifacts
         uses: actions/download-artifact@v4
