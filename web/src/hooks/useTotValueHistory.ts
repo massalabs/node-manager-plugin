@@ -35,6 +35,7 @@ export function getTotalValue(addresses: StakingAddress[]): number {
 
 export function useTotValueHistory() {
   const [valueHistory, setValueHistory] = useState<ValueHistoryPoint[]>([]);
+  const [nonEmptyDataPointRate, setNonEmptyDataPointRate] = useState<number>(0);
   const totValue = useRef<number>(0);
 
   const stakingAddresses = useStakingStore((state) => state.stakingAddresses);
@@ -83,15 +84,25 @@ export function useTotValueHistory() {
   useEffect(() => {
     const value = getTotalValue(stakingAddresses);
 
-    // stakingAddresses could change without their value changing (e.g. when a roll target is changed)
+    // stakingAddresses could change without the total value to be changed (e.g. when a roll target is changed)
     if (value === totValue.current) {
       return;
     }
+
+    const incrementNonEmptyDataPointRate = () => {
+      const currentNonEmptyDataPointNum =
+        (nonEmptyDataPointRate * valueHistory.length) / 100;
+      setNonEmptyDataPointRate(
+        ((currentNonEmptyDataPointNum + 1) / (valueHistory.length + 1)) * 100,
+      );
+    };
+
     totValue.current = value;
     setValueHistory((prev) => [
       ...prev,
       { timestamp: new Date().toISOString(), value },
     ]);
+    incrementNonEmptyDataPointRate();
 
     // Clear previous interval if any
     if (intervalRef.current) {
@@ -105,7 +116,9 @@ export function useTotValueHistory() {
         ...prev,
         { timestamp: new Date().toISOString(), value: totValue.current },
       ]);
+      incrementNonEmptyDataPointRate();
     }, INTERVAL_MS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stakingAddresses]);
 
   const fetchValueHistory = useCallback(
@@ -128,12 +141,15 @@ export function useTotValueHistory() {
             },
           },
         );
-        if (!res.data.samples || sampleNum - res.data.emptyDataPointNum < 5) {
+        if (!res.data.samples) {
           toast.error('Not enough data for graph');
           setValueHistory([]);
           return;
         }
         setValueHistory(res.data.samples);
+        setNonEmptyDataPointRate(
+          ((sampleNum - res.data.emptyDataPointNum) / sampleNum) * 100,
+        );
       } catch (err) {
         setError({
           title: 'Error fetching value history',
@@ -154,5 +170,5 @@ export function useTotValueHistory() {
     };
   }, []);
 
-  return { valueHistory, fetchValueHistory, SinceFetch };
+  return { valueHistory, fetchValueHistory, nonEmptyDataPointRate };
 }

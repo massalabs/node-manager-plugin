@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { SelectNetwork } from './SelectNetwork';
 import { useNodeStore } from '@/store/nodeStore';
 import { getBaseAppUrl } from '@/utils/utils';
 
@@ -27,15 +26,16 @@ export const Header: React.FC = () => {
       {/* Left side - Logo and Plugin Version */}
       <div className="flex items-center gap-2">
         <NodeLogo />
-        {pluginVersion && (
-          <span className="text-sm text-white ml-2">{pluginVersion}</span>
-        )}
+        <span className="text-2xl font-bold text-white ml-2">
+          Massa Node Manager
+        </span>
       </div>
 
       {/* Right side - SelectNetwork */}
-      <div className="flex items-center">
-        <SelectNetwork />
-      </div>
+
+      {pluginVersion && (
+        <span className="text-sm text-white ml-2">{pluginVersion}</span>
+      )}
     </div>
   );
 };

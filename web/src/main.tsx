@@ -62,7 +62,7 @@ const MainContent: React.FC = () => {
         <Header />
         <div className="p-[2%]">
           {/* First row: NodeManager and HistoryGraph */}
-          <div className="flex gap-[3%] mb-[5%] h-[400px]">
+          <div className="flex gap-[3%] mb-[5%] h-[500px]">
             <div className="w-1/3">
               <NodeManager />
             </div>

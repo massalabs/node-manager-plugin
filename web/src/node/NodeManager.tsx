@@ -1,9 +1,11 @@
 import React from 'react';
 
 import { Toggle, Tooltip } from '@massalabs/react-ui-kit';
+import { Clipboard } from '@massalabs/react-ui-kit';
 
 import { Logs } from './Logs';
 import { OnOffBtn } from './OnOffBtn';
+import { SelectNetwork } from './SelectNetwork';
 import { Status } from './Status';
 import { useAutoRestart } from '../hooks/node-manager/useAutoRestart';
 import Intl from '@/i18n/i18n';
@@ -21,6 +23,12 @@ export const NodeManager: React.FC = () => {
       <h2 className="text-2xl font-bold text-white mb-8">
         {Intl.t('node.title')}
       </h2>
+
+      {/* Network Row */}
+      <div className="flex justify-between items-center mb-8">
+        <span className="text-white">{Intl.t('node.select-network')}</span>
+        <SelectNetwork />
+      </div>
 
       {/* Status Rows */}
       <div className="space-y-4 mb-8">
@@ -45,9 +53,25 @@ export const NodeManager: React.FC = () => {
       {/* Public API - only show when node is running */}
       {nodeRunning && (
         <div className="mb-8">
-          <div className="text-white text-sm flex justify-between">
-            <span className="font-medium">Public API:</span>
-            <span className="text-gray-300">localhost:33035</span>
+          <div className="text-white text-sm flex justify-between items-center">
+            <span className="font-medium">JsonRPC API:</span>
+            <div className="w-[50%]">
+              <Clipboard
+                rawContent="http://localhost:33035"
+                displayedContent="http://localhost:33035"
+                customClass="h-7"
+              />
+            </div>
+          </div>
+          <div className="text-white text-sm flex justify-between items-center">
+            <span className="font-medium">gRPC API:</span>
+            <div className="w-[50%]">
+              <Clipboard
+                rawContent="grpc://localhost:33037"
+                displayedContent="grpc://localhost:33037"
+                customClass="h-7"
+              />
+            </div>
           </div>
         </div>
       )}

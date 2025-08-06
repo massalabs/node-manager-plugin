@@ -18,6 +18,7 @@
       "unknown": "Unknown",
       "bootstrappingTooltip": "Load the state from other node: may take some time."
     },
+    "select-network": "Select Network",
     "autoRestart": {
       "label": "Auto restart",
       "description": "Automatically restart the node if it crashes (due to a bug or a network loss)",
@@ -30,7 +31,7 @@
     "stopError": "Error while stopping the massa node",
     "button": {
       "run": "Run a node",
-      "close": "Close the node"
+      "close": "Shut down node"
     },
     "logs": {
       "export": "export logs",
@@ -130,17 +131,19 @@
     },
     "delete-address": {
       "title": "Delete Staking Address",
-      "message": "Are you sure you want to delete address {address} from node manager? All historic data related to this address will be deleted.",
+      "message": "Are you sure you want to delete address {address} from node manager? The node will keep on running without the address. The address's rolls will be sold (stop staking).",
       "address-deleted": "Staking address deleted",
       "failed-deleting-address": "Failed deleting staking address"
     },
     "status": {
       "staking": "Staking",
+      "roll-activation": "Rolls activation",
       "not-staking": "Not Staking"
     },
     "stakingAddressDetails": {
       "active-rolls-tooltip": "It takes 3 cycles (about 1h40min) for new rolls to become active and be used for staking",
       "deferred-credits-tooltip": "When rolls are sold, staked MAS are frozen for a cycle before they can be spent",
+      "roll-op-history-tooltip": "History of roll buy and sell operations for this address. Operations that occured while the node manager was down are not included.",
       "updateRollTarget": {
         "confirmModal": {
           "title": "Update Roll Target",

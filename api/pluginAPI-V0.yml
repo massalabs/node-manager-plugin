@@ -224,6 +224,33 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
+  /api/rollOpHistory:
+    get:
+      description: Get roll operation history for a specific address and network
+      operationId: GetRollOpHistory
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: address
+          required: true
+          type: string
+          description: The address to get roll operation history for
+        - in: query
+          name: isMainnet
+          required: true
+          type: boolean
+          description: If true, retrieve mainnet data
+      responses:
+        "200":
+          description: Roll operation history retrieved successfully
+          schema:
+            $ref: "#/definitions/RollOpHistoryResponse"
+        "500":
+          description: Error retrieving roll operation history
+          schema:
+            $ref: "#/definitions/Error"
+
   /api/valueHistory:
     get:
       description: Get historic data of total value owned by staking addresses on the node
@@ -358,7 +385,7 @@ definitions:
       - candidate_roll_count
       - candidate_balance
       - thread
-      - deferred_credits
+
 
   DeferredCredit:
     type: object
@@ -367,10 +394,10 @@ definitions:
         type: object
         properties:
           period:
-            type: number
+            type: integer
             description: The period of the slot
           thread:
-            type: number
+            type: integer
             description: The thread of the slot
         description: The slot of the deferred credit
       amount:
@@ -403,6 +430,41 @@ definitions:
       address:
         type: string
         description: The address of the staking address
+
+  RollOpHistoryResponse:
+    type: object
+    properties:
+      operations:
+        type: array
+        items:
+          $ref: "#/definitions/RollOpHistory"
+    required:
+      - operations
+
+  RollOpHistory:
+    type: object
+    properties:
+      opId:
+        type: string
+        description: The ID of the operation
+      op:
+        type: string
+        enum: [BUY, SELL]
+        description: The type of operation (BUY or SELL)
+      amount:
+        type: integer
+        format: uint64
+        minimum: 0
+        description: The amount of rolls involved in the operation
+      timestamp:
+        type: string
+        format: date-time
+        description: The timestamp of the operation
+    required:
+      - opId
+      - op
+      - amount
+      - timestamp
 
   NodeStatus:
     type: object

@@ -5,7 +5,6 @@ import (
 	"syscall"
 
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
-	"github.com/massalabs/station/pkg/logger"
 )
 
 func IsRunning(nodeStatus nodeStatusPkg.NodeStatus) bool {
@@ -17,20 +16,10 @@ func IsClosedOrClosing(nodeStatus nodeStatusPkg.NodeStatus) bool {
 }
 
 func connRefused(err error) bool {
-	logger.Debug("DEBUG bootstrapping err: %v", err)
 	var errno syscall.Errno
 
 	if errors.As(err, &errno) {
-		logger.Debug("DEBUG errno: %d", errno)
 		return errno == syscall.ECONNREFUSED
-		// switch runtime.GOOS {
-		// case "linux":
-		// 	return errno == 111
-		// case "darwin":
-		// 	return errno == 3260
-		// case "windows":
-		// 	return errno == 10061
-		// }
 	}
 
 	return false

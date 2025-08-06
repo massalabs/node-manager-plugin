@@ -164,6 +164,7 @@ func (a API) registerHandlers() {
 	a.api.AddStakingAddressHandler = operations.AddStakingAddressHandlerFunc(handlers.HandlePostStakingAddresses(a.stakingManager))
 	a.api.UpdateStakingAddressHandler = operations.UpdateStakingAddressHandlerFunc(handlers.HandlePutStakingAddresses(a.stakingManager))
 	a.api.RemoveStakingAddressHandler = operations.RemoveStakingAddressHandlerFunc(handlers.HandleDeleteStakingAddresses(a.stakingManager))
+	a.api.GetRollOpHistoryHandler = operations.GetRollOpHistoryHandlerFunc(handlers.HandleGetRollOpHistory(a.db))
 	a.api.GetValueHistoryHandler = operations.GetValueHistoryHandlerFunc(handlers.HandleGetValueHistory(a.db, a.historyMgr, a.config))
 }
 

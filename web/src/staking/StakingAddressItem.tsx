@@ -43,11 +43,17 @@ const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
 
   const getStakingStatusBadge = () => {
     const isStaking = address.active_roll_count > 0;
+    const isRollActivation = address.final_roll_count > 0;
 
     return (
-      <Tag type={isStaking ? 'success' : 'warning'} customClass="text-xs">
+      <Tag
+        type={isStaking ? 'success' : isRollActivation ? 'warning' : 'default'}
+        customClass="text-xs"
+      >
         {isStaking
           ? Intl.t('staking.status.staking')
+          : isRollActivation
+          ? Intl.t('staking.status.roll-activation')
           : Intl.t('staking.status.not-staking')}
       </Tag>
     );
@@ -87,7 +93,7 @@ const StakingAddressItem: React.FC<StakingAddressItemProps> = ({
               title="View details"
             >
               <FiEdit3 className="w-4 h-4" />
-              <span className="text-sm font-medium">Details</span>
+              <span className="text-sm font-medium">Manage</span>
             </button>
             <button
               onClick={handleDeleteClick}

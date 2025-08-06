@@ -1,6 +1,7 @@
 package stakingManager
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -107,6 +108,12 @@ func TestAddStakingAddress(t *testing.T) {
 						},
 					},
 				}, nil).Once()
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{
+						Address:    "test_address",
+						RollTarget: 0,
+					},
+				}, nil).Once()
 			},
 			expectedError: "",
 		},
@@ -184,6 +191,7 @@ func TestRemoveStakingAddress(t *testing.T) {
 			setupMocks: func(mockClient *clientDriverPkg.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.On("RemoveStakingAddress", "test_password", "test_address").Return(nil).Once()
 				mockDB.On("DeleteRollsTarget", "test_address", utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("DeleteRollOpHistoryByAddress", "test_address").Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -220,6 +228,7 @@ func TestRemoveStakingAddress(t *testing.T) {
 				mockClient.On("SellRolls", "test_password", "test_address", uint64(5), float32(0.1)).Return("tx_hash", nil).Once()
 				mockClient.On("RemoveStakingAddress", "test_password", "test_address").Return(nil).Once()
 				mockDB.On("DeleteRollsTarget", "test_address", utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("DeleteRollOpHistoryByAddress", "test_address").Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -235,7 +244,7 @@ func TestRemoveStakingAddress(t *testing.T) {
 			setupMocks: func(mockClient *clientDriverPkg.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.On("SellRolls", "test_password", "test_address", uint64(5), float32(0.1)).Return("", assert.AnError).Once()
 			},
-			expectedError: "failed to sell the 5 candidate rolls of the address test_address",
+			expectedError: "failed to sell the 5 candidate rolls of the address test_address. Can't remove it from staking: assert.AnError general error for testing",
 		},
 		{
 			name:     "Should fail when RemoveStakingAddress returns error",
@@ -249,7 +258,30 @@ func TestRemoveStakingAddress(t *testing.T) {
 			setupMocks: func(mockClient *clientDriverPkg.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.On("RemoveStakingAddress", "test_password", "test_address").Return(assert.AnError).Once()
 			},
-			expectedError: "failed to remove address test_address from staking",
+			expectedError: "failed to remove address test_address from staking: assert.AnError general error for testing",
+			// expectedError: "failed to remove address test_address from database, got following errors: failed to remove rolls target data for address test_address (mainnet) from database: ",
+		},
+		{
+			name:     "Should return error when couldn't clean db",
+			pwd:      "test_password",
+			address:  "test_address",
+			nodeIsUp: true,
+			existingAddr: &StakingAddress{
+				Address:        "test_address",
+				CandidateRolls: 0,
+			},
+			setupMocks: func(mockClient *clientDriverPkg.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
+				mockClient.On("RemoveStakingAddress", "test_password", "test_address").Return(nil).Once()
+
+				mockDB.On("DeleteRollsTarget", "test_address", utils.NetworkMainnet).Return(assert.AnError).Once()
+				mockDB.On("DeleteRollOpHistoryByAddress", "test_address").Return(assert.AnError).Once()
+			},
+			expectedError: fmt.Sprintf(
+				"%s%s%s",
+				"failed to remove address test_address from database, got following errors: ",
+				"failed to remove rolls target data for address test_address (mainnet) from database: assert.AnError general error for testing, ",
+				"failed to remove rolls operation history for address test_address from database: assert.AnError general error for testing",
+			),
 		},
 	}
 
@@ -304,7 +336,7 @@ func TestSetTargetRolls(t *testing.T) {
 		address       string
 		targetRolls   uint64
 		existingAddr  *StakingAddress
-		setupMocks    func(*dbPkg.MockDB, *MockAddressChangedDispatcher)
+		setupMocks    func(*dbPkg.MockDB, *MockAddressChangedDispatcher, *clientDriverPkg.MockClientDriver)
 		expectedError string
 	}{
 		{
@@ -312,17 +344,21 @@ func TestSetTargetRolls(t *testing.T) {
 			address:     "test_address",
 			targetRolls: 10,
 			existingAddr: &StakingAddress{
-				Address:     "test_address",
-				TargetRolls: 5,
+				Address:      "test_address",
+				FinalBalance: 100000,
+				TargetRolls:  5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
 				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
 				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
 					{
-						Address:     "test_address",
-						TargetRolls: 10,
+						Address:      "test_address",
+						FinalBalance: 100000,
+						TargetRolls:  10,
 					},
 				}).Return().Once()
+				mockClient.On("BuyRolls", "test_password", "test_address", uint64(10), float32(0.1)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address", dbPkg.RollOpBuy, uint64(10), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -330,7 +366,7 @@ func TestSetTargetRolls(t *testing.T) {
 			name:        "Should fail when address not found",
 			address:     "non_existent_address",
 			targetRolls: 10,
-			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
 				// No mocks needed as the function should fail early
 			},
 			expectedError: "address not found for address non_existent_address",
@@ -343,7 +379,7 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
 				// No mocks needed as the function should return early
 			},
 			expectedError: "",
@@ -353,20 +389,24 @@ func TestSetTargetRolls(t *testing.T) {
 			address:     "test_address",
 			targetRolls: 10,
 			existingAddr: &StakingAddress{
-				Address:     "test_address",
-				TargetRolls: 5,
+				Address:      "test_address",
+				FinalBalance: 100000,
+				TargetRolls:  5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
 				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
 					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
 				).Once()
 				mockDB.On("AddRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
 				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
 					{
-						Address:     "test_address",
-						TargetRolls: 10,
+						Address:      "test_address",
+						FinalBalance: 100000,
+						TargetRolls:  10,
 					},
 				}).Return().Once()
+				mockClient.On("BuyRolls", "test_password", "test_address", uint64(10), float32(0.1)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address", dbPkg.RollOpBuy, uint64(10), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedError: "",
 		},
@@ -378,7 +418,7 @@ func TestSetTargetRolls(t *testing.T) {
 				Address:     "test_address",
 				TargetRolls: 5,
 			},
-			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher) {
+			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
 				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
 					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
 				).Once()
@@ -393,14 +433,20 @@ func TestSetTargetRolls(t *testing.T) {
 			// Create mocks
 			mockDB := dbPkg.NewMockDB(t)
 			mockAddressChangedDispatcher := NewMockAddressChangedDispatcher(t)
+			mockClient := clientDriverPkg.NewMockClientDriver(t)
 
 			// Setup mocks
-			tt.setupMocks(mockDB, mockAddressChangedDispatcher)
+			tt.setupMocks(mockDB, mockAddressChangedDispatcher, mockClient)
 
 			// Create staking manager instance
 			sm := &stakingManager{
 				db:                       mockDB,
 				addressChangedDispatcher: mockAddressChangedDispatcher,
+				clientDriver:             mockClient,
+				miscellaneous: Miscellaneous{
+					MinimalFees: 0.1,
+					RollPrice:   100,
+				},
 			}
 
 			// Add existing address if provided
@@ -427,6 +473,9 @@ func TestSetTargetRolls(t *testing.T) {
 }
 
 func TestConvertToStakingAddress(t *testing.T) {
+	cleanup := setupLog(t)
+	defer cleanup()
+
 	tests := []struct {
 		name           string
 		addresses      []getAddressesResponse
@@ -593,8 +642,13 @@ func TestConvertToStakingAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			mockDB := dbPkg.NewMockDB(t)
+			mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{}, nil).Maybe()
+
 			// Create staking manager instance
-			sm := &stakingManager{}
+			sm := &stakingManager{
+				db: mockDB,
+			}
 
 			// Execute the function under test
 			result, err := sm.convertToStakingAddress(tt.addresses, tt.walletInfos)
@@ -627,6 +681,266 @@ func TestConvertToStakingAddress(t *testing.T) {
 					}
 				}
 			}
+		})
+	}
+}
+
+func TestWithTargetRolls(t *testing.T) {
+	cleanup := setupLog(t)
+	defer cleanup()
+
+	tests := []struct {
+		name           string
+		inputAddresses []StakingAddress
+		dbAddresses    []dbPkg.AddressInfo
+		isMainnet      bool
+		setupMocks     func(*dbPkg.MockDB)
+		expectedResult []StakingAddress
+		expectedError  string
+	}{
+		{
+			name: "Should successfully hydrate addresses with target rolls from database",
+			inputAddresses: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      0, // Will be hydrated from DB
+				},
+				{
+					Address:          "address2",
+					FinalRolls:       20,
+					CandidateRolls:   15,
+					ActiveRolls:      18,
+					FinalBalance:     2000.0,
+					CandidateBalance: 1500.0,
+					Thread:           2,
+					TargetRolls:      0, // Will be hydrated from DB
+				},
+			},
+			dbAddresses: []dbPkg.AddressInfo{
+				{
+					Address:    "address1",
+					RollTarget: 15,
+					Network:    "mainnet",
+				},
+				{
+					Address:    "address2",
+					RollTarget: 25,
+					Network:    "mainnet",
+				},
+			},
+			isMainnet: true,
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{
+						Address:    "address1",
+						RollTarget: 15,
+						Network:    "mainnet",
+					},
+					{
+						Address:    "address2",
+						RollTarget: 25,
+						Network:    "mainnet",
+					},
+				}, nil).Once()
+			},
+			expectedResult: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      15, // Hydrated from DB
+				},
+				{
+					Address:          "address2",
+					FinalRolls:       20,
+					CandidateRolls:   15,
+					ActiveRolls:      18,
+					FinalBalance:     2000.0,
+					CandidateBalance: 1500.0,
+					Thread:           2,
+					TargetRolls:      25, // Hydrated from DB
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "Should handle buildnet network correctly",
+			inputAddresses: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      0,
+				},
+			},
+			dbAddresses: []dbPkg.AddressInfo{
+				{
+					Address:    "address1",
+					RollTarget: 15,
+					Network:    "buildnet",
+				},
+			},
+			isMainnet: false,
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkBuildnet).Return([]dbPkg.AddressInfo{
+					{
+						Address:    "address1",
+						RollTarget: 15,
+						Network:    "buildnet",
+					},
+				}, nil).Once()
+			},
+			expectedResult: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      15,
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "Should fail when database GetRollsTarget fails",
+			inputAddresses: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      0,
+				},
+			},
+			isMainnet: true,
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return(nil, assert.AnError).Once()
+			},
+			expectedResult: nil,
+			expectedError:  "failed to load rolul targets from database",
+		},
+		{
+			name:           "Should handle empty input addresses",
+			inputAddresses: []StakingAddress{},
+			dbAddresses: []dbPkg.AddressInfo{
+				{
+					Address:    "orphaned_address",
+					RollTarget: 20,
+					Network:    "mainnet",
+				},
+			},
+			isMainnet: true,
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{
+						Address:    "orphaned_address",
+						RollTarget: 20,
+						Network:    "mainnet",
+					},
+				}, nil).Once()
+			},
+			expectedResult: []StakingAddress{},
+			expectedError:  "",
+		},
+		{
+			name: "Should handle empty database addresses",
+			inputAddresses: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      0,
+				},
+			},
+			dbAddresses: []dbPkg.AddressInfo{},
+			isMainnet:   true,
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{}, nil).Once()
+			},
+			expectedResult: []StakingAddress{
+				{
+					Address:          "address1",
+					FinalRolls:       10,
+					CandidateRolls:   5,
+					ActiveRolls:      8,
+					FinalBalance:     1000.0,
+					CandidateBalance: 500.0,
+					Thread:           1,
+					TargetRolls:      0, // Should remain 0 since no DB entry
+				},
+			},
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock
+			mockDB := dbPkg.NewMockDB(t)
+
+			// Setup mocks
+			tt.setupMocks(mockDB)
+
+			// Create staking manager instance
+			sm := &stakingManager{
+				db: mockDB,
+			}
+
+			// Set global config for network
+			configPkg.GlobalPluginInfo.IsMainnet = tt.isMainnet
+
+			// Execute the function under test
+			result, err := sm.WithTargetRolls(tt.inputAddresses)
+
+			// Assert results
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, len(tt.expectedResult), len(result))
+
+				for i, expected := range tt.expectedResult {
+					if i < len(result) {
+						assert.Equal(t, expected.Address, result[i].Address)
+						assert.Equal(t, expected.FinalRolls, result[i].FinalRolls)
+						assert.Equal(t, expected.CandidateRolls, result[i].CandidateRolls)
+						assert.Equal(t, expected.ActiveRolls, result[i].ActiveRolls)
+						assert.Equal(t, expected.FinalBalance, result[i].FinalBalance)
+						assert.Equal(t, expected.CandidateBalance, result[i].CandidateBalance)
+						assert.Equal(t, expected.Thread, result[i].Thread)
+						assert.Equal(t, expected.TargetRolls, result[i].TargetRolls)
+						assert.Equal(t, len(expected.DeferredCredits), len(result[i].DeferredCredits))
+					}
+				}
+			}
+
+			// Assert that all expected calls were made
+			mockDB.AssertExpectations(t)
 		})
 	}
 }

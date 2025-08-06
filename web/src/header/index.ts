@@ -1,2 +1,2 @@
 export { Header } from './Header';
-export { SelectNetwork } from './SelectNetwork';
+export { SelectNetwork } from '../node/SelectNetwork';

@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	clientDriver "github.com/massalabs/node-manager-plugin/int/client-driver"
+	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
 	nodeAPIPkg "github.com/massalabs/node-manager-plugin/int/node-api"
+	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,7 +27,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 		name                          string
 		newAddresses                  []StakingAddress
 		existingAddrs                 []StakingAddress
-		expectedCalls                 func(*clientDriver.MockClientDriver, *testing.T)
+		expectedCalls                 func(*clientDriver.MockClientDriver, *dbPkg.MockDB, *testing.T)
 		expectedPendingOperationRolls []uint64
 	}{
 		{
@@ -43,8 +45,9 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 5,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.On("SellRolls", mock.Anything, "test_address_1", uint64(5), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_1", dbPkg.RollOpSell, uint64(5), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedPendingOperationRolls: []uint64{
 				5,
@@ -65,11 +68,12 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 10,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Should buy 5 rolls (difference between target 10 and current 5)
 				// But limited by available balance: 1000.0 / 100.0 = 10 rolls max
 				// So should buy 5 rolls (the minimum of difference and available)
 				mockClient.On("BuyRolls", mock.Anything, "test_address_2", uint64(5), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_2", dbPkg.RollOpBuy, uint64(5), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedPendingOperationRolls: []uint64{
 				10,
@@ -90,10 +94,11 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 10,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Should not call SellRolls because insufficient balance
 				mockClient.AssertNotCalled(t, "SellRolls")
 				mockClient.AssertNotCalled(t, "BuyRolls")
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 			expectedPendingOperationRolls: []uint64{
 				0,
@@ -114,9 +119,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 5,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.AssertNotCalled(t, "BuyRolls")
 				mockClient.AssertNotCalled(t, "SellRolls")
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 			expectedPendingOperationRolls: []uint64{
 				0,
@@ -137,9 +143,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 10,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Should buy 3 rolls (limited by balance: 300/100 = 3)
 				mockClient.On("BuyRolls", mock.Anything, "test_address_5", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_5", dbPkg.RollOpBuy, uint64(3), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedPendingOperationRolls: []uint64{
 				8, // have 5 rolls and buy 3 rolls
@@ -169,11 +176,13 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 9,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Address 6: sell 3 rolls (7 target - 10 current)
 				mockClient.On("SellRolls", mock.Anything, "test_address_6", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
 				// Address 7: buy 4 rolls (9 current - 5 target)
 				mockClient.On("BuyRolls", mock.Anything, "test_address_7", uint64(4), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_6", dbPkg.RollOpSell, uint64(3), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_7", dbPkg.RollOpBuy, uint64(4), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedPendingOperationRolls: []uint64{
 				7,
@@ -195,9 +204,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 3,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Should attempt to sell rolls but fail
 				mockClient.On("SellRolls", mock.Anything, "test_address_8", uint64(4), float32(minimalFees)).Return("", assert.AnError).Once()
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 			expectedPendingOperationRolls: []uint64{
 				0,
@@ -218,12 +228,59 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 7,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Should attempt to sell rolls but fail
 				mockClient.On("BuyRolls", mock.Anything, "test_address_9", uint64(4), float32(minimalFees)).Return("", assert.AnError).Once()
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 			expectedPendingOperationRolls: []uint64{
 				0,
+			},
+		},
+		{
+			name: "Should handle db driver errors gracefully on sell roll op history",
+			newAddresses: []StakingAddress{
+				{
+					Address:        "test_address_10",
+					CandidateRolls: 10,
+					FinalBalance:   1000.0,
+				},
+			},
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "test_address_10",
+					TargetRolls: 7,
+				},
+			},
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
+				mockClient.On("SellRolls", mock.Anything, "test_address_10", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_10", dbPkg.RollOpSell, uint64(3), "tx_hash", utils.NetworkMainnet).Return(assert.AnError).Once()
+			},
+			expectedPendingOperationRolls: []uint64{
+				7,
+			},
+		},
+		{
+			name: "Should handle db driver errors gracefully on buy roll op history",
+			newAddresses: []StakingAddress{
+				{
+					Address:        "test_address_11",
+					CandidateRolls: 7,
+					FinalBalance:   1000.0,
+				},
+			},
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "test_address_11",
+					TargetRolls: 10,
+				},
+			},
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
+				mockClient.On("BuyRolls", mock.Anything, "test_address_11", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_11", dbPkg.RollOpBuy, uint64(3), "tx_hash", utils.NetworkMainnet).Return(assert.AnError).Once()
+			},
+			expectedPendingOperationRolls: []uint64{
+				10,
 			},
 		},
 		{
@@ -241,9 +298,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 10,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.AssertNotCalled(t, "BuyRolls")
 				mockClient.AssertNotCalled(t, "SellRolls")
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 			expectedPendingOperationRolls: []uint64{
 				0,
@@ -253,9 +311,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 			name:          "Should handle empty addresses list",
 			newAddresses:  []StakingAddress{},
 			existingAddrs: []StakingAddress{},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				mockClient.AssertNotCalled(t, "BuyRolls")
 				mockClient.AssertNotCalled(t, "SellRolls")
+				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
 		},
 		{
@@ -300,13 +359,15 @@ func TestHandleRollsUpdates(t *testing.T) {
 					TargetRolls: 15,
 				},
 			},
-			expectedCalls: func(mockClient *clientDriver.MockClientDriver, t *testing.T) {
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// addr1: sell 5 rolls (15 current - 10 target)
 				mockClient.On("SellRolls", mock.Anything, "addr1", uint64(5), float32(minimalFees)).Return("tx_hash1", nil).Once()
 				// addr2: buy 2 rolls (5 target - 3 current)
 				mockClient.On("BuyRolls", mock.Anything, "addr2", uint64(2), float32(minimalFees)).Return("tx_hash2", nil).Once()
 				// addr3: no action needed (8 current = 8 target)
 				// addr4: insufficient balance for buying rolls
+				mockDB.On("AddRollOpHistory", "addr1", dbPkg.RollOpSell, uint64(5), "tx_hash1", utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("AddRollOpHistory", "addr2", dbPkg.RollOpBuy, uint64(2), "tx_hash2", utils.NetworkMainnet).Return(nil).Once()
 			},
 			expectedPendingOperationRolls: []uint64{
 				10,
@@ -321,9 +382,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mocks
 			mockClient := clientDriver.NewMockClientDriver(t)
+			mockDB := dbPkg.NewMockDB(t)
 
 			// Setup expected calls
-			tt.expectedCalls(mockClient, t)
+			tt.expectedCalls(mockClient, mockDB, t)
 
 			// Create staking manager instance using the unexported struct
 			sm := &stakingManager{
@@ -333,6 +395,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 					MinimalFees: minimalFees,
 					RollPrice:   rollPrice,
 				},
+				db: mockDB,
 			}
 
 			// Execute the function under test

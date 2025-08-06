@@ -21,6 +21,9 @@ type DB interface {
 	PostHistory(history ValueHistory, network utils.Network) error
 	GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error)
 	DeleteOldValueHistory(cutoff time.Time) error
+	AddRollOpHistory(address string, op rollOp, amount uint64, opId string, network utils.Network) error
+	GetRollOpHistory(address string, network utils.Network) ([]RollOpHistory, error)
+	DeleteRollOpHistoryByAddress(address string) error
 }
 
 type dB struct {
@@ -37,6 +40,20 @@ type AddressInfo struct {
 	RollTarget uint64 `json:"roll_target"`
 	Network    string `json:"network"`
 }
+
+type RollOpHistory struct {
+	Op        string    `json:"op"`
+	Amount    uint64    `json:"amount"`
+	OpId      string    `json:"op_id"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type rollOp string
+
+const (
+	RollOpBuy  rollOp = "BUY"
+	RollOpSell rollOp = "SELL"
+)
 
 // NewDB creates a new database connection and initializes tables
 func NewDB(dbPath string) (DB, error) {
@@ -88,6 +105,18 @@ func (d *dB) initTables() error {
 		PRIMARY KEY (address, network)
 	);`
 
+	// Create rolls_op_history table
+	rollsOpHistoryTable := `
+	CREATE TABLE IF NOT EXISTS rolls_op_history (
+		address TEXT,
+		op TEXT NOT NULL,
+		amount INTEGER NOT NULL,
+		network TEXT NOT NULL,
+		op_id TEXT NOT NULL,
+		timestamp DATETIME NOT NULL,
+		PRIMARY KEY (op_id, network)
+	);`
+
 	if _, err := d.db.Exec(valueHistoryMainnetTable); err != nil {
 		return fmt.Errorf("failed to create value_history_mainnet table: %w", err)
 	}
@@ -98,6 +127,10 @@ func (d *dB) initTables() error {
 
 	if _, err := d.db.Exec(rollsTargetTable); err != nil {
 		return fmt.Errorf("failed to create rolls_target table: %w", err)
+	}
+
+	if _, err := d.db.Exec(rollsOpHistoryTable); err != nil {
+		return fmt.Errorf("failed to create rolls_op_history table: %w", err)
 	}
 
 	return nil
@@ -284,6 +317,69 @@ func (d *dB) DeleteOldValueHistory(cutoff time.Time) error {
 	return nil
 }
 
+// AddRollOpHistory adds a new roll operation history record
+func (d *dB) AddRollOpHistory(address string, op rollOp, amount uint64, opId string, network utils.Network) error {
+	query := `INSERT INTO rolls_op_history (address, op, amount, network, op_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
+
+	_, err := d.db.Exec(query, address, op, amount, string(network), opId, time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to insert roll operation history: %w", err)
+	}
+
+	return nil
+}
+
+// GetRollOpHistory retrieves all roll operation history records for a specific address and network, ordered chronologically
+func (d *dB) GetRollOpHistory(address string, network utils.Network) ([]RollOpHistory, error) {
+	query := `SELECT op, amount, op_id, timestamp FROM rolls_op_history WHERE address = ? AND network = ? ORDER BY timestamp ASC`
+
+	rows, err := d.db.Query(query, address, string(network))
+	if err != nil {
+		return nil, fmt.Errorf("failed to query roll operation history: %w", err)
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Errorf("Failed to close roll operation history rows: %v", err)
+		}
+	}()
+
+	var histories []RollOpHistory
+	for rows.Next() {
+		var history RollOpHistory
+		if err := rows.Scan(&history.Op, &history.Amount, &history.OpId, &history.Timestamp); err != nil {
+			return nil, fmt.Errorf("failed to scan roll operation history row: %w", err)
+		}
+		histories = append(histories, history)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over roll operation history rows: %w", err)
+	}
+
+	return histories, nil
+}
+
+// DeleteRollOpHistoryByAddress deletes all roll operation history records for a specific address
+func (d *dB) DeleteRollOpHistoryByAddress(address string) error {
+	exists, err := d.existsRollsOp(address)
+	if err != nil {
+		return fmt.Errorf("failed to check if address %s exists in rolls_op_history: %w", address, err)
+	}
+
+	if !exists {
+		return nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, fmt.Sprintf("roll operation history for address %s not found in database", address))
+	}
+
+	query := `DELETE FROM rolls_op_history WHERE address = ?`
+
+	_, err = d.db.Exec(query, address)
+	if err != nil {
+		return fmt.Errorf("failed to delete roll operation history for address %s: %w", address, err)
+	}
+
+	return nil
+}
+
 // ExistsRollsTarget checks if an address exists in the rolls_target table for a specific network
 func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, error) {
 	query := `SELECT COUNT(*) FROM rolls_target WHERE address = ? AND network = ?`
@@ -292,6 +388,19 @@ func (d *dB) existsRollsTarget(address string, network utils.Network) (bool, err
 	err := d.db.QueryRow(query, address, string(network)).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("failed to check if address %s exists for network %s: %w", address, string(network), err)
+	}
+
+	return count > 0, nil
+}
+
+// existsRollsOp checks if an address exists in the rolls_op_history table
+func (d *dB) existsRollsOp(address string) (bool, error) {
+	query := `SELECT COUNT(*) FROM rolls_op_history WHERE address = ?`
+
+	var count int
+	err := d.db.QueryRow(query, address).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if address %s exists in rolls_op_history: %w", address, err)
 	}
 
 	return count > 0, nil

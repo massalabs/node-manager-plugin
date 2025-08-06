@@ -6,18 +6,18 @@ import {
   Tooltip,
   Input,
   Button,
-  AccordionCategory,
   Clipboard,
   maskAddress,
 } from '@massalabs/react-ui-kit';
 import { FiInfo, FiX } from 'react-icons/fi';
 
+import DeferredCreditList from './DeferredCreditList';
+import RollsOpList from './RollsOpList';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useError } from '@/contexts/ErrorContext';
 import { useStakingAddress } from '@/hooks/staking-manager/useStakingAddress';
 import { useFetchNodeInfo } from '@/hooks/useFetchNodeInfo';
 import Intl from '@/i18n/i18n';
-import { DeferredCredit } from '@/models/staking';
 import { useStakingStore } from '@/store/stakingStore';
 
 interface StakingAddressDetailsProps {
@@ -44,6 +44,7 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
   const currentAddress = useStakingStore((state) =>
     state.stakingAddresses.find((addr) => addr.address === address),
   );
+
   // Effect to trigger SidePanel dropdown when isOpen becomes true
   useEffect(() => {
     if (isOpen) {
@@ -76,50 +77,6 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
       return masAmount.toFixed(2);
     };
   }, []);
-
-  // SidePanel component doesn't provide a way to handle the open/close state of the panel programmatically
-  // so we need to simulate a click on the toggle dropdown button to open and closethe panel
-  const clickSidePanelButton = () => {
-    const sidePanel = document.querySelector(
-      '[data-panel-type="staking-address-details"]',
-    );
-    if (sidePanel) {
-      const button = sidePanel.querySelector('button') as HTMLButtonElement;
-      if (button) {
-        button.click();
-      }
-    }
-  };
-
-  const pannelClose = () => {
-    clickSidePanelButton();
-    onClose();
-  };
-
-  const handleValidateClick = () => {
-    const newTarget = targetRolls;
-    if (newTarget !== currentAddress?.target_rolls) {
-      // setNewTargetRolls(targetRolls);
-      setIsConfirmModalOpen(true);
-      setTargetRollChangeMsg(getTargetChangeMessage());
-    }
-  };
-
-  const handleConfirmUpdate = () => {
-    if (!currentAddress) {
-      return;
-    }
-    const newTarget = targetRolls;
-    updateStakingAddress.mutate({
-      address: currentAddress?.address,
-      target_rolls: newTarget,
-    });
-    setIsConfirmModalOpen(false);
-  };
-
-  const handleCloseConfirmModal = () => {
-    setIsConfirmModalOpen(false);
-  };
 
   const getTargetChangeMessage = useMemo(() => {
     return () => {
@@ -166,67 +123,63 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
     };
   }, [currentAddress, targetRolls, nodeInfo?.config?.rollPrice]);
 
-  const getDeferredCreditReleaseDate = useMemo(() => {
-    return (credit: DeferredCredit) => {
-      if (!nodeInfo?.lastSlot) {
-        console.error('Node info last slot is null');
-      }
-      const periodDiff = credit.slot.period - (nodeInfo?.lastSlot?.period || 0);
-      const periodLength = nodeInfo?.config?.t0 || 0;
-      const releaseTime = periodDiff * periodLength;
-      return new Date(Date.now() + releaseTime);
-    };
-  }, [nodeInfo?.config?.t0, nodeInfo?.lastSlot]);
+  if (!currentAddress) {
+    setError({
+      title: 'Staking address not found',
+      message: 'Address ' + address + ' not found in staking addresses list',
+    });
+    return;
+  }
 
-  const getDeferredCreditsTable = useMemo(() => {
-    if (
-      !currentAddress?.deferred_credits ||
-      currentAddress?.deferred_credits.length === 0
-    ) {
-      return <p className="text-gray-400">No deferred credits</p>;
-    }
-
-    return (
-      <table className="min-w-full divide-y divide-gray-600">
-        <thead className="bg-gray-700">
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-1/4">
-              Amount
-            </th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-3/4">
-              Approx Release Date
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-secondary divide-y divide-gray-600">
-          {currentAddress?.deferred_credits.map((credit, index) => {
-            const releaseDate = getDeferredCreditReleaseDate(credit);
-
-            return (
-              <tr key={index} className="border-b border-gray-600">
-                <td className="px-4 py-2 text-sm">
-                  <Balance size="xs" amount={formatMas(credit.amount)} />
-                </td>
-                <td className="px-4 py-2 text-sm text-f-primary">
-                  {releaseDate.toLocaleString()}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+  // SidePanel component doesn't provide a way to handle the open/close state of the panel programmatically
+  // so we need to simulate a click on the toggle dropdown button to open and closethe panel
+  const clickSidePanelButton = () => {
+    const sidePanel = document.querySelector(
+      '[data-panel-type="staking-address-details"]',
     );
-  }, [
-    currentAddress?.deferred_credits,
-    getDeferredCreditReleaseDate,
-    formatMas,
-  ]);
+    if (sidePanel) {
+      const button = sidePanel.querySelector('button') as HTMLButtonElement;
+      if (button) {
+        button.click();
+      }
+    }
+  };
+
+  const pannelClose = () => {
+    clickSidePanelButton();
+    onClose();
+  };
+
+  const handleValidateClick = () => {
+    const newTarget = targetRolls;
+    if (newTarget !== currentAddress?.target_rolls) {
+      // setNewTargetRolls(targetRolls);
+      setIsConfirmModalOpen(true);
+      setTargetRollChangeMsg(getTargetChangeMessage());
+    }
+  };
+
+  const handleConfirmUpdate = () => {
+    if (!currentAddress) {
+      return;
+    }
+    const newTarget = targetRolls;
+    updateStakingAddress.mutate({
+      address: currentAddress?.address,
+      target_rolls: newTarget,
+    });
+    setIsConfirmModalOpen(false);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+  };
 
   return (
     <>
       {isOpen && (
         <SidePanel
-          customClass="w-110"
+          customClass="!w-[550px]"
           data-panel-type="staking-address-details"
           onClose={pannelClose}
         >
@@ -334,29 +287,11 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
             </div>
 
             {/* Deferred Credits */}
-            <div>
-              <AccordionCategory
-                categoryTitle={
-                  <div className="flex items-center justify-between w-full">
-                    <span className="flex items-center gap-1">
-                      Deferred Credits
-                      <Tooltip
-                        body={Intl.t(
-                          'staking.stakingAddressDetails.deferred-credits-tooltip',
-                        )}
-                      >
-                        <FiInfo className="w-3 h-3 text-gray-400" />
-                      </Tooltip>
-                    </span>
-                    <span className="text-sm text-gray-400 mr-5">
-                      ({currentAddress?.deferred_credits?.length || 0})
-                    </span>
-                  </div>
-                }
-              >
-                <div className="mt-2">{getDeferredCreditsTable}</div>
-              </AccordionCategory>
-            </div>
+            <DeferredCreditList
+              currentAddress={currentAddress}
+              lastSlot={nodeInfo?.lastSlot}
+              t0={nodeInfo?.config?.t0}
+            />
 
             {/* Set Roll Target */}
             <div className="border-t border-gray-600 pt-4">
@@ -398,6 +333,9 @@ const StakingAddressDetails: React.FC<StakingAddressDetailsProps> = ({
                 </Button>
               </div>
             </div>
+
+            {/* Roll Operation History */}
+            <RollsOpList address={address} />
           </div>
         </SidePanel>
       )}

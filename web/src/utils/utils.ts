@@ -22,3 +22,8 @@ export function getApiUrl(): string {
 export function getBaseAppUrl(): string {
   return import.meta.env.VITE_BASE_APP;
 }
+
+// Helper function to format MAS with 2 decimal places
+export function formatMas(masAmount: number): string {
+  return masAmount.toFixed(2);
+}

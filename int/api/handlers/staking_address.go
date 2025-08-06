@@ -22,6 +22,13 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 		activeRolls := int64(stakingAddress.ActiveRolls)
 		candidateRolls := int64(stakingAddress.CandidateRolls)
 		thread := int64(stakingAddress.Thread)
+		deferredCredits := make([]*models.DeferredCredit, len(stakingAddress.DeferredCredits))
+		for i, deferredCredit := range stakingAddress.DeferredCredits {
+			deferredCredits[i] = &models.DeferredCredit{
+				Slot:   &models.DeferredCreditSlot{Period: int64(deferredCredit.Slot.Period), Thread: int64(deferredCredit.Slot.Thread)},
+				Amount: deferredCredit.Amount,
+			}
+		}
 		return operations.NewAddStakingAddressOK().WithPayload(&models.StakingAddress{
 			Address:            &stakingAddress.Address,
 			TargetRolls:        &targetRolls,
@@ -30,6 +37,7 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 			FinalBalance:       &stakingAddress.FinalBalance,
 			CandidateRollCount: &candidateRolls,
 			CandidateBalance:   &stakingAddress.CandidateBalance,
+			DeferredCredits:    deferredCredits,
 			Thread:             &thread,
 		})
 	}

@@ -10,10 +10,11 @@ import (
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
 	"github.com/massalabs/node-manager-plugin/int/config"
 	historymanager "github.com/massalabs/node-manager-plugin/int/core/history-manager"
-	"github.com/massalabs/node-manager-plugin/int/db"
+	dbPkg "github.com/massalabs/node-manager-plugin/int/db"
+	"github.com/massalabs/node-manager-plugin/int/utils"
 )
 
-func HandleGetValueHistory(database db.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {
+func HandleGetValueHistory(db dbPkg.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {
 	return func(params operations.GetValueHistoryParams) middleware.Responder {
 		if params.SampleNum < 1 {
 			return createErrorResponse(400, "SampleNum must be greater than 0")
@@ -64,5 +65,36 @@ func HandleGetValueHistory(database db.DB, historyMgr *historymanager.HistoryMan
 			EmptyDataPointNum: &emptyDataPointNum,
 		}
 		return operations.NewGetValueHistoryOK().WithPayload(response)
+	}
+}
+
+func HandleGetRollOpHistory(db dbPkg.DB) func(operations.GetRollOpHistoryParams) middleware.Responder {
+	return func(params operations.GetRollOpHistoryParams) middleware.Responder {
+		network := utils.NetworkBuildnet
+		if params.IsMainnet {
+			network = utils.NetworkMainnet
+		}
+
+		histories, err := db.GetRollOpHistory(params.Address, network)
+		if err != nil {
+			return operations.NewGetRollOpHistoryInternalServerError().WithPayload(&models.Error{
+				Message: err.Error(),
+			})
+		}
+
+		rollOpHistory := make([]*models.RollOpHistory, len(histories))
+		for i, history := range histories {
+			timestamp := strfmt.DateTime(history.Timestamp)
+			rollOpHistory[i] = &models.RollOpHistory{
+				OpID:      &history.OpId,
+				Op:        &history.Op,
+				Amount:    &history.Amount,
+				Timestamp: &timestamp,
+			}
+		}
+
+		return operations.NewGetRollOpHistoryOK().WithPayload(&models.RollOpHistoryResponse{
+			Operations: rollOpHistory,
+		})
 	}
 }

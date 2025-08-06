@@ -3,6 +3,7 @@ package stakingManager
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -79,6 +80,7 @@ type StakingManager interface {
 
 type stakingManager struct {
 	mu                             sync.Mutex
+	muSellBuyRolls                 sync.Mutex
 	nodeIsUp                       bool
 	stakingAddresses               []StakingAddress
 	clientDriver                   clientDriverPkg.ClientDriver
@@ -224,12 +226,34 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 		currentNetwork = utils.NetworkBuildnet
 	}
 
+	errs := []error{}
+
 	if err := s.db.DeleteRollsTarget(address, currentNetwork); err != nil {
 		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
 			logger.Info("[RemoveStakingAddress] target rolls for address %s and network %s is not in database. Nothing to remove from DB", address, string(currentNetwork))
 		} else {
-			return fmt.Errorf("failed to remove address %s (%s) from database: %w", address, string(currentNetwork), err)
+			errs = append(errs, fmt.Errorf("failed to remove rolls target data for address %s (%s) from database: %w", address, string(currentNetwork), err))
 		}
+	}
+
+	// Remove roll operation history from database
+	if err := s.db.DeleteRollOpHistoryByAddress(address); err != nil {
+		if nodeManagerError.Is(err, nodeManagerError.ErrDBNotFoundItem) {
+			logger.Info("[RemoveStakingAddress] roll operation history for address %s is not in database. Nothing to remove from DB", address)
+		} else {
+			errs = append(errs, fmt.Errorf("failed to remove rolls operation history for address %s from database: %w", address, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		errMsg := fmt.Sprintf("failed to remove address %s from database, got following errors: ", address)
+		for i, err := range errs {
+			errMsg += err.Error()
+			if i < len(errs)-1 {
+				errMsg += ", "
+			}
+		}
+		return errors.New(errMsg)
 	}
 
 	return nil
@@ -274,6 +298,15 @@ func (s *stakingManager) SetTargetRolls(address string, targetRolls uint64) erro
 
 	// publish the new staking addresses list to the front
 	s.addressChangedDispatcher.Publish(s.stakingAddresses)
+
+	// sell or buy rolls for the address according to new target rolls
+	s.muSellBuyRolls.Lock()
+	defer s.muSellBuyRolls.Unlock()
+
+	err = s.sellBuyRollsAddress(s.stakingAddresses[index])
+	if err != nil {
+		return fmt.Errorf("failed to sell or buy rolls for address %s: %w", address, err)
+	}
 
 	return nil
 }
@@ -372,30 +405,6 @@ func (s *stakingManager) initStakingAddresses() error {
 
 	// init staking addresses list in ram
 	s.stakingAddresses = addresses
-
-	// Load roll targets from database
-	currentNetwork := utils.NetworkMainnet
-	if !config.GlobalPluginInfo.GetIsMainnet() {
-		currentNetwork = utils.NetworkBuildnet
-	}
-	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
-	if err != nil {
-		return fmt.Errorf("failed to load rolul targets from database: %w", err)
-	}
-
-	// Update in-memory addresses with database roll targets
-	for _, dbAddr := range dbAddresses {
-		if index, exists := s.getAddressIndexFromRamList(dbAddr.Address); exists {
-			s.stakingAddresses[index].TargetRolls = dbAddr.RollTarget
-		} else {
-			logger.Info("address %s is in db but not found in node staking addresses map, deleting it from database", dbAddr.Address)
-
-			if err := s.db.DeleteRollsTarget(dbAddr.Address, currentNetwork); err != nil {
-				return fmt.Errorf("failed to delete %s address's roll target from database: %w", dbAddr.Address, err)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -458,5 +467,28 @@ func (s *stakingManager) convertToStakingAddress(addresses []getAddressesRespons
 
 	}
 
-	return stakingAddresses, nil
+	return s.WithTargetRolls(stakingAddresses)
+}
+
+// WithTargetRolls hydrates the addresses with the target rolls from the database
+func (s *stakingManager) WithTargetRolls(addresses []StakingAddress) ([]StakingAddress, error) {
+	currentNetwork := utils.NetworkMainnet
+	if !config.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load rolul targets from database: %w", err)
+	}
+
+	// Update in-memory addresses with database roll targets
+	for _, dbAddr := range dbAddresses {
+		for i := range addresses {
+			if addresses[i].Address == dbAddr.Address {
+				addresses[i].TargetRolls = dbAddr.RollTarget
+				break
+			}
+		}
+	}
+	return addresses, nil
 }

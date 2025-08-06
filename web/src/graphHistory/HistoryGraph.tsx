@@ -24,9 +24,12 @@ const SINCE_OPTIONS = [
   SinceFetch.Y1,
 ];
 
+const MIN_NON_EMPTY_DATA_POINT_RATE = 10; // if less than 10% of the data points are non-empty, no enough data
+
 const HistoryGraph: React.FC = () => {
   const [selectedSince, setSelectedSince] = useState<SinceFetch>(SinceFetch.D1);
-  const { valueHistory, fetchValueHistory } = useTotValueHistory();
+  const { valueHistory, fetchValueHistory, nonEmptyDataPointRate } =
+    useTotValueHistory();
   const nodeStatus = useNodeStore((state) => state.status);
 
   // when the node is up, fetch the value history for 1 month
@@ -82,7 +85,7 @@ const HistoryGraph: React.FC = () => {
           </div>
         )}
       </div>
-      {valueHistory.length === 0 ? (
+      {nonEmptyDataPointRate < MIN_NON_EMPTY_DATA_POINT_RATE ? (
         <div className="flex flex-col items-center justify-center h-full">
           <FiBarChart2 className="text-6xl text-gray-400 mb-4" />
           <p className="text-gray-400 text-sm">Not enough data</p>

@@ -37,3 +37,14 @@ export interface UpdateStakingAddressBody {
 export interface RemoveStakingAddressBody {
   address: string;
 }
+
+export interface RollOpHistory {
+  op: 'BUY' | 'SELL';
+  amount: number;
+  timestamp: string;
+  opId?: string; // Optional for backward compatibility
+}
+
+export interface RollOpHistoryResponse {
+  operations: RollOpHistory[];
+}

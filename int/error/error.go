@@ -13,6 +13,9 @@ const (
 
 	// DB
 	ErrDBNotFoundItem NodeManagerErrorCode = "DB_NOT_FOUND_ITEM"
+
+	// Staking Manager
+	ErrStakingManagerPendingOperationNotCompleted NodeManagerErrorCode = "STAKING_MANAGER_PENDING_OPERATION_NOT_COMPLETED"
 )
 
 // NodeManagerError represents a structured error in the node manager
