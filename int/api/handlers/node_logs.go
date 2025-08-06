@@ -6,7 +6,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/massalabs/node-manager-plugin/api/models"
 	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
-	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/node-manager"
+	nodeManagerPkg "github.com/massalabs/node-manager-plugin/int/core/node-manager"
 )
 
 func HandleGetNodeLogs(nodeManager *nodeManagerPkg.INodeManager) func(operations.GetNodeLogsParams) middleware.Responder {

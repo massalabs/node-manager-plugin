@@ -1,0 +1,68 @@
+package handlers
+
+import (
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/massalabs/node-manager-plugin/api/models"
+	"github.com/massalabs/node-manager-plugin/api/restapi/operations"
+	configPkg "github.com/massalabs/node-manager-plugin/int/config"
+	stakingManagerPkg "github.com/massalabs/node-manager-plugin/int/core/staking-manager"
+)
+
+func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.AddStakingAddressParams) middleware.Responder {
+	return func(params operations.AddStakingAddressParams) middleware.Responder {
+		// the first param is the pwd of the node, the second is the pwd to unlock the account file
+		stakingAddress, err := stakingManager.AddStakingAddress(configPkg.GlobalPluginInfo.GetPwd(), params.Body.Password, params.Body.Nickname)
+		if err != nil {
+			return operations.NewAddStakingAddressInternalServerError().WithPayload(&models.Error{
+				Message: err.Error(),
+			})
+		}
+		targetRolls := int64(stakingAddress.TargetRolls)
+		finalRolls := int64(stakingAddress.FinalRolls)
+		activeRolls := int64(stakingAddress.ActiveRolls)
+		candidateRolls := int64(stakingAddress.CandidateRolls)
+		thread := int64(stakingAddress.Thread)
+		deferredCredits := make([]*models.DeferredCredit, len(stakingAddress.DeferredCredits))
+		for i, deferredCredit := range stakingAddress.DeferredCredits {
+			deferredCredits[i] = &models.DeferredCredit{
+				Slot:   &models.DeferredCreditSlot{Period: int64(deferredCredit.Slot.Period), Thread: int64(deferredCredit.Slot.Thread)},
+				Amount: deferredCredit.Amount,
+			}
+		}
+		return operations.NewAddStakingAddressOK().WithPayload(&models.StakingAddress{
+			Address:            &stakingAddress.Address,
+			TargetRolls:        &targetRolls,
+			FinalRollCount:     &finalRolls,
+			ActiveRollCount:    &activeRolls,
+			FinalBalance:       &stakingAddress.FinalBalance,
+			CandidateRollCount: &candidateRolls,
+			CandidateBalance:   &stakingAddress.CandidateBalance,
+			DeferredCredits:    deferredCredits,
+			Thread:             &thread,
+		})
+	}
+}
+
+func HandlePutStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.UpdateStakingAddressParams) middleware.Responder {
+	return func(params operations.UpdateStakingAddressParams) middleware.Responder {
+		err := stakingManager.SetTargetRolls(params.Body.Address, uint64(params.Body.TargetRolls))
+		if err != nil {
+			return operations.NewUpdateStakingAddressInternalServerError().WithPayload(&models.Error{
+				Message: err.Error(),
+			})
+		}
+		return operations.NewUpdateStakingAddressNoContent()
+	}
+}
+
+func HandleDeleteStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.RemoveStakingAddressParams) middleware.Responder {
+	return func(params operations.RemoveStakingAddressParams) middleware.Responder {
+		err := stakingManager.RemoveStakingAddress(configPkg.GlobalPluginInfo.GetPwd(), params.Body.Address)
+		if err != nil {
+			return operations.NewRemoveStakingAddressInternalServerError().WithPayload(&models.Error{
+				Message: err.Error(),
+			})
+		}
+		return operations.NewRemoveStakingAddressNoContent()
+	}
+}

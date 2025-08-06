@@ -70,7 +70,8 @@ paths:
         "200":
           description: massa node launched with success
           schema:
-            $ref: "#/definitions/StartNodeResponse"
+            type: string
+            description: Success
           
         "500":
           description: Error launching node
@@ -148,22 +149,139 @@ paths:
           schema:
             $ref: "#/definitions/Error"
 
-  /api/version:
+  /api/stakingAddresses:
     get:
-      description: Get the version of the plugin
-      operationId: GetPluginVersion
+      description: Get the staking addresses
+      operationId: GetStakingAddresses
       produces:
-        - application/json
+        - text/event-stream
       responses:
         "200":
-          description: Plugin version retrieved successfully
+          description: Staking addresses retrieved successfully
           schema:
-            type: string
+            $ref: "#/definitions/StakingAddresses"
         "500":
-          description: Error retrieving plugin version
+          description: Error retrieving staking addresses
           schema:
             $ref: "#/definitions/Error"
 
+    post:
+      description: Add a staking address
+      operationId: AddStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/AddStakingAddressBody"
+      responses:
+        "200":
+          description: Staking address added successfully
+          schema:
+            $ref: "#/definitions/StakingAddress"
+        "500":
+          description: Error adding staking address
+          schema:
+            $ref: "#/definitions/Error"
+
+    put:
+      description: Update a staking address
+      operationId: UpdateStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/UpdateStakingAddressBody"
+      responses:
+        "204":
+          description: Staking address updated successfully
+        "500":
+          description: Error updating staking address
+          schema:
+            $ref: "#/definitions/Error"
+
+    delete:
+      description: Remove a staking address
+      operationId: RemoveStakingAddress
+      produces:
+        - application/json
+      parameters:
+        - in: body    
+          name: body
+          required: true
+          schema:
+            $ref: "#/definitions/RemoveStakingAddressBody"
+      responses:
+        "204":      
+          description: Staking address removed successfully
+        "500":
+          description: Error removing staking address
+          schema:
+            $ref: "#/definitions/Error"
+
+  /api/rollOpHistory:
+    get:
+      description: Get roll operation history for a specific address and network
+      operationId: GetRollOpHistory
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: address
+          required: true
+          type: string
+          description: The address to get roll operation history for
+        - in: query
+          name: isMainnet
+          required: true
+          type: boolean
+          description: If true, retrieve mainnet data
+      responses:
+        "200":
+          description: Roll operation history retrieved successfully
+          schema:
+            $ref: "#/definitions/RollOpHistoryResponse"
+        "500":
+          description: Error retrieving roll operation history
+          schema:
+            $ref: "#/definitions/Error"
+
+  /api/valueHistory:
+    get:
+      description: Get historic data of total value owned by staking addresses on the node
+      operationId: GetValueHistory
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: since
+          required: true
+          type: string
+          description: The timestamp since when we want to retrieve total value history
+        - in: query
+          name: sampleNum
+          required: true
+          type: integer
+          description: How many data points should be returned
+        - in: query
+          name: isMainnet
+          required: true
+          type: boolean
+          description: If true, retrieve mainnet data (default buildnet)
+      responses:
+        "200":
+          description: Value history retrieved successfully
+          schema:
+            $ref: "#/definitions/ValueHistorySamplesResponse"
+        "500":
+          description: Error retrieving value history
+          schema:
+            $ref: "#/definitions/Error"
   
 definitions:
   Error:
@@ -192,23 +310,161 @@ definitions:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
 
+  Network:
+    type: object
+    properties:
+      version: # network value is contained in the version name. Ex: MAIN.3.0
+        type: string
+        description: The version of the nodee network
+      hasPwd:
+        type: boolean
+        description: Whether the node has a password set for the network
+
   PluginInfos:
     type: object
     properties:
-      version:
+      networks:
+        type: array
+        items:
+          $ref: "#/definitions/Network"
+      isMainnet:
+        type: boolean
+        description: Whether the node is running on mainnet or not
+      pluginVersion:
         type: string
-        description: The version of the node
+        description: The version of the plugin
       autoRestart:
         type: boolean
         description: Whether to auto-restart the node or not when there is a crash/desync
 
-
-  StartNodeResponse:
+  StakingAddresses:
     type: object
     properties:
-      version:
+      addresses:
+        type: array
+        items:
+          $ref: "#/definitions/StakingAddress"
+  
+  StakingAddress:
+    type: object
+    properties:
+      address:
         type: string
-        description: The version of the launched node
+        description: The address of the staking address
+      target_rolls:
+        type: integer
+        description: The target rolls of the staking address
+      final_roll_count:
+        type: integer
+        description: The final rolls of the staking address
+      active_roll_count:
+        type: integer
+        description: The active rolls of the staking address
+      final_balance:
+        type: number
+        description: The final balance of the staking address
+      candidate_roll_count:
+        type: integer
+        description: The candidate rolls of the staking address
+      candidate_balance:
+        type: number
+        description: The candidate balance of the staking address
+      thread:
+        type: integer
+        description: The thread of the staking address
+      deferred_credits:
+        type: array
+        items:
+          $ref: "#/definitions/DeferredCredit"
+    required:
+      - address
+      - target_rolls
+      - final_roll_count
+      - active_roll_count
+      - final_balance
+      - candidate_roll_count
+      - candidate_balance
+      - thread
+
+
+  DeferredCredit:
+    type: object
+    properties:
+      slot:
+        type: object
+        properties:
+          period:
+            type: integer
+            description: The period of the slot
+          thread:
+            type: integer
+            description: The thread of the slot
+        description: The slot of the deferred credit
+      amount:
+        type: number
+        description: The amount of the deferred credit
+
+  AddStakingAddressBody:
+    type: object
+    properties:
+      nickname:
+        type: string
+        description: The nickname of the staking address
+      password:
+        type: string
+        description: The password of the staking address
+
+  UpdateStakingAddressBody:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The address of the staking address
+      target_rolls:  
+        type: number
+        description: The target rolls of the staking address
+
+  RemoveStakingAddressBody:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The address of the staking address
+
+  RollOpHistoryResponse:
+    type: object
+    properties:
+      operations:
+        type: array
+        items:
+          $ref: "#/definitions/RollOpHistory"
+    required:
+      - operations
+
+  RollOpHistory:
+    type: object
+    properties:
+      opId:
+        type: string
+        description: The ID of the operation
+      op:
+        type: string
+        enum: [BUY, SELL]
+        description: The type of operation (BUY or SELL)
+      amount:
+        type: integer
+        format: uint64
+        minimum: 0
+        description: The amount of rolls involved in the operation
+      timestamp:
+        type: string
+        format: date-time
+        description: The timestamp of the operation
+    required:
+      - opId
+      - op
+      - amount
+      - timestamp
 
   NodeStatus:
     type: object
@@ -216,3 +472,26 @@ definitions:
       status:
           type: string
           enum: [on, off, bootstrapping, stopping, error]
+
+
+  ValueHistorySamplesResponse:
+    type: object
+    properties:
+      samples:
+        type: array
+        items:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              description: The timestamp of the history entry
+            value:
+              type: number
+              description: The total value at this timestamp
+      emptyDataPointNum:
+        type: integer
+        description: Number of samples with nil value
+    required:
+      - samples
+      - emptyDataPointNum

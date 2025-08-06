@@ -4,6 +4,83 @@
     "dashboard": "Dashboard",
     "stacking": "Staking"
   },
+  "node": {
+    "title": "Your node",
+    "status": {
+      "label": "Status",
+      "up": "Up",
+      "down": "Down",
+      "crashed": "Crashed",
+      "desynced": "Desynced",
+      "stopping": "Stopping",
+      "starting": "Starting",
+      "bootstrapping": "Bootstrapping",
+      "unknown": "Unknown",
+      "bootstrappingTooltip": "Load the state from other node: may take some time."
+    },
+    "select-network": "Select Network",
+    "autoRestart": {
+      "label": "Auto restart",
+      "description": "Automatically restart the node if it crashes (due to a bug or a network loss)",
+      "enabled": "Auto restart enabled",
+      "disabled": "Auto restart disabled",
+      "error": "Error while setting auto-restart"
+    },
+    "startSuccess": "Massa node started successfully",
+    "stopSuccess": "Massa node stopped successfully",
+    "stopError": "Error while stopping the massa node",
+    "button": {
+      "run": "Run a node",
+      "close": "Shut down node"
+    },
+    "logs": {
+      "export": "export logs",
+      "mainnet": "mainnet",
+      "buildnet": "buildnet",
+      "noLogs": "No logs found",
+      "error": "Error while downloading logs"
+    },
+    "password": {
+      "title": "Enter Node Password",
+      "description": "Please enter the password to start the node",
+      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again."
+    }
+  },
+  "errors": {
+    "plugin-init": {
+      "title": "Plugin Initialization Error",
+      "description": "Failed to initialize plugin: {error}"
+    },
+    "start-node": {
+      "title": "Node setup Error",
+      "description": "Got error while starting the node: {error}"
+    },
+    "node-status": {
+      "title": "Node status Error",
+      "description": "Got error while retrieving node status: {error}"
+    },
+    "massa-wallet-check": {
+      "title": "Massa Wallet Check Error",
+      "description": "Got error while checking if Massa Wallet is installed: {error}"
+    },
+    "get-staking-addresses": {
+      "title": "Failed Loading Staking Addresses",
+      "description": "Got error while loading staking addresses: {error}"
+    },
+    "load-massa-wallet-accounts": {
+      "title": "Failed Loading Massa Wallet Accounts",
+      "description": "Got error while loading accounts list from Massa Wallet: {error}"
+    },
+    "staking-address-add": {
+      "title": "Failed adding staking address",
+      "description": "Got error while adding staking address: {error}"
+    },
+    "staking-address-delete": {
+      "title": "Failed deleting staking address",
+      "description": "Got error while deleting staking address: {error}"
+    },
+    "back-to-home-link": "Back to home"
+  },
   "home": {
     "title-select-network": "Select a network",
     "title-account-address": "Account address",
@@ -12,7 +89,6 @@
       "off": "OFF"
     },
     "startSuccess": "Massa node started successfully",
-    "startError": "Error while starting the massa node",
     "stopSuccess": "Massa node stopped successfully",
     "stopError": "Error while stopping the massa node",
     "auto-restart": {
@@ -31,7 +107,52 @@
     "nodePassword": {
       "title": "Enter Node Password",
       "description": "Please enter the password to start the node",
-      "submit": "Submit"
+      "warning": "⚠️ Warning: Keep your password secure. It will be used to encrypt your staking addresses. \n If you forget it and the node is storing staking addresses, you will not be able to start the node again.",
+      "error": "Invalid password. Please check your password and try again."
+    }
+  },
+  "staking": {
+    "node-not-running": "The node needs to be up to retrieve staking addresses",
+    "loading": "Loading staking addresses...",
+    "addresses-found": "Found {count} staking address(es)",
+    "empty-state": {
+      "message": "To start staking add an address"
+    },
+    "download-wallet": {
+      "title": "Download Massa Wallet",
+      "description": "Massa station wallet plugin is not installed or not activated. Please install or activate it to be able to import your staking addresses.",
+      "button": "Download Wallet"
+    },
+    "add-address": {
+      "title": "Confirm Add Staking Address",
+      "description": "Node manager plugin need access to {nickname}' account's private key to start staking. Your key will be encrypted with the password you used to start the node.",
+      "warning": "⚠️ Node manager plugin is not a wallet: you will not be able to restore your account's private key from it. So DO NOT remove your account from massa wallet",
+      "address-added": "Staking address added"
+    },
+    "delete-address": {
+      "title": "Delete Staking Address",
+      "message": "Are you sure you want to delete address {address} from node manager? The node will keep on running without the address. The address's rolls will be sold (stop staking).",
+      "address-deleted": "Staking address deleted",
+      "failed-deleting-address": "Failed deleting staking address"
+    },
+    "status": {
+      "staking": "Staking",
+      "roll-activation": "Rolls activation",
+      "not-staking": "Not Staking"
+    },
+    "stakingAddressDetails": {
+      "active-rolls-tooltip": "It takes 3 cycles (about 1h40min) for new rolls to become active and be used for staking",
+      "deferred-credits-tooltip": "When rolls are sold, staked MAS are frozen for a cycle before they can be spent",
+      "roll-op-history-tooltip": "History of roll buy and sell operations for this address. Operations that occured while the node manager was down are not included.",
+      "updateRollTarget": {
+        "confirmModal": {
+          "title": "Update Roll Target",
+          "rollBuy": "You are going to buy {rollsToBuy} rolls",
+          "rollSell": "You are going to sell {rollsToSell} rolls",
+          "body": "Change roll target from {currentTargetRolls} to {newTargetRolls}.",
+          "rollTargetUpdated": "Roll target updated"
+        }
+      }
     }
   }
 }

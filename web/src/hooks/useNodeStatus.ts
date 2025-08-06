@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { useNavigate } from 'react-router-dom';
-
+import { useError } from '@/contexts/ErrorContext';
 import intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
-import { getErrorPath, NodeStatus } from '@/utils';
+import { getErrorMessage, NodeStatus } from '@/utils';
+import { getApiUrl } from '@/utils/utils';
 
 export function useNodeStatus() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const setStatus = useNodeStore((state) => state.setStatus);
-
-  const navigate = useNavigate();
+  const { setError } = useError();
 
   /* use useCallback to avoid recreating a new function instance each time the hook is re-rendering
 This function can be used in dependency array, so it needs to be a stable reference
@@ -20,7 +19,7 @@ This function can be used in dependency array, so it needs to be a stable refere
       eventSourceRef.current.close();
     }
 
-    const baseApi = import.meta.env.VITE_BASE_API || '/api';
+    const baseApi = getApiUrl() || '/api';
     const eventSource = new EventSource(`${baseApi}/status`);
 
     eventSource.onmessage = (event) => {
@@ -32,20 +31,16 @@ This function can be used in dependency array, so it needs to be a stable refere
     eventSource.onerror = (err) => {
       console.error('node status retrieving SSE error:', err);
       eventSource.close();
-      navigate(getErrorPath(), {
-        state: {
-          error: {
-            title: intl.t('errors.node-status.title'),
-            message: intl.t('errors.node-status.description', {
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          },
-        },
+      setError({
+        title: intl.t('errors.node-status.title'),
+        message: intl.t('errors.node-status.description', {
+          error: getErrorMessage(err),
+        }),
       });
     };
 
     eventSourceRef.current = eventSource;
-  }, [navigate, setStatus]);
+  }, [setStatus, setError]);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -54,7 +49,6 @@ This function can be used in dependency array, so it needs to be a stable refere
 
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
-        eventSourceRef.current = null;
       }
     };
   }, []);

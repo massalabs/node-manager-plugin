@@ -43,6 +43,7 @@ jobs:
   build-plugin:
     name: Build node manager plugin
     uses: ./.github/workflows/build.yml
+    secrets: inherit
     with:
       tag_name: ${{ github.event.inputs.tag_name }}
 
@@ -90,11 +91,14 @@ jobs:
           else
             task setup-node-folder
           fi
+        env:
+          OS: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
 
       - name: Download plugin binary artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: 'node-manager-plugin_${{matrix.target}}*'
+          pattern: ${{ env.TARGET_NAME }}
 
       - name: make bin executable
         run: |
@@ -103,7 +107,7 @@ jobs:
       - name : zip package
         shell: bash
         run: |
-          zip -j ${{ env.TARGET_NAME }}.zip web/public/favicon.ico manifest.json ${{ env.TARGET_NAME }}/*
+          zip -j ${{ env.TARGET_NAME }}.zip web/public/favicon.svg manifest.json ${{ env.TARGET_NAME }}/*
           cd build && zip -r ../${{ env.TARGET_NAME }}.zip node-massa
 
       - name: Notarize zip for MacOS ${{ matrix.arch }}

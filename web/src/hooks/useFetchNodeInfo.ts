@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 import {
   JsonRpcPublicProvider,
@@ -7,7 +7,7 @@ import {
 } from '@massalabs/massa-web3';
 import { useQuery } from '@tanstack/react-query';
 
-export const useFetchNodeInfo = (fetchInterval = 5000) => {
+export const useFetchNodeInfo = (fetchInterval = 10000) => {
   const providerRef = useRef<JsonRpcPublicProvider | null>(null);
 
   useEffect(() => {
@@ -16,12 +16,12 @@ export const useFetchNodeInfo = (fetchInterval = 5000) => {
     );
   }, []);
 
-  const fetchNodeInfo = async (): Promise<NodeStatusInfo> => {
-    if (!providerRef.current) {
+  const fetchNodeInfo = useCallback(async (): Promise<NodeStatusInfo> => {
+    if (providerRef.current === null) {
       return {} as NodeStatusInfo;
     }
     return await providerRef.current.getNodeStatus();
-  };
+  }, []);
 
   return useQuery({
     queryKey: ['fetchNodeInfo'],
