@@ -32,11 +32,25 @@ export const SelectNetwork: React.FC = () => {
     },
   }));
 
-  const selectedNetworkKey: number = parseInt(
-    Object.keys(versions).find(
-      (_, idx) => getNetworkFromVersion(versions[idx]) === currentNetwork,
-    ) || '0',
-  );
+  const selectedNetworkKey: number =
+    versions.length > 0
+      ? parseInt(
+          Object.keys(versions).find(
+            (_, idx) => getNetworkFromVersion(versions[idx]) === currentNetwork,
+          ) || '0',
+        )
+      : 0;
+
+  // If no networks are loaded yet, don't render the dropdown
+  if (versions.length === 0) {
+    return (
+      <div
+        className="h-8 w-32 bg-gray-200 animate-pulse rounded"
+        role="status"
+        aria-label="Loading networks"
+      />
+    );
+  }
 
   return (
     <Dropdown
