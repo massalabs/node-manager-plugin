@@ -100,7 +100,12 @@ export function useTotValueHistory() {
     totValue.current = value;
     setValueHistory((prev) => [
       ...prev,
-      { timestamp: new Date().toISOString(), value },
+      {
+        timestamp: new Date(
+          Date.now() - new Date().getTimezoneOffset() * 60 * 1000,
+        ).toISOString(),
+        value,
+      },
     ]);
     incrementNonEmptyDataPointRate();
 

@@ -57,7 +57,7 @@
     },
     "node-status": {
       "title": "Node status Error",
-      "description": "Got error while retrieving node status: {error}"
+      "description": "Got error while retrieving node status via Server Side Event. More details in console."
     },
     "massa-wallet-check": {
       "title": "Massa Wallet Check Error",
@@ -65,7 +65,7 @@
     },
     "get-staking-addresses": {
       "title": "Failed Loading Staking Addresses",
-      "description": "Got error while loading staking addresses: {error}"
+      "description": "Got error while loading staking addresses via Server Side Event. More details in console."
     },
     "load-massa-wallet-accounts": {
       "title": "Failed Loading Massa Wallet Accounts",

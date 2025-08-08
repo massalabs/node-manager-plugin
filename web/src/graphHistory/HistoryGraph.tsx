@@ -109,7 +109,7 @@ const HistoryGraph: React.FC = () => {
             />
             <YAxis
               dataKey="value"
-              domain={['dataMin - 10', 'dataMax + 10']}
+              domain={['dataMin - 1', 'dataMax + 1']}
               tickFormatter={yAxisTickFormatter}
             />
             <CartesianGrid strokeDasharray="3 3" />
