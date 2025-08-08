@@ -14,6 +14,15 @@ import (
 	"github.com/massalabs/node-manager-plugin/int/utils"
 )
 
+// convertUTCToLocal converts a UTC timestamp to local timezone
+// SQLite stores timestamps in UTC, so we need to convert them to local timezone for display
+func convertUTCToLocal(utcTime time.Time) time.Time {
+	// Get the local timezone
+	loc, _ := time.LoadLocation("Local")
+	// Convert UTC time to local timezone
+	return utcTime.In(loc)
+}
+
 func HandleGetValueHistory(db dbPkg.DB, historyMgr *historymanager.HistoryManager, config *config.PluginConfig) func(params operations.GetValueHistoryParams) middleware.Responder {
 	return func(params operations.GetValueHistoryParams) middleware.Responder {
 		if params.SampleNum < 1 {
@@ -51,8 +60,10 @@ func HandleGetValueHistory(db dbPkg.DB, historyMgr *historymanager.HistoryManage
 		samples := make([]*models.ValueHistorySamplesResponseSamplesItems0, len(result))
 		emptyDataPointNum := int64(0)
 		for i, r := range result {
+			// Convert UTC timestamp to local timezone for frontend display
+			localTimestamp := convertUTCToLocal(r.Timestamp)
 			samples[i] = &models.ValueHistorySamplesResponseSamplesItems0{
-				Timestamp: strfmt.DateTime(r.Timestamp),
+				Timestamp: strfmt.DateTime(localTimestamp),
 			}
 			if r.Value != nil {
 				samples[i].Value = *r.Value
@@ -84,7 +95,9 @@ func HandleGetRollOpHistory(db dbPkg.DB) func(operations.GetRollOpHistoryParams)
 
 		rollOpHistory := make([]*models.RollOpHistory, len(histories))
 		for i, history := range histories {
-			timestamp := strfmt.DateTime(history.Timestamp)
+			// Convert UTC timestamp to local timezone for frontend display
+			localTimestamp := convertUTCToLocal(history.Timestamp)
+			timestamp := strfmt.DateTime(localTimestamp)
 			rollOpHistory[i] = &models.RollOpHistory{
 				OpID:      &history.OpId,
 				Op:        &history.Op,
