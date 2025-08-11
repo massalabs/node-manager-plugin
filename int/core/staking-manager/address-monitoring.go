@@ -175,7 +175,7 @@ func (s *stakingManager) sellBuyRollsAddress(newAddress StakingAddress) error {
 	index, _ := s.getAddressIndexFromRamList(newAddress.Address)
 	currentRollTarget := s.stakingAddresses[index].TargetRolls
 
-	pendingOpCompleted, err := s.checkIfPendingOperationIsCompleted(index, newAddress.CandidateRolls)
+	pendingOpCompleted, err := s.checkIfPendingOperationIsCompleted(index)
 	if err != nil {
 		logger.Errorf("failed to check if there is a pending operation and if it is completed for address %s: %v", newAddress.Address, err)
 		return errorPkg.New(
@@ -219,10 +219,7 @@ func (s *stakingManager) sellBuyRollsAddress(newAddress StakingAddress) error {
 
 		/* if the sellRolls op has been sent, we need to wait for it to be completed.
 		so we save it's op id to be able tocheck later if it has been completed */
-		s.stakingAddresses[index].pendingOperation = &pendingOperation{
-			id:            opId,
-			expectedRolls: currentRollTarget,
-		}
+		s.stakingAddresses[index].pendingOperationId = &opId
 
 		logger.Infof("Sold %d rolls for address %s", rollsToSell, newAddress.Address)
 
@@ -258,10 +255,7 @@ func (s *stakingManager) sellBuyRollsAddress(newAddress StakingAddress) error {
 
 			/* if the buyRolls op has been sent, we need to wait for it to be completed.
 			so we save it's op id to be able tocheck later if it has been completed */
-			s.stakingAddresses[index].pendingOperation = &pendingOperation{
-				id:            opId,
-				expectedRolls: newAddress.CandidateRolls + rollsToBuy,
-			}
+			s.stakingAddresses[index].pendingOperationId = &opId
 
 			logger.Infof("Bought %d rolls for address %s", rollsToBuy, newAddress.Address)
 		}
@@ -275,28 +269,29 @@ func (s *stakingManager) sellBuyRollsAddress(newAddress StakingAddress) error {
 pending operation and if it has been completed.
 It return whether the rolls update process can be pursued or not
 */
-func (s *stakingManager) checkIfPendingOperationIsCompleted(index int, candidateRolls uint64) (bool, error) {
-	pendingOp := s.stakingAddresses[index].pendingOperation
+func (s *stakingManager) checkIfPendingOperationIsCompleted(index int) (bool, error) {
+	pendingOpId := s.stakingAddresses[index].pendingOperationId
 
-	if pendingOp == nil {
+	if pendingOpId == nil {
 		return true, nil
 	}
 
-	// if there is a pending operation, check if it has been completed
-	if pendingOp.expectedRolls == candidateRolls {
-		// the pending operation is completed, so we can remove it from the staking addresses list
-		s.stakingAddresses[index].pendingOperation = nil
-		logger.Infof("Pending operation for address %s has been completed", s.stakingAddresses[index].Address)
+	operation, err := s.nodeAPI.GetOperation(*pendingOpId)
+	if err != nil {
+		return false, fmt.Errorf("failed to get operation %s: %v", *pendingOpId, err)
+	}
+
+	if operation == nil {
+		return false, fmt.Errorf("retrieved operation %s is nil", *pendingOpId)
+	}
+
+	if operation.IsFinal {
+		s.stakingAddresses[index].pendingOperationId = nil
 		return true, nil
 	} else {
-		// the pending operation is not completed, so we need to check if it has been expired
-		operation, err := s.nodeAPI.GetOperation(pendingOp.id)
-		if err != nil {
-			return false, fmt.Errorf("failed to get operation %s: %v", pendingOp.id, err)
-		}
-
-		if operation == nil || operation.Detail == nil {
-			return false, fmt.Errorf("operation or operation detail is nil")
+		// if the op is not final, check if it has expired
+		if operation.Detail == nil {
+			return false, fmt.Errorf("detail field of retrieved operation %s is nil", *pendingOpId)
 		}
 
 		status, err := s.nodeAPI.GetStatus()
@@ -310,12 +305,12 @@ func (s *stakingManager) checkIfPendingOperationIsCompleted(index int, candidate
 
 		// if the operation has been expired, we can remove it from the staking addresses list
 		if operation.Detail.Content.ExpirePeriod < uint(status.LastSlot.Period) {
-			s.stakingAddresses[index].pendingOperation = nil
-			logger.Debugf("Pending operation '%s' for address %s has been expired", pendingOp.id, s.stakingAddresses[index].Address)
+			s.stakingAddresses[index].pendingOperationId = nil
+			logger.Debugf("Pending operation '%s' for address %s has been expired", *pendingOpId, s.stakingAddresses[index].Address)
 			return true, nil
 		} else {
-			s.stakingAddresses[index].pendingOperation = nil
-			logger.Debugf("Pending operation '%s' for address %s is still pending", pendingOp.id, s.stakingAddresses[index].Address)
+			s.stakingAddresses[index].pendingOperationId = nil
+			logger.Debugf("Pending operation '%s' for address %s is still pending", *pendingOpId, s.stakingAddresses[index].Address)
 			return false, nil
 		}
 	}

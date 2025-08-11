@@ -33,6 +33,12 @@ export function getTotalValue(addresses: StakingAddress[]): number {
   return totalValue;
 }
 
+function localTimezoneNow(): string {
+  return new Date(
+    Date.now() - new Date().getTimezoneOffset() * 60 * 1000,
+  ).toISOString();
+}
+
 export function useTotValueHistory() {
   const [valueHistory, setValueHistory] = useState<ValueHistoryPoint[]>([]);
   const [nonEmptyDataPointRate, setNonEmptyDataPointRate] = useState<number>(0);
@@ -85,7 +91,7 @@ export function useTotValueHistory() {
     const value = getTotalValue(stakingAddresses);
 
     // stakingAddresses could change without the total value to be changed (e.g. when a roll target is changed)
-    if (value === totValue.current) {
+    if (value === totValue.current || valueHistory.length == 0) {
       return;
     }
 
@@ -101,9 +107,7 @@ export function useTotValueHistory() {
     setValueHistory((prev) => [
       ...prev,
       {
-        timestamp: new Date(
-          Date.now() - new Date().getTimezoneOffset() * 60 * 1000,
-        ).toISOString(),
+        timestamp: localTimezoneNow(),
         value,
       },
     ]);
@@ -119,7 +123,7 @@ export function useTotValueHistory() {
     intervalRef.current = setInterval(() => {
       setValueHistory((prev) => [
         ...prev,
-        { timestamp: new Date().toISOString(), value: totValue.current },
+        { timestamp: localTimezoneNow(), value: totValue.current },
       ]);
       incrementNonEmptyDataPointRate();
     }, INTERVAL_MS);
@@ -146,7 +150,7 @@ export function useTotValueHistory() {
             },
           },
         );
-        if (!res.data.samples) {
+        if (!res.data.samples || res.data.samples.length == 0) {
           toast.error('Not enough data for graph');
           setValueHistory([]);
           return;

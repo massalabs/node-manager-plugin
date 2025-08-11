@@ -51,23 +51,18 @@ type getAddressesResponse struct {
 	DeferredCredits  []DeferredCreditDtoNode `json:"deferred_credits"`
 }
 
-type pendingOperation struct {
-	id            string
-	expectedRolls uint64
-}
-
 // StakingAddress represents a staking address with its information
 type StakingAddress struct {
-	Address          string           `json:"address"`
-	FinalRolls       uint64           `json:"final_roll_count"`
-	CandidateRolls   uint64           `json:"candidate_roll_count"`
-	ActiveRolls      uint64           `json:"active_roll_count"`
-	FinalBalance     float64          `json:"final_balance"`
-	CandidateBalance float64          `json:"candidate_balance"`
-	Thread           uint8            `json:"thread"`
-	DeferredCredits  []DeferredCredit `json:"deferred_credits"`
-	TargetRolls      uint64           `json:"target_rolls"`
-	pendingOperation *pendingOperation
+	Address            string           `json:"address"`
+	FinalRolls         uint64           `json:"final_roll_count"`
+	CandidateRolls     uint64           `json:"candidate_roll_count"`
+	ActiveRolls        uint64           `json:"active_roll_count"`
+	FinalBalance       float64          `json:"final_balance"`
+	CandidateBalance   float64          `json:"candidate_balance"`
+	Thread             uint8            `json:"thread"`
+	DeferredCredits    []DeferredCredit `json:"deferred_credits"`
+	TargetRolls        uint64           `json:"target_rolls"`
+	pendingOperationId *string
 }
 
 type StakingManager interface {

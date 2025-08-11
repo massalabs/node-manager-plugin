@@ -85,12 +85,13 @@ const HistoryGraph: React.FC = () => {
           </div>
         )}
       </div>
-      {nonEmptyDataPointRate < MIN_NON_EMPTY_DATA_POINT_RATE ? (
+      {nonEmptyDataPointRate < MIN_NON_EMPTY_DATA_POINT_RATE ||
+      valueHistory.length == 0 ? (
         <div className="flex flex-col items-center justify-center h-full">
           <FiBarChart2 className="text-6xl text-gray-400 mb-4" />
           <p className="text-gray-400 text-sm">Not enough data</p>
         </div>
-      ) : (
+          ) : (
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart
             data={valueHistory}
@@ -123,7 +124,7 @@ const HistoryGraph: React.FC = () => {
             />
           </AreaChart>
         </ResponsiveContainer>
-      )}
+          )}
     </div>
   );
 };
