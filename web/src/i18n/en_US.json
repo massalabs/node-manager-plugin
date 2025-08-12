@@ -127,7 +127,8 @@
       "title": "Confirm Add Staking Address",
       "description": "Node manager plugin need access to {nickname}' account's private key to start staking. Your key will be encrypted with the password you used to start the node.",
       "warning": "⚠️ Node manager plugin is not a wallet: you will not be able to restore your account's private key from it. So DO NOT remove your account from massa wallet",
-      "address-added": "Staking address added"
+      "address-added": "Staking address added",
+      "wallet-password-placeholder": "Enter your wallet password"
     },
     "delete-address": {
       "title": "Delete Staking Address",
