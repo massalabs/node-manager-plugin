@@ -5,7 +5,7 @@ import intl from '@/i18n/i18n';
 import { StakingAddress } from '@/models/staking';
 import { useNodeStore } from '@/store/nodeStore';
 import { useStakingStore } from '@/store/stakingStore';
-import { getErrorMessage, isStopStakingMonitoring, NodeStatus } from '@/utils';
+import { isStopStakingMonitoring, NodeStatus } from '@/utils';
 import { getApiUrl } from '@/utils/utils';
 
 export function useStakingListener() {
@@ -42,9 +42,7 @@ export function useStakingListener() {
       eventSource.close();
       setError({
         title: intl.t('errors.get-staking-addresses.title'),
-        message: intl.t('errors.get-staking-addresses.description', {
-          error: getErrorMessage(err),
-        }),
+        message: intl.t('errors.get-staking-addresses.description'),
       });
     };
 

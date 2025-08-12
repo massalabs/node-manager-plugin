@@ -182,6 +182,9 @@ const AddStakingAddress: React.FC<AddStakingAddressProps> = ({
           <Password
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder={Intl.t(
+              'staking.add-address.wallet-password-placeholder',
+            )}
           />
         </div>
       </ConfirmModal>

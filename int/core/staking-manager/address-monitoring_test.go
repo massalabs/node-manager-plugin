@@ -1,6 +1,7 @@
 package stakingManager
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -24,11 +25,11 @@ func TestHandleRollsUpdates(t *testing.T) {
 	)
 
 	tests := []struct {
-		name                          string
-		newAddresses                  []StakingAddress
-		existingAddrs                 []StakingAddress
-		expectedCalls                 func(*clientDriver.MockClientDriver, *dbPkg.MockDB, *testing.T)
-		expectedPendingOperationRolls []uint64
+		name                       string
+		newAddresses               []StakingAddress
+		existingAddrs              []StakingAddress
+		expectedCalls              func(*clientDriver.MockClientDriver, *dbPkg.MockDB, *testing.T)
+		expectedPendingOperationId []string
 	}{
 		{
 			name: "Should sell rolls when target is lower than current rolls",
@@ -49,8 +50,8 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("SellRolls", mock.Anything, "test_address_1", uint64(5), float32(minimalFees)).Return("tx_hash", nil).Once()
 				mockDB.On("AddRollOpHistory", "test_address_1", dbPkg.RollOpSell, uint64(5), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				5,
+			expectedPendingOperationId: []string{
+				"tx_hash",
 			},
 		},
 		{
@@ -75,8 +76,8 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("BuyRolls", mock.Anything, "test_address_2", uint64(5), float32(minimalFees)).Return("tx_hash", nil).Once()
 				mockDB.On("AddRollOpHistory", "test_address_2", dbPkg.RollOpBuy, uint64(5), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				10,
+			expectedPendingOperationId: []string{
+				"tx_hash",
 			},
 		},
 		{
@@ -100,9 +101,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.AssertNotCalled(t, "BuyRolls")
 				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
-			expectedPendingOperationRolls: []uint64{
-				0,
-			},
+			expectedPendingOperationId: []string{""},
 		},
 		{
 			name: "Should not buy rolls when insufficient balance for fees",
@@ -124,9 +123,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.AssertNotCalled(t, "SellRolls")
 				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
-			expectedPendingOperationRolls: []uint64{
-				0,
-			},
+			expectedPendingOperationId: []string{""},
 		},
 		{
 			name: "Should limit buy rolls by available balance",
@@ -148,9 +145,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("BuyRolls", mock.Anything, "test_address_5", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
 				mockDB.On("AddRollOpHistory", "test_address_5", dbPkg.RollOpBuy, uint64(3), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				8, // have 5 rolls and buy 3 rolls
-			},
+			expectedPendingOperationId: []string{"tx_hash"},
 		},
 		{
 			name: "Should handle multiple addresses",
@@ -178,16 +173,13 @@ func TestHandleRollsUpdates(t *testing.T) {
 			},
 			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
 				// Address 6: sell 3 rolls (7 target - 10 current)
-				mockClient.On("SellRolls", mock.Anything, "test_address_6", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockClient.On("SellRolls", mock.Anything, "test_address_6", uint64(3), float32(minimalFees)).Return("tx_hash_1", nil).Once()
 				// Address 7: buy 4 rolls (9 current - 5 target)
-				mockClient.On("BuyRolls", mock.Anything, "test_address_7", uint64(4), float32(minimalFees)).Return("tx_hash", nil).Once()
-				mockDB.On("AddRollOpHistory", "test_address_6", dbPkg.RollOpSell, uint64(3), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
-				mockDB.On("AddRollOpHistory", "test_address_7", dbPkg.RollOpBuy, uint64(4), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
+				mockClient.On("BuyRolls", mock.Anything, "test_address_7", uint64(4), float32(minimalFees)).Return("tx_hash_2", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_6", dbPkg.RollOpSell, uint64(3), "tx_hash_1", utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_7", dbPkg.RollOpBuy, uint64(4), "tx_hash_2", utils.NetworkMainnet).Return(nil).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				7,
-				9,
-			},
+			expectedPendingOperationId: []string{"tx_hash_1", "tx_hash_2"},
 		},
 		{
 			name: "Should handle client driver errors gracefully on sell rolls",
@@ -209,9 +201,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("SellRolls", mock.Anything, "test_address_8", uint64(4), float32(minimalFees)).Return("", assert.AnError).Once()
 				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
-			expectedPendingOperationRolls: []uint64{
-				0,
-			},
+			expectedPendingOperationId: []string{""},
 		},
 		{
 			name: "Should handle client driver errors gracefully on buy rolls",
@@ -233,9 +223,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("BuyRolls", mock.Anything, "test_address_9", uint64(4), float32(minimalFees)).Return("", assert.AnError).Once()
 				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
-			expectedPendingOperationRolls: []uint64{
-				0,
-			},
+			expectedPendingOperationId: []string{""},
 		},
 		{
 			name: "Should handle db driver errors gracefully on sell roll op history",
@@ -256,8 +244,8 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("SellRolls", mock.Anything, "test_address_10", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
 				mockDB.On("AddRollOpHistory", "test_address_10", dbPkg.RollOpSell, uint64(3), "tx_hash", utils.NetworkMainnet).Return(assert.AnError).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				7,
+			expectedPendingOperationId: []string{
+				"tx_hash",
 			},
 		},
 		{
@@ -279,9 +267,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.On("BuyRolls", mock.Anything, "test_address_11", uint64(3), float32(minimalFees)).Return("tx_hash", nil).Once()
 				mockDB.On("AddRollOpHistory", "test_address_11", dbPkg.RollOpBuy, uint64(3), "tx_hash", utils.NetworkMainnet).Return(assert.AnError).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				10,
-			},
+			expectedPendingOperationId: []string{"tx_hash"},
 		},
 		{
 			name: "Should not perform any action when target equals current rolls",
@@ -303,9 +289,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockClient.AssertNotCalled(t, "SellRolls")
 				mockDB.AssertNotCalled(t, "AddRollOpHistory")
 			},
-			expectedPendingOperationRolls: []uint64{
-				0,
-			},
+			expectedPendingOperationId: []string{""},
 		},
 		{
 			name:          "Should handle empty addresses list",
@@ -369,12 +353,7 @@ func TestHandleRollsUpdates(t *testing.T) {
 				mockDB.On("AddRollOpHistory", "addr1", dbPkg.RollOpSell, uint64(5), "tx_hash1", utils.NetworkMainnet).Return(nil).Once()
 				mockDB.On("AddRollOpHistory", "addr2", dbPkg.RollOpBuy, uint64(2), "tx_hash2", utils.NetworkMainnet).Return(nil).Once()
 			},
-			expectedPendingOperationRolls: []uint64{
-				10,
-				5,
-				0,
-				0,
-			},
+			expectedPendingOperationId: []string{"tx_hash1", "tx_hash2", "", ""},
 		},
 	}
 
@@ -402,10 +381,10 @@ func TestHandleRollsUpdates(t *testing.T) {
 			sm.handleRollsUpdates(tt.newAddresses)
 
 			for i, addr := range sm.stakingAddresses {
-				if tt.expectedPendingOperationRolls[i] == 0 {
-					assert.Nil(t, addr.pendingOperation)
+				if tt.expectedPendingOperationId[i] == "" {
+					assert.Nil(t, addr.pendingOperationId)
 				} else {
-					assert.Equal(t, tt.expectedPendingOperationRolls[i], addr.pendingOperation.expectedRolls)
+					assert.Equal(t, tt.expectedPendingOperationId[i], *addr.pendingOperationId)
 				}
 			}
 
@@ -977,23 +956,20 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 	cleanup := setupLog(t)
 	defer cleanup()
 
+	opId := "op Id"
+
 	tests := []struct {
 		name             string
-		index            int
-		candidateRolls   uint64
 		stakingAddresses []StakingAddress
 		setupMock        func(*nodeAPIPkg.MockNodeAPI, *testing.T)
 		expectedResult   bool
 		expectedError    string
 	}{
 		{
-			name:           "Should return true when no pending operation exists",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return true when no pending operation exists",
 			stakingAddresses: []StakingAddress{
 				{
-					Address:          "test_address_1",
-					pendingOperation: nil,
+					Address: "test_address_1",
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
@@ -1003,35 +979,35 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			expectedError:  "",
 		},
 		{
-			name:           "Should return true and clear pending operation when expected rolls match candidate rolls",
-			index:          0,
-			candidateRolls: 5,
+			name: "Should return true when pending operation is final",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_2",
-					pendingOperation: &pendingOperation{
-						id:            "op_123",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_2",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
-				// No mock calls needed for this test case
+				mockOperation := &node.Operation{
+					IsFinal: true,
+					Detail: &node.Detail{
+						Content: node.Content{
+							ExpirePeriod: 100,
+						},
+					},
+				}
+
+				// GetOperation return a final operation
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 			},
 			expectedResult: true,
 			expectedError:  "",
 		},
 		{
-			name:           "Should return true and clear pending operation when operation is expired",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return true and clear pending operation when operation is expired",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_3",
-					pendingOperation: &pendingOperation{
-						id:            "op_456",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_3",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
@@ -1044,7 +1020,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 				}
 
 				// Mock GetOperation to return an expired operation
-				mockNodeAPI.On("GetOperation", "op_456").Return(mockOperation, nil)
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 
 				mockState := &node.State{
 					LastSlot: &node.Slot{
@@ -1057,16 +1033,11 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			expectedError:  "",
 		},
 		{
-			name:           "Should return false when operation is still pending (not expired)",
-			index:          0,
-			candidateRolls: 1,
+			name: "Should return false when operation is still pending (not expired)",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_4",
-					pendingOperation: &pendingOperation{
-						id:            "op_789",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_4",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
@@ -1080,7 +1051,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 				}
 
 				// Mock GetOperation to return a non-expired operation
-				mockNodeAPI.On("GetOperation", "op_789").Return(mockOperation, nil)
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 
 				// Mock GetStatus to return current period
 				mockState := &node.State{
@@ -1094,59 +1065,61 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			expectedError:  "",
 		},
 		{
-			name:           "Should return error when GetOperation fails",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return error when GetOperation fails",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_5",
-					pendingOperation: &pendingOperation{
-						id:            "op_error",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_5",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
 				// Mock GetOperation to return an error
-				mockNodeAPI.On("GetOperation", "op_error").Return(nil, assert.AnError)
+				mockNodeAPI.On("GetOperation", opId).Return(nil, assert.AnError)
 				mockNodeAPI.AssertNotCalled(t, "GetStatus")
 			},
 			expectedResult: false,
-			expectedError:  "failed to get operation op_error",
+			expectedError:  fmt.Sprintf("failed to get operation %s", opId),
 		},
 		{
-			name:           "Should return error when operation or operation detail is nil",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return error when operation is nil",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_7",
-					pendingOperation: &pendingOperation{
-						id:            "op_nil",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_7",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
 				// Mock GetOperation to return a nil operation.Detail
 				mockOperation := &node.Operation{}
-				mockNodeAPI.On("GetOperation", "op_nil").Return(mockOperation, nil)
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 				mockNodeAPI.AssertNotCalled(t, "GetStatus")
 			},
 			expectedResult: false,
-			expectedError:  "operation or operation detail is nil",
+			expectedError:  fmt.Sprintf("retrieved operation %s is nil", opId),
 		},
 		{
-			name:           "Should return error when GetStatus fails",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return error when operation.Details is nil",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_6",
-					pendingOperation: &pendingOperation{
-						id:            "op_status_error",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_7",
+					pendingOperationId: &opId,
+				},
+			},
+			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
+				// Mock GetOperation to return a nil operation.Detail
+				mockOperation := &node.Operation{ID: &opId}
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
+				mockNodeAPI.AssertNotCalled(t, "GetStatus")
+			},
+			expectedResult: false,
+			expectedError:  fmt.Sprintf("detail field of retrieved operation %s is nil", opId),
+		},
+		{
+			name: "Should return error when GetStatus fails",
+			stakingAddresses: []StakingAddress{
+				{
+					Address:            "test_address_6",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
@@ -1160,7 +1133,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 				}
 
 				// Mock GetOperation to return a valid operation
-				mockNodeAPI.On("GetOperation", "op_status_error").Return(mockOperation, nil)
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 
 				// Mock GetStatus to return an error
 				mockNodeAPI.On("GetStatus").Return(nil, assert.AnError)
@@ -1169,16 +1142,11 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			expectedError:  "failed to get node status",
 		},
 		{
-			name:           "Should return error when GetStatus return nil LastSlot",
-			index:          0,
-			candidateRolls: 10,
+			name: "Should return error when GetStatus return nil LastSlot",
 			stakingAddresses: []StakingAddress{
 				{
-					Address: "test_address_8",
-					pendingOperation: &pendingOperation{
-						id:            "op_status_error",
-						expectedRolls: 5,
-					},
+					Address:            "test_address_8",
+					pendingOperationId: &opId,
 				},
 			},
 			setupMock: func(mockNodeAPI *nodeAPIPkg.MockNodeAPI, t *testing.T) {
@@ -1190,7 +1158,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 						},
 					},
 				}
-				mockNodeAPI.On("GetOperation", "op_status_error").Return(mockOperation, nil)
+				mockNodeAPI.On("GetOperation", opId).Return(mockOperation, nil)
 				mockState := &node.State{}
 				mockNodeAPI.On("GetStatus").Return(mockState, nil)
 			},
@@ -1214,7 +1182,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			}
 
 			// Execute the function under test
-			result, err := sm.checkIfPendingOperationIsCompleted(tt.index, tt.candidateRolls)
+			result, err := sm.checkIfPendingOperationIsCompleted(0)
 
 			// Assert results
 			if tt.expectedError != "" {
@@ -1228,7 +1196,7 @@ func TestCheckIfPendingOperationIsCompleted(t *testing.T) {
 			// If result is true, the pending operation should be nil
 			if result {
 				// Verify that pending operation was cleared
-				assert.Nil(t, sm.stakingAddresses[tt.index].pendingOperation)
+				assert.Nil(t, sm.stakingAddresses[0].pendingOperationId)
 			}
 
 			// Assert that all expected mock calls were made
