@@ -95,7 +95,7 @@ const HistoryGraph: React.FC = () => {
           <FiBarChart2 className="text-6xl text-gray-400 mb-4" />
           <p className="text-gray-400 text-sm">Not enough data</p>
         </div>
-          ) : (
+      ) : (
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart
             data={valueHistory}
@@ -128,7 +128,7 @@ const HistoryGraph: React.FC = () => {
             />
           </AreaChart>
         </ResponsiveContainer>
-          )}
+      )}
     </div>
   );
 };
