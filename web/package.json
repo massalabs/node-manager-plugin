@@ -15,7 +15,7 @@
     "prettier:fix": "prettier --write .",
     "fmt": "npm run prettier:fix && npm run lint:fix",
     "fmt:check": "npm run prettier && npm run lint",
-    "prepare": "cd .. && husky install web/.husky"
+    "prepare": "cd .. && husky install"
   },
   "dependencies": {
     "@massalabs/massa-web3": "^5.1.1",
@@ -44,6 +44,7 @@
     "autoprefixer": "^10.4.14",
     "babel-jest": "^29.5.0",
     "eslint": "^8.38.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-html": "^7.1.0",
     "eslint-plugin-import": "^2.28.0",
     "eslint-plugin-react-hooks": "^4.6.0",
