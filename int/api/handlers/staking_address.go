@@ -45,7 +45,7 @@ func HandlePostStakingAddresses(stakingManager stakingManagerPkg.StakingManager)
 
 func HandlePutStakingAddresses(stakingManager stakingManagerPkg.StakingManager) func(operations.UpdateStakingAddressParams) middleware.Responder {
 	return func(params operations.UpdateStakingAddressParams) middleware.Responder {
-		err := stakingManager.SetTargetRolls(params.Body.Address, uint64(params.Body.TargetRolls))
+		err := stakingManager.SetTargetRolls(params.Body.Address, int64(params.Body.TargetRolls))
 		if err != nil {
 			return operations.NewUpdateStakingAddressInternalServerError().WithPayload(&models.Error{
 				Message: err.Error(),

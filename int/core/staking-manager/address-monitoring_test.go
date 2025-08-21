@@ -81,6 +81,30 @@ func TestHandleRollsUpdates(t *testing.T) {
 			},
 		},
 		{
+			name: "Should buy maximum rolls when target is negative",
+			newAddresses: []StakingAddress{
+				{
+					Address:        "test_address_negative",
+					CandidateRolls: 5,
+					FinalBalance:   1000.0, // Can buy 10 rolls with this balance
+				},
+			},
+			existingAddrs: []StakingAddress{
+				{
+					Address:     "test_address_negative",
+					TargetRolls: -1, // Negative target means buy as much as possible
+				},
+			},
+			expectedCalls: func(mockClient *clientDriver.MockClientDriver, mockDB *dbPkg.MockDB, t *testing.T) {
+				// Should buy maximum rolls possible: 1000.0 / 100.0 = 10 rolls
+				mockClient.On("BuyRolls", mock.Anything, "test_address_negative", uint64(10), float32(minimalFees)).Return("tx_hash", nil).Once()
+				mockDB.On("AddRollOpHistory", "test_address_negative", dbPkg.RollOpBuy, uint64(10), "tx_hash", utils.NetworkMainnet).Return(nil).Once()
+			},
+			expectedPendingOperationId: []string{
+				"tx_hash",
+			},
+		},
+		{
 			name: "Should not sell rolls when insufficient balance for fees",
 			newAddresses: []StakingAddress{
 				{
