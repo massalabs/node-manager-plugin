@@ -15,13 +15,13 @@ import (
 type DB interface {
 	Close() error
 	GetRollsTarget(network utils.Network) ([]AddressInfo, error)
-	UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error
-	AddRollsTarget(address string, rollTarget uint64, network utils.Network) error
+	UpdateRollsTarget(address string, rollTarget int64, network utils.Network) error
+	AddRollsTarget(address string, rollTarget int64, network utils.Network) error
 	DeleteRollsTarget(address string, network utils.Network) error
 	PostHistory(history ValueHistory, network utils.Network) error
 	GetHistory(since time.Time, network utils.Network) ([]ValueHistory, error)
 	DeleteOldValueHistory(cutoff time.Time) error
-	AddRollOpHistory(address string, op rollOp, amount uint64, opId string, network utils.Network) error
+	AddRollOpHistory(address string, op RollOp, amount uint64, opId string, network utils.Network) error
 	GetRollOpHistory(address string, network utils.Network) ([]RollOpHistory, error)
 	DeleteRollOpHistoryByAddress(address string) error
 }
@@ -37,7 +37,7 @@ type ValueHistory struct {
 
 type AddressInfo struct {
 	Address    string `json:"address"`
-	RollTarget uint64 `json:"roll_target"`
+	RollTarget int64  `json:"roll_target"`
 	Network    string `json:"network"`
 }
 
@@ -48,11 +48,11 @@ type RollOpHistory struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-type rollOp string
+type RollOp string
 
 const (
-	RollOpBuy  rollOp = "BUY"
-	RollOpSell rollOp = "SELL"
+	RollOpBuy  RollOp = "BUY"
+	RollOpSell RollOp = "SELL"
 )
 
 // NewDB creates a new database connection and initializes tables
@@ -167,7 +167,7 @@ func (d *dB) GetRollsTarget(network utils.Network) ([]AddressInfo, error) {
 }
 
 // UpdateRollsTarget updates the roll_target for a specific address and network
-func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.Network) error {
+func (d *dB) UpdateRollsTarget(address string, rollTarget int64, network utils.Network) error {
 	exists, err := d.existsRollsTarget(address, network)
 	if err != nil {
 		return fmt.Errorf("failed to check if roll target for address %s exists for network %s: %w", address, string(network), err)
@@ -197,7 +197,7 @@ func (d *dB) UpdateRollsTarget(address string, rollTarget uint64, network utils.
 }
 
 // AddRollsTarget adds a new address with roll_target for a specific network
-func (d *dB) AddRollsTarget(address string, rollTarget uint64, network utils.Network) error {
+func (d *dB) AddRollsTarget(address string, rollTarget int64, network utils.Network) error {
 	query := `INSERT INTO rolls_target (address, roll_target, network) VALUES (?, ?, ?)`
 
 	_, err := d.db.Exec(query, address, rollTarget, string(network))
@@ -318,7 +318,7 @@ func (d *dB) DeleteOldValueHistory(cutoff time.Time) error {
 }
 
 // AddRollOpHistory adds a new roll operation history record
-func (d *dB) AddRollOpHistory(address string, op rollOp, amount uint64, opId string, network utils.Network) error {
+func (d *dB) AddRollOpHistory(address string, op RollOp, amount uint64, opId string, network utils.Network) error {
 	query := `INSERT INTO rolls_op_history (address, op, amount, network, op_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)`
 
 	_, err := d.db.Exec(query, address, op, amount, string(network), opId, time.Now())
@@ -331,7 +331,7 @@ func (d *dB) AddRollOpHistory(address string, op rollOp, amount uint64, opId str
 
 // GetRollOpHistory retrieves all roll operation history records for a specific address and network, ordered chronologically
 func (d *dB) GetRollOpHistory(address string, network utils.Network) ([]RollOpHistory, error) {
-	query := `SELECT op, amount, op_id, timestamp FROM rolls_op_history WHERE address = ? AND network = ? ORDER BY timestamp ASC`
+	query := `SELECT op, amount, op_id, timestamp FROM rolls_op_history WHERE address = ? AND network = ? ORDER BY timestamp DESC`
 
 	rows, err := d.db.Query(query, address, string(network))
 	if err != nil {

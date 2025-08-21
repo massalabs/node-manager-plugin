@@ -351,7 +351,7 @@ definitions:
       address:
         type: string
         description: The address of the staking address
-      target_rolls:
+      target_rolls: # if target rolls is negative, it means that the address is auto-compounding: buy as many rolls as possible
         type: integer
         description: The target rolls of the staking address
       final_roll_count:
@@ -421,7 +421,7 @@ definitions:
         type: string
         description: The address of the staking address
       target_rolls:  
-        type: number
+        type: integer
         description: The target rolls of the staking address
 
   RemoveStakingAddressBody:

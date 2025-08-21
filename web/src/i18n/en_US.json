@@ -146,6 +146,8 @@
       "deferred-credits-tooltip": "When rolls are sold, staked MAS are frozen for a cycle before they can be spent",
       "roll-op-history-tooltip": "History of roll buy and sell operations for this address. Operations that occured while the node manager was down are not included.",
       "updateRollTarget": {
+        "maximum": "Maximum",
+        "maximumTooltip": "Buy as much rolls as possible",
         "confirmModal": {
           "title": "Update Roll Target",
           "rollBuy": "You are going to buy {rollsToBuy} rolls",

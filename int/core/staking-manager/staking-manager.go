@@ -61,7 +61,7 @@ type StakingAddress struct {
 	CandidateBalance   float64          `json:"candidate_balance"`
 	Thread             uint8            `json:"thread"`
 	DeferredCredits    []DeferredCredit `json:"deferred_credits"`
-	TargetRolls        uint64           `json:"target_rolls"`
+	TargetRolls        int64            `json:"target_rolls"` // if target rolls is negative, it means that the address is auto-compounding: buy as many rolls as possible
 	pendingOperationId *string
 }
 
@@ -69,7 +69,7 @@ type StakingManager interface {
 	GetStakingAddresses(pwd string) ([]StakingAddress, AddressChangedDispatcher, error)
 	AddStakingAddress(pwdNode, pwdAccount, nickname string) (StakingAddress, error)
 	RemoveStakingAddress(pwd, address string) error
-	SetTargetRolls(address string, targetRolls uint64) error
+	SetTargetRolls(address string, targetRolls int64) error
 	Close() error
 }
 
@@ -166,7 +166,9 @@ func (s *stakingManager) AddStakingAddress(pwdNode, pwdAccount, nickname string)
 	if !config.GlobalPluginInfo.GetIsMainnet() {
 		currentNetwork = utils.NetworkBuildnet
 	}
-	if err := s.db.AddRollsTarget(address, 0, currentNetwork); err != nil { // Default to 0 rolls target
+
+	// Default to -1 rolls target (auto-compounding) -> buy as many rolls as possible
+	if err := s.db.AddRollsTarget(address, -1, currentNetwork); err != nil {
 		return StakingAddress{}, fmt.Errorf("address added to node staking addresses but failed to add address to rolls_target table in local database: %w", err)
 	}
 
@@ -255,7 +257,7 @@ func (s *stakingManager) RemoveStakingAddress(pwd, address string) error {
 }
 
 // SetTargetRolls sets the target rolls for a staking address
-func (s *stakingManager) SetTargetRolls(address string, targetRolls uint64) error {
+func (s *stakingManager) SetTargetRolls(address string, targetRolls int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -171,95 +171,123 @@ func (s *stakingManager) handleRollsUpdates(newAddresses []StakingAddress) {
 	}
 }
 
-func (s *stakingManager) sellBuyRollsAddress(newAddress StakingAddress) error {
-	index, _ := s.getAddressIndexFromRamList(newAddress.Address)
+func (s *stakingManager) sellBuyRollsAddress(address StakingAddress) error {
+	index, _ := s.getAddressIndexFromRamList(address.Address)
 	currentRollTarget := s.stakingAddresses[index].TargetRolls
 
+	// Before sending a new roll operation, we need to check if there is a pending operation and if it is completed
 	pendingOpCompleted, err := s.checkIfPendingOperationIsCompleted(index)
 	if err != nil {
-		logger.Errorf("failed to check if there is a pending operation and if it is completed for address %s: %v", newAddress.Address, err)
+		logger.Errorf("failed to check if there is a pending operation and if it is completed for address %s: %v", address.Address, err)
 		return errorPkg.New(
 			errorPkg.ErrStakingManagerPendingOperationNotCompleted,
-			fmt.Sprintf("failed to check if there is a pending operation and if it is completed for address %s", newAddress.Address),
+			fmt.Sprintf("failed to check if there is a pending operation and if it is completed for address %s", address.Address),
 		)
 	}
 
+	// If there is a pending operation and it is not completed, we skip the rolls update
 	if !pendingOpCompleted {
-		logger.Debugf("pending operation for address %s is not completed, skipping rolls update", newAddress.Address)
+		logger.Debugf("pending operation for address %s is not completed, skipping rolls update", address.Address)
 		return errorPkg.New(
 			errorPkg.ErrStakingManagerPendingOperationNotCompleted,
-			fmt.Sprintf("pending operation for address %s is not completed, skipping rolls update", newAddress.Address),
+			fmt.Sprintf("pending operation for address %s is not completed, skipping rolls update", address.Address),
 		)
+	}
+
+	// When the target rolls is negative -> auto compound: buy as many rolls as possible
+	if currentRollTarget < 0 {
+		// Calculate maximum rolls that can be bought with available balance
+		maxRollsToBuy := uint64(address.FinalBalance / float64(s.miscellaneous.RollPrice))
+
+		if maxRollsToBuy > 0 {
+			// Check if the address has enough balance to pay minimal fees
+			if float64(s.miscellaneous.MinimalFees) > address.FinalBalance {
+				return fmt.Errorf("address %s need to buy rolls but has %f mas which is less than minimal fees (%.2f mas)", address.Address, address.FinalBalance, s.miscellaneous.MinimalFees)
+			}
+
+			logger.Infof("Address %s (balance: %f) has %d rolls and target is maximum: Need to buy %d rolls (max possible)", address.Address, address.FinalBalance, address.FinalRolls, maxRollsToBuy)
+			opId, err := s.clientDriver.BuyRolls(configPkg.GlobalPluginInfo.GetPwd(), address.Address, maxRollsToBuy, float32(s.miscellaneous.MinimalFees))
+			if err != nil {
+				return fmt.Errorf("failed to buy rolls for address %s: %v", address.Address, err)
+			}
+
+			if err := s.handleRollOpMonitoring(index, opId, db.RollOpBuy, maxRollsToBuy); err != nil {
+				return fmt.Errorf("failed to handle roll op monitoring for address %s: %v", address.Address, err)
+			}
+
+			logger.Infof("Bought %d rolls for address %s", maxRollsToBuy, address.Address)
+		}
+		return nil
 	}
 
 	// Sell rolls
-	if currentRollTarget < newAddress.CandidateRolls {
+	if currentRollTarget < int64(address.CandidateRolls) {
 		// Check if the address has enough balance to pay minimal fees
-		if float64(s.miscellaneous.MinimalFees) > newAddress.FinalBalance {
-			logger.Errorf("address %s need to sell rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
-			return fmt.Errorf("address %s need to sell rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
+		if float64(s.miscellaneous.MinimalFees) > address.FinalBalance {
+			return fmt.Errorf("address %s need to sell rolls but has %f mas which is less than minimal fees (%.2f mas)", address.Address, address.FinalBalance, s.miscellaneous.MinimalFees)
 		}
-		rollsToSell := newAddress.CandidateRolls - currentRollTarget
-		logger.Infof("Address %s had %d rolls and %d target rolls: Need to sell %d rolls", newAddress.Address, newAddress.FinalRolls, currentRollTarget, rollsToSell)
+		rollsToSell := address.CandidateRolls - uint64(currentRollTarget)
+		logger.Infof("Address %s had %d rolls and %d target rolls: Need to sell %d rolls", address.Address, address.FinalRolls, currentRollTarget, rollsToSell)
 
-		opId, err := s.clientDriver.SellRolls(configPkg.GlobalPluginInfo.GetPwd(), newAddress.Address, uint64(rollsToSell), float32(s.miscellaneous.MinimalFees))
+		opId, err := s.clientDriver.SellRolls(configPkg.GlobalPluginInfo.GetPwd(), address.Address, rollsToSell, float32(s.miscellaneous.MinimalFees))
 		if err != nil {
-			logger.Errorf("failed to sell rolls for address %s: %v", newAddress.Address, err)
-			return fmt.Errorf("failed to sell rolls for address %s: %v", newAddress.Address, err)
+			return fmt.Errorf("failed to sell rolls for address %s: %v", address.Address, err)
 		}
 
-		// Record the roll operation in the database
-		currentNetwork := utils.NetworkMainnet
-		if !configPkg.GlobalPluginInfo.GetIsMainnet() {
-			currentNetwork = utils.NetworkBuildnet
-		}
-		if err := s.db.AddRollOpHistory(newAddress.Address, db.RollOpSell, uint64(rollsToSell), opId, currentNetwork); err != nil {
-			logger.Errorf("failed to record sell roll operation for address %s: %v", newAddress.Address, err)
+		if err := s.handleRollOpMonitoring(index, opId, db.RollOpSell, rollsToSell); err != nil {
+			return fmt.Errorf("failed to handle roll op monitoring for address %s: %v", address.Address, err)
 		}
 
-		/* if the sellRolls op has been sent, we need to wait for it to be completed.
-		so we save it's op id to be able tocheck later if it has been completed */
-		s.stakingAddresses[index].pendingOperationId = &opId
-
-		logger.Infof("Sold %d rolls for address %s", rollsToSell, newAddress.Address)
+		logger.Infof("Sold %d rolls for address %s", rollsToSell, address.Address)
 
 		// Buy rolls
-	} else if currentRollTarget > newAddress.CandidateRolls {
+	} else if currentRollTarget > int64(address.CandidateRolls) {
 		// Check if the address has enough balance to pay minimal fees
-		if float64(s.miscellaneous.MinimalFees) > newAddress.FinalBalance {
-			logger.Errorf("Address %s need to buy rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
-			return fmt.Errorf("address %s need to buy rolls but has %f mas which is less than minimal fees (%.2f mas)", newAddress.Address, newAddress.FinalBalance, s.miscellaneous.MinimalFees)
+		if float64(s.miscellaneous.MinimalFees) > address.FinalBalance {
+			return fmt.Errorf("address %s need to buy rolls but has %f mas which is less than minimal fees (%.2f mas)", address.Address, address.FinalBalance, s.miscellaneous.MinimalFees)
 		}
 
 		rollsToBuy := uint64(min(
-			float64(currentRollTarget-newAddress.CandidateRolls),
-			newAddress.FinalBalance/float64(s.miscellaneous.RollPrice),
+			float64(currentRollTarget-int64(address.CandidateRolls)),
+			address.FinalBalance/float64(s.miscellaneous.RollPrice),
 		))
 
 		if rollsToBuy > 0 {
-			logger.Infof("Address %s (balance: %f) had %d rolls and %d target rolls: Need to buy %d rolls", newAddress.Address, newAddress.FinalBalance, newAddress.FinalBalance, newAddress.FinalRolls, currentRollTarget, rollsToBuy)
-			opId, err := s.clientDriver.BuyRolls(configPkg.GlobalPluginInfo.GetPwd(), newAddress.Address, rollsToBuy, float32(s.miscellaneous.MinimalFees))
+			logger.Infof("Address %s (balance: %f) has %d rolls and %d target rolls: Need to buy %d rolls", address.Address, address.FinalBalance, address.FinalBalance, address.FinalRolls, currentRollTarget, rollsToBuy)
+			opId, err := s.clientDriver.BuyRolls(configPkg.GlobalPluginInfo.GetPwd(), address.Address, rollsToBuy, float32(s.miscellaneous.MinimalFees))
 			if err != nil {
-				logger.Errorf("failed to buy rolls for address %s: %v", newAddress.Address, err)
-				return fmt.Errorf("failed to buy rolls for address %s: %v", newAddress.Address, err)
+				return fmt.Errorf("failed to buy rolls for address %s: %v", address.Address, err)
 			}
 
-			// Record the roll operation in the database
-			currentNetwork := utils.NetworkMainnet
-			if !configPkg.GlobalPluginInfo.GetIsMainnet() {
-				currentNetwork = utils.NetworkBuildnet
-			}
-			if err := s.db.AddRollOpHistory(newAddress.Address, db.RollOpBuy, rollsToBuy, opId, currentNetwork); err != nil {
-				logger.Errorf("failed to record buy roll operation for address %s: %v", newAddress.Address, err)
+			if err := s.handleRollOpMonitoring(index, opId, db.RollOpBuy, rollsToBuy); err != nil {
+				return fmt.Errorf("failed to handle roll op monitoring for address %s: %v", address.Address, err)
 			}
 
-			/* if the buyRolls op has been sent, we need to wait for it to be completed.
-			so we save it's op id to be able tocheck later if it has been completed */
-			s.stakingAddresses[index].pendingOperationId = &opId
-
-			logger.Infof("Bought %d rolls for address %s", rollsToBuy, newAddress.Address)
+			logger.Infof("Bought %d rolls for address %s", rollsToBuy, address.Address)
 		}
 	}
+	return nil
+}
+
+func (s *stakingManager) handleRollOpMonitoring(index int, opId string, operationType db.RollOp, amount uint64) error {
+	/* if the buyRolls or sellRolls op has been sent, we need to wait for it to be completed.
+	so we save it's op id to be able tocheck later if it has been completed */
+	s.stakingAddresses[index].pendingOperationId = &opId
+
+	// Record the roll operation in the database
+	currentNetwork := utils.NetworkMainnet
+	if !configPkg.GlobalPluginInfo.GetIsMainnet() {
+		currentNetwork = utils.NetworkBuildnet
+	}
+
+	if err := s.db.AddRollOpHistory(s.stakingAddresses[index].Address, operationType, amount, opId, currentNetwork); err != nil {
+		if operationType == db.RollOpBuy {
+			return fmt.Errorf("failed to record buy roll operation for address %s (amount: %d): %v", s.stakingAddresses[index].Address, amount, err)
+		} else {
+			return fmt.Errorf("failed to record sell roll operation for address %s (amount: %d): %v", s.stakingAddresses[index].Address, amount, err)
+		}
+	}
+
 	return nil
 }
 

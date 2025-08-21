@@ -99,7 +99,7 @@ func TestAddStakingAddress(t *testing.T) {
 			setupMocks: func(mockClient *clientDriverPkg.MockClientDriver, mockDB *dbPkg.MockDB, mockNodeAPI *nodeAPIPkg.MockNodeAPI, mockWalletManager *MockMassaWalletManager, t *testing.T) {
 				mockWalletManager.On("GetPrivateKeyFromNickname", "account_password", "test_wallet").Return("test_private_key", "test_address", nil).Once()
 				mockClient.On("AddStakingAddress", "node_password", "test_private_key", "test_address").Return(nil).Once()
-				mockDB.On("AddRollsTarget", "test_address", uint64(0), utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("AddRollsTarget", "test_address", int64(-1), utils.NetworkMainnet).Return(nil).Once()
 				mockNodeAPI.On("GetAddresses", []string{"test_address"}).Return([]byte(`[{"address":"test_address","final_roll_count":0,"candidate_roll_count":0,"final_balance":"100.0","candidate_balance":"100.0","thread":0,"deferred_credits":[]}]`), nil).Once()
 				mockClient.On("WalletInfo", mock.Anything).Return(map[string]clientDriverPkg.WalletInfo{
 					"test_address": {
@@ -334,7 +334,7 @@ func TestSetTargetRolls(t *testing.T) {
 	tests := []struct {
 		name          string
 		address       string
-		targetRolls   uint64
+		targetRolls   int64
 		existingAddr  *StakingAddress
 		setupMocks    func(*dbPkg.MockDB, *MockAddressChangedDispatcher, *clientDriverPkg.MockClientDriver)
 		expectedError string
@@ -349,7 +349,7 @@ func TestSetTargetRolls(t *testing.T) {
 				TargetRolls:  5,
 			},
 			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
-				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("UpdateRollsTarget", "test_address", int64(10), utils.NetworkMainnet).Return(nil).Once()
 				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
 					{
 						Address:      "test_address",
@@ -394,10 +394,10 @@ func TestSetTargetRolls(t *testing.T) {
 				TargetRolls:  5,
 			},
 			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
-				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
+				mockDB.On("UpdateRollsTarget", "test_address", int64(10), utils.NetworkMainnet).Return(
 					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
 				).Once()
-				mockDB.On("AddRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(nil).Once()
+				mockDB.On("AddRollsTarget", "test_address", int64(10), utils.NetworkMainnet).Return(nil).Once()
 				mockAddressChangedDispatcher.On("Publish", []StakingAddress{
 					{
 						Address:      "test_address",
@@ -419,10 +419,10 @@ func TestSetTargetRolls(t *testing.T) {
 				TargetRolls: 5,
 			},
 			setupMocks: func(mockDB *dbPkg.MockDB, mockAddressChangedDispatcher *MockAddressChangedDispatcher, mockClient *clientDriverPkg.MockClientDriver) {
-				mockDB.On("UpdateRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(
+				mockDB.On("UpdateRollsTarget", "test_address", int64(10), utils.NetworkMainnet).Return(
 					nodeManagerError.New(nodeManagerError.ErrDBNotFoundItem, "target rolls for address test_address (mainnet) not found in database"),
 				).Once()
-				mockDB.On("AddRollsTarget", "test_address", uint64(10), utils.NetworkMainnet).Return(assert.AnError).Once()
+				mockDB.On("AddRollsTarget", "test_address", int64(10), utils.NetworkMainnet).Return(assert.AnError).Once()
 			},
 			expectedError: "failed to add target rolls for address test_address (mainnet) to database: ",
 		},
