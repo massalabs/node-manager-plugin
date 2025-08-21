@@ -3,6 +3,7 @@ module.exports = {
     '@massalabs',
     'plugin:@tanstack/eslint-plugin-query/recommended',
     'plugin:react-hooks/recommended',
+    'prettier',
   ],
   plugins: ['html', '@tanstack/query', 'import'],
   rules: {

@@ -17,6 +17,7 @@ export interface StakingAddress {
   candidate_balance: number;
   thread: number;
   deferred_credits: DeferredCredit[];
+  // if target rolls is negative, it means that the address is auto-compounding: buy as many rolls as possible
   target_rolls: number;
 }
 

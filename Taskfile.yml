@@ -175,10 +175,12 @@ tasks:
     desc: Run Go tests for all packages
     cmds:
       - cmd: go test ./...
+      - cmd: cd web && npm run test
 
   lint:
     desc: Run golangci-lint for code quality checks
     cmds:
+      - cmd: gofumpt -l -d -e .
       - cmd: golangci-lint run
 
   fmt:

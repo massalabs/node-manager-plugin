@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import { FiBarChart2 } from 'react-icons/fi';
 import {
@@ -27,21 +27,25 @@ const SINCE_OPTIONS = [
 const MIN_NON_EMPTY_DATA_POINT_RATE = 10; // if less than 10% of the data points are non-empty, no enough data
 
 const HistoryGraph: React.FC = () => {
-  const [selectedSince, setSelectedSince] = useState<SinceFetch>(SinceFetch.D1);
-  const { valueHistory, fetchValueHistory, nonEmptyDataPointRate } =
-    useTotValueHistory();
+  const {
+    valueHistory,
+    fetchValueHistory,
+    nonEmptyDataPointRate,
+    since: selectedSince,
+    setSince,
+  } = useTotValueHistory();
   const nodeStatus = useNodeStore((state) => state.status);
 
   // when the node is up, fetch the value history for 1 month
   useEffect(() => {
     if (nodeStatus === NodeStatus.ON) {
       fetchValueHistory(SinceFetch.D1);
-      setSelectedSince(SinceFetch.D1);
+      setSince(SinceFetch.D1);
     }
-  }, [nodeStatus, fetchValueHistory]);
+  }, [nodeStatus, fetchValueHistory, setSince]);
 
   const handleSinceClick = (since: SinceFetch) => {
-    setSelectedSince(since);
+    setSince(since);
     fetchValueHistory(since);
   };
 
@@ -85,7 +89,8 @@ const HistoryGraph: React.FC = () => {
           </div>
         )}
       </div>
-      {nonEmptyDataPointRate < MIN_NON_EMPTY_DATA_POINT_RATE ? (
+      {nonEmptyDataPointRate < MIN_NON_EMPTY_DATA_POINT_RATE ||
+      valueHistory.length == 0 ? (
         <div className="flex flex-col items-center justify-center h-full">
           <FiBarChart2 className="text-6xl text-gray-400 mb-4" />
           <p className="text-gray-400 text-sm">Not enough data</p>
@@ -109,7 +114,7 @@ const HistoryGraph: React.FC = () => {
             />
             <YAxis
               dataKey="value"
-              domain={['dataMin - 10', 'dataMax + 10']}
+              domain={['dataMin - 1', 'dataMax + 1']}
               tickFormatter={yAxisTickFormatter}
             />
             <CartesianGrid strokeDasharray="3 3" />
