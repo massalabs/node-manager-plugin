@@ -7,15 +7,20 @@ import (
 
 	"github.com/massalabs/node-manager-plugin/int/api"
 	"github.com/massalabs/node-manager-plugin/int/config"
+	"github.com/massalabs/node-manager-plugin/int/utils"
 	"github.com/massalabs/station/pkg/logger"
 )
 
 const pluginLogPath = "pluginLogs"
 
 func main() {
-	logPath := filepath.Join(pluginLogPath, "node-manager-plugin.log")
+	execDir, err := utils.GetExecDirPath()
+	if err != nil {
+		log.Fatalf("failed to get executable directory path: %v", err)
+	}
+	logPath := filepath.Join(execDir, pluginLogPath, "node-manager-plugin.log")
 
-	err := logger.InitializeGlobal(logPath)
+	err = logger.InitializeGlobal(logPath)
 	if err != nil {
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
