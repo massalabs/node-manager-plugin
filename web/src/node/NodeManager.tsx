@@ -4,18 +4,26 @@ import { Toggle, Tooltip } from '@massalabs/react-ui-kit';
 import { Clipboard } from '@massalabs/react-ui-kit';
 
 import { Logs } from './Logs';
+import { MassaStationRpcButton } from './MassaStationRpcButton';
 import { OnOffBtn } from './OnOffBtn';
 import { SelectNetwork } from './SelectNetwork';
 import { Status } from './Status';
 import { useAutoRestart } from '../hooks/node-manager/useAutoRestart';
 import Intl from '@/i18n/i18n';
 import { useNodeStore } from '@/store/nodeStore';
-import { NodeStatus } from '@/utils';
+import {
+  DEFAULT_GRPC_PORT,
+  DEFAULT_JSON_RPC_PORT,
+  showRpcAddButton,
+} from '@/utils';
 
 export const NodeManager: React.FC = () => {
   const { autoRestart, handleToggleChange } = useAutoRestart();
   const status = useNodeStore((state) => state.status);
-  const nodeRunning = status === NodeStatus.ON;
+
+  const host = window.location.hostname;
+  const jsonRpcUrl = `http://${host}:${DEFAULT_JSON_RPC_PORT}`;
+  const grpcUrl = `grpc://${host}:${DEFAULT_GRPC_PORT}`;
 
   return (
     <div className="bg-secondary rounded-2xl p-8 w-full h-full relative border border-gray-700 flex flex-col">
@@ -51,27 +59,33 @@ export const NodeManager: React.FC = () => {
       </div>
 
       {/* Public API - only show when node is running */}
-      {nodeRunning && (
+      {showRpcAddButton(status) && (
         <div className="mb-8">
-          <div className="text-white text-sm flex justify-between items-center">
+          <div className="text-white text-sm flex justify-between items-center mb-3">
             <span className="font-medium">JsonRPC API:</span>
             <div className="w-[50%]">
               <Clipboard
-                rawContent="http://localhost:33035"
-                displayedContent="http://localhost:33035"
+                rawContent={jsonRpcUrl}
+                displayedContent={jsonRpcUrl}
+                customClass="h-7"
+              />
+            </div>
+          </div>
+          <div className="text-white text-sm flex justify-between items-center mb-3">
+            <span className="font-medium">gRPC API:</span>
+            <div className="w-[50%]">
+              <Clipboard
+                rawContent={grpcUrl}
+                displayedContent={grpcUrl}
                 customClass="h-7"
               />
             </div>
           </div>
           <div className="text-white text-sm flex justify-between items-center">
-            <span className="font-medium">gRPC API:</span>
-            <div className="w-[50%]">
-              <Clipboard
-                rawContent="grpc://localhost:33037"
-                displayedContent="grpc://localhost:33037"
-                customClass="h-7"
-              />
-            </div>
+            <span className="font-medium">
+              {Intl.t('node.massaStationRpc.label')}
+            </span>
+            <MassaStationRpcButton />
           </div>
         </div>
       )}
