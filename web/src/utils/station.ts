@@ -1,8 +1,13 @@
 import axios from 'axios';
 
-const MASSA_STATION_URL = 'https://station.massa/';
-const MASSA_WALLET_URL =
-  MASSA_STATION_URL + 'plugin/massa-labs/massa-wallet/api/';
+const MASSA_WALLET_API = 'plugin/massa-labs/massa-wallet/api/';
+
+export function getMassaStationUrl() {
+  if (import.meta.env.VITE_ENV === 'standalone') {
+    return 'https://station.massa/';
+  }
+  return '/';
+}
 
 type PluginInfo = {
   name: string;
@@ -16,24 +21,31 @@ type Account = {
 };
 
 export async function isMassaWalletInstalled(): Promise<boolean> {
-  const response = await axios.get(MASSA_STATION_URL + 'plugin-manager');
-  const plugins = response.data;
+  try {
+    const response = await axios.get(getMassaStationUrl() + 'plugin-manager');
+    const plugins = response.data;
 
-  // Check if Massa Wallet plugin exists in the list
-  return plugins.some(
-    (plugin: PluginInfo) =>
-      plugin.name === 'Massa Wallet' && plugin.status === 'Up',
-  );
+    // Check if Massa Wallet plugin exists in the list
+    return plugins.some(
+      (plugin: PluginInfo) =>
+        plugin.name === 'Massa Wallet' && plugin.status === 'Up',
+    );
+  } catch (error) {
+    return false;
+  }
 }
 
 export async function getStationAccounts(): Promise<Account[]> {
-  const response = await axios.get(MASSA_WALLET_URL + 'accounts', {
-    timeout: 5000,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+  const response = await axios.get(
+    getMassaStationUrl() + MASSA_WALLET_API + 'accounts',
+    {
+      timeout: 5000,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
     },
-  });
+  );
 
   const accounts: Account[] = response.data;
 

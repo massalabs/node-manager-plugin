@@ -21,3 +21,7 @@ export function isStopStakingMonitoring(status: NodeStatus): boolean {
     status === NodeStatus.STOPPING
   );
 }
+
+export function showRpcAddButton(status: NodeStatus): boolean {
+  return status === NodeStatus.ON || status === NodeStatus.BOOTSTRAPPING;
+}

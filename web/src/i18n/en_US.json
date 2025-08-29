@@ -40,6 +40,11 @@
       "noLogs": "No logs found",
       "error": "Error while downloading logs"
     },
+    "massaStationRpc": {
+      "label": "MassaStation:",
+      "button": "Add a new RPC",
+      "description": "Add this node to MassaStation custom RPC"
+    },
     "password": {
       "title": "Enter Node Password",
       "description": "Please enter the password to start the node",
