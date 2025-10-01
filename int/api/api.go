@@ -19,8 +19,8 @@ import (
 	metricsPkg "github.com/massalabs/node-manager-plugin/int/node-api/metrics"
 	nodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriverPkg "github.com/massalabs/node-manager-plugin/int/node-driver"
-	"github.com/massalabs/station-massa-hello-world/pkg/plugin"
 	"github.com/massalabs/station/pkg/logger"
+	pluginKit "github.com/massalabs/station/plugin-kit"
 )
 
 const (
@@ -111,22 +111,23 @@ func (a *API) Start() {
 	} else {
 		// We don't care about the port of the plugin API as MassaStation will handle the port mapping
 		a.apiServer.Port = 0
+
+		// Register the plugin to massa station
+		listener, err := a.apiServer.HTTPListener()
+		if err != nil {
+			logger.Fatalf("Failed to get HTTP listener: %v", err)
+		}
+
+		logger.Info("Registering node manager plugin to Massa Station")
+		if err := pluginKit.RegisterPlugin(listener); err != nil {
+			logger.Fatalf("Failed to register plugin: %v", err)
+		}
 	}
+
 	a.registerHandlers()
 	a.apiServer.ConfigureAPI()
 
 	a.apiServer.SetHandler(a.api.Serve(nil))
-
-	// Register the plugin to massa station
-	listener, err := a.apiServer.HTTPListener()
-	if err != nil {
-		logger.Fatalf("Failed to get HTTP listener: %v", err)
-	}
-
-	logger.Info("Registering node manager plugin to Massa Station")
-	if err := plugin.RegisterPlugin(listener); err != nil {
-		logger.Fatalf("Failed to register plugin: %v", err)
-	}
 
 	logger.Infof("Starting node manager plugin API on port %d", a.apiServer.Port)
 

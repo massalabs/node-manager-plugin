@@ -1,6 +1,6 @@
 module github.com/massalabs/node-manager-plugin
 
-go 1.24.2
+go 1.24.6
 
 require (
 	github.com/awnumar/memguard v0.22.3
@@ -13,8 +13,8 @@ require (
 	github.com/go-openapi/validate v0.24.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/massalabs/station v0.6.9
-	github.com/massalabs/station-massa-hello-world v0.0.11-0.20240503070604-6b14a27fcdff
 	github.com/massalabs/station-massa-wallet v0.5.1
+	github.com/massalabs/station/plugin-kit v0.1.1
 	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.41.0
