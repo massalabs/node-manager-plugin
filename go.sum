@@ -67,10 +67,10 @@ github.com/mailru/easyjson v0.9.0 h1:PrnmzHw7262yW8sTBwxi1PdJA3Iw/EKBa8psRf7d9a4
 github.com/mailru/easyjson v0.9.0/go.mod h1:1+xMtQp2MRNVL/V1bOzuP3aP8VNwRW55fQUto+XFtTU=
 github.com/massalabs/station v0.6.9 h1:eampc2dndCq8BHUydRlcMSy1i1dBhxqI5tKWKGMMj+4=
 github.com/massalabs/station v0.6.9/go.mod h1:fvIMuIS8v1/tu5e4FPvvqEJEcLsZN+wUD5OMSHD/rO8=
-github.com/massalabs/station-massa-hello-world v0.0.11-0.20240503070604-6b14a27fcdff h1:SZoRmXdbolVjhbsxO/3KWX8429Q1VnaQdQy0h718CqE=
-github.com/massalabs/station-massa-hello-world v0.0.11-0.20240503070604-6b14a27fcdff/go.mod h1:QbRHQvJFrm4mO+vPzr4Uiwa5REL/CgBlV4PDFdhewa0=
 github.com/massalabs/station-massa-wallet v0.5.1 h1:tF4sX7Qt3mcFyLqlqbBj6uUqQgDMYa+3/uQkHF3j/1I=
 github.com/massalabs/station-massa-wallet v0.5.1/go.mod h1:36O0NV1arEDy8NXPGj+vtlTftAgJ/QgG+keIOatZOnw=
+github.com/massalabs/station/plugin-kit v0.1.1 h1:KIzEjQX1ukgSSmmnD3EVADN9N7h3kTbFzHI3lal9+Po=
+github.com/massalabs/station/plugin-kit v0.1.1/go.mod h1:ua8P3mEso/AJSyuAL1cqy4JRu7tn/zzSEZsW3FJLIew=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/ncruces/go-sqlite3 v0.27.1 h1:suqlM7xhSyDVMV9RgX99MCPqt9mB6YOCzHZuiI36K34=
