@@ -47,3 +47,5 @@ build
 # db
 *.db
 
+node-massa
+
