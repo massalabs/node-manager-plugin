@@ -315,7 +315,7 @@ definitions:
     properties:
       version: # network value is contained in the version name. Ex: MAIN.4.0
         type: string
-        description: The version of the nodee network
+        description: The version of the node network
       hasPwd:
         type: boolean
         description: Whether the node has a password set for the network
