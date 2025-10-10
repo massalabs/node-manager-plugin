@@ -21,7 +21,6 @@ require (
 	golang.org/x/sys v0.34.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
-
 )
 
 require (

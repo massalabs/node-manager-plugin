@@ -313,7 +313,7 @@ definitions:
   Network:
     type: object
     properties:
-      version: # network value is contained in the version name. Ex: MAIN.3.0
+      version: # network value is contained in the version name. Ex: MAIN.4.0
         type: string
         description: The version of the nodee network
       hasPwd:
