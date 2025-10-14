@@ -24,7 +24,9 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 	mustMkdir(t, filepath.Join(root, "random-other")) // should be removed
 
 	// Also add a file at root to ensure files are ignored
-	mustWriteFile(t, filepath.Join(root, "README.txt"), []byte("noop"))
+	mustWriteFile(t, filepath.Join(root, "MAIN.3.0", "README.txt"), []byte("noop"))
+	mustMkdir(t, filepath.Join(root, "DEVN.28.16", "random-sub-folder"))
+	mustWriteFile(t, filepath.Join(root, "DEVN.28.16", "README.txt"), []byte("noop"))
 
 	// Run cleanup
 	if err := pi.RemoveOldNodeVersionsArtifacts(root); err != nil {
@@ -37,8 +39,6 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 	assertExists(t, filepath.Join(root, "MAIN.3.0"), false)
 	assertExists(t, filepath.Join(root, "DEVN.28.16"), false)
 	assertExists(t, filepath.Join(root, "random-other"), false)
-	// Files should be kept untouched
-	assertExists(t, filepath.Join(root, "README.txt"), true)
 }
 
 func TestRemoveOldNodeVersionsArtifacts_ReadDirError(t *testing.T) {

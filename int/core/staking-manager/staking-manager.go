@@ -411,7 +411,7 @@ func (s *stakingManager) initStakingAddresses() error {
 
 /*
 cleanAddressesNotInNodeButInDB cleans all addresses that are registered in db but not in the node if any
-This usualy happens when the plugins has been updated and some addresses are still registered in db but not in the new node
+This usually happens when the plugins has been updated and some addresses are still registered in db but not in the new node
 */
 func (s *stakingManager) cleanAddressesNotInNodeButInDB(addressesInNode []string) error {
 	currentNetwork := config.GlobalPluginInfo.GetNetwork()
@@ -506,7 +506,7 @@ func (s *stakingManager) WithTargetRolls(addresses []StakingAddress) ([]StakingA
 	currentNetwork := config.GlobalPluginInfo.GetNetwork()
 	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load rolul targets from database: %w", err)
+		return nil, fmt.Errorf("failed to load roll targets from database: %w", err)
 	}
 
 	// Update in-memory addresses with database roll targets

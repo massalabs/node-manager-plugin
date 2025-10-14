@@ -837,7 +837,7 @@ func TestWithTargetRolls(t *testing.T) {
 				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return(nil, assert.AnError).Once()
 			},
 			expectedResult: nil,
-			expectedError:  "failed to load rolul targets from database",
+			expectedError:  "failed to load roll targets from database",
 		},
 		{
 			name:           "Should handle empty input addresses",
