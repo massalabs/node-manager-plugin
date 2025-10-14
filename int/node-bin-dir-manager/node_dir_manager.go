@@ -4,33 +4,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/massalabs/node-manager-plugin/int/config"
 )
 
 const (
-	massaNodeFolderDir   = "node-massa"
-	mainnetFolderPrefix  = "MAIN"
-	buildnetFolderPrefix = "DEVN"
-	nodeBinName          = "massa-node"
-	nodeBinFolder        = "massa-node"
-	clientBinName        = "massa-client"
-	clientBinFolder      = "massa-client"
-	walletFolder         = "wallets"
+	massaNodeFolderDir = "node-massa"
+	nodeBinName        = "massa-node"
+	nodeBinFolder      = "massa-node"
+	clientBinName      = "massa-client"
+	clientBinFolder    = "massa-client"
+	walletFolder       = "wallets"
 )
 
 type NodeDirManager interface {
-	// GetVersion returns the version of the node for the given network. Once retrieved, the version is cached.
-	GetVersion(isMainnet bool) (string, error)
 	GetClientBin(isMainnet bool) (string, error)
 	GetNodeBin(isMainnet bool) (string, error)
 	HasClientAddresses(isMainnet bool) (bool, error)
 }
 
 type nodeDirManager struct {
-	nodeFolderPath  string // the folder in which are stored massa node binaries for both mainnet and buildnet
-	extension       string
-	mainnetVersion  string
-	buildnetVersion string
+	nodeFolderPath string // the folder in which are stored massa node binaries for both mainnet and buildnet
+	extension      string
 }
 
 func NewNodeDirManager() (NodeDirManager, error) {
@@ -41,47 +36,8 @@ func NewNodeDirManager() (NodeDirManager, error) {
 	return ndm, nil
 }
 
-func (ndm *nodeDirManager) GetVersion(isMainnet bool) (string, error) {
-	expectedNetwork := "buildnet"
-	if isMainnet {
-		if ndm.mainnetVersion != "" {
-			return ndm.mainnetVersion, nil
-		}
-		expectedNetwork = "mainnet"
-	} else if ndm.buildnetVersion != "" {
-		return ndm.buildnetVersion, nil
-	}
-
-	// retrieve all entries in the folder
-	entries, err := os.ReadDir(ndm.nodeFolderPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read directory %s: %v", ndm.nodeFolderPath, err)
-	}
-
-	// Find the directory that starts with the prefix corresponding to the expected network
-	for _, entry := range entries {
-		if isMainnet {
-			if entry.IsDir() && strings.HasPrefix(entry.Name(), mainnetFolderPrefix) {
-				ndm.mainnetVersion = entry.Name()
-				return ndm.mainnetVersion, nil
-			}
-		} else {
-			if entry.IsDir() && strings.HasPrefix(entry.Name(), buildnetFolderPrefix) {
-				ndm.buildnetVersion = entry.Name()
-				return ndm.buildnetVersion, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("failed to find %s bin in %s directory", expectedNetwork, ndm.nodeFolderPath)
-}
-
 func (ndm *nodeDirManager) GetClientBin(isMainnet bool) (string, error) {
-	version, err := ndm.GetVersion(isMainnet)
-	if err != nil {
-		return "", err
-	}
-
+	version := config.GlobalPluginInfo.GetNetworkVersion(isMainnet)
 	binPath := filepath.Join(ndm.nodeFolderPath, version, clientBinFolder, clientBinName+ndm.extension)
 
 	if _, err := os.Stat(binPath); os.IsNotExist(err) {
@@ -92,10 +48,7 @@ func (ndm *nodeDirManager) GetClientBin(isMainnet bool) (string, error) {
 }
 
 func (ndm *nodeDirManager) GetNodeBin(isMainnet bool) (string, error) {
-	version, err := ndm.GetVersion(isMainnet)
-	if err != nil {
-		return "", err
-	}
+	version := config.GlobalPluginInfo.GetNetworkVersion(isMainnet)
 
 	binPath := filepath.Join(ndm.nodeFolderPath, version, nodeBinFolder, nodeBinName+ndm.extension)
 
@@ -107,10 +60,7 @@ func (ndm *nodeDirManager) GetNodeBin(isMainnet bool) (string, error) {
 }
 
 func (ndm *nodeDirManager) HasClientAddresses(isMainnet bool) (bool, error) {
-	version, err := ndm.GetVersion(isMainnet)
-	if err != nil {
-		return false, err
-	}
+	version := config.GlobalPluginInfo.GetNetworkVersion(isMainnet)
 
 	clientPath := filepath.Join(ndm.nodeFolderPath, version, clientBinFolder)
 
@@ -151,6 +101,11 @@ func (ndm *nodeDirManager) init() error {
 	// On Windows, add .exe extension
 	if filepath.Ext(execPath) == ".exe" {
 		ndm.extension = ".exe"
+	}
+
+	// clean old node versions if any
+	if err := config.GlobalPluginInfo.RemoveOldNodeVersionsArtifacts(ndm.nodeFolderPath); err != nil {
+		return fmt.Errorf("failed to remove old node versions bin folders: %v", err)
 	}
 
 	return nil

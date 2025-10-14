@@ -9,7 +9,6 @@ import (
 
 	"github.com/massalabs/node-manager-plugin/int/config"
 	nodeStatusPkg "github.com/massalabs/node-manager-plugin/int/core/NodeStatus"
-	NodeDirManager "github.com/massalabs/node-manager-plugin/int/node-bin-dir-manager"
 	nodeDriver "github.com/massalabs/node-manager-plugin/int/node-driver"
 	"github.com/massalabs/station/pkg/logger"
 )
@@ -32,7 +31,6 @@ type NodeManager struct {
 	processExitedChan <-chan nodeDriver.ProcessExitedResult
 	nodeMonitor       NodeMonitoring
 	NodeLogManager    *NodeLogManager
-	nodeDirManager    NodeDirManager.NodeDirManager
 	cancelAsyncTask   context.CancelFunc // cancel function to stop node subprocess and all concurrent tasks
 	nodeDriver        nodeDriver.NodeDriver
 	statusDispatcher  nodeStatusPkg.NodeStatusDispatcher
@@ -41,7 +39,6 @@ type NodeManager struct {
 // NewNodeManager creates a new NodeManager instance
 func NewNodeManager(
 	config *config.PluginConfig,
-	nodeDirManager NodeDirManager.NodeDirManager,
 	nodeMonitor NodeMonitoring,
 	nodeDriver nodeDriver.NodeDriver,
 	statusDispatcher nodeStatusPkg.NodeStatusDispatcher,
@@ -56,7 +53,6 @@ func NewNodeManager(
 		config:           config,
 		NodeLogManager:   nodeLogManager,
 		nodeMonitor:      nodeMonitor,
-		nodeDirManager:   nodeDirManager,
 		nodeDriver:       nodeDriver,
 		statusDispatcher: statusDispatcher,
 	}, nil
@@ -133,11 +129,7 @@ func (nodeMana *NodeManager) StopNode() error {
 }
 
 func (nodeMana *NodeManager) Logs(isMainnet bool) (string, error) {
-	version, err := nodeMana.nodeDirManager.GetVersion(isMainnet)
-	if err != nil {
-		return "", fmt.Errorf("failed to get massa node binary path: %v", err)
-	}
-	return nodeMana.NodeLogManager.getLogs(version)
+	return nodeMana.NodeLogManager.getLogs(config.GlobalPluginInfo.GetNetworkVersion(isMainnet))
 }
 
 func (nodeMana *NodeManager) GetStatus() nodeStatusPkg.NodeStatus {
@@ -290,26 +282,3 @@ func (nodeMana *NodeManager) setStatus(status nodeStatusPkg.NodeStatus) {
 	nodeMana.status = status
 	nodeMana.statusDispatcher.Publish(status)
 }
-
-// isUserInterrupted checks if the error is due to user interruption SIGTERM or SIGKILL
-// func isUserInterrupted(err error) bool {
-// 	if exitErr, ok := err.(*exec.ExitError); ok {
-// 		if runtime.GOOS == "windows" {
-// 			// Windows specific check
-// 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-// 				// Check for CTRL_C_EVENT (0xC000013A) or other Windows exit codes
-// 				return status.ExitStatus() == windows.CTRL_C_EVENT ||
-// 					status.ExitStatus() == windows.ERROR_OPERATION_ABORTED
-// 			}
-// 		} else {
-// 			// Unix-like systems (Linux, macOS)
-// 			if ws, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-// 				return ws.Signaled() &&
-// 					(ws.Signal() == syscall.SIGTERM ||
-// 						ws.Signal() == syscall.SIGINT ||
-// 						ws.Signal() == syscall.SIGQUIT)
-// 			}
-// 		}
-// 	}
-// 	return false
-// }

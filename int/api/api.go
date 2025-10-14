@@ -81,7 +81,6 @@ func NewAPI(config *config.PluginConfig) *API {
 	// create the node manager instance
 	nodeManager, err := nodeManagerPkg.NewNodeManager(
 		config,
-		nodeDirManager,
 		nodeMonitor,
 		nodeDriver,
 		statusDispatcher,
@@ -159,7 +158,7 @@ func (a API) registerHandlers() {
 	a.api.GetMassaNodeStatusHandler = operations.GetMassaNodeStatusHandlerFunc(handlers.HandleNodeStatusFeeder(a.statusDispatcher))
 	a.api.GetNodeLogsHandler = operations.GetNodeLogsHandlerFunc(handlers.HandleGetNodeLogs(&a.nodeManager))
 	a.api.SetAutoRestartHandler = operations.SetAutoRestartHandlerFunc(handlers.HandleSetAutoRestart())
-	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos(&a.nodeDirManager))
+	a.api.GetPluginInfosHandler = operations.GetPluginInfosHandlerFunc(handlers.HandleGetPluginInfos())
 
 	a.api.GetStakingAddressesHandler = operations.GetStakingAddressesHandlerFunc(handlers.HandleAddressChangedFeeder(a.stakingManager))
 	a.api.AddStakingAddressHandler = operations.AddStakingAddressHandlerFunc(handlers.HandlePostStakingAddresses(a.stakingManager))

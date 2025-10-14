@@ -3,6 +3,8 @@ package nodeManager
 import (
 	"fmt"
 	"io"
+
+	"github.com/massalabs/node-manager-plugin/int/config"
 )
 
 func (nodeMana *NodeManager) getLogger(isMainnet bool) (io.WriteCloser, error) {
@@ -14,13 +16,8 @@ func (nodeMana *NodeManager) getLogger(isMainnet bool) (io.WriteCloser, error) {
 		return nodeMana.buildnetLogger, nil
 	}
 
-	version, err := nodeMana.nodeDirManager.GetVersion(isMainnet)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get node version: %v", err)
-	}
-
 	// Set the node logger as the stdout and stderr of the node process
-	nodeLogger, err := nodeMana.NodeLogManager.newLogger(version)
+	nodeLogger, err := nodeMana.NodeLogManager.newLogger(config.GlobalPluginInfo.GetNetworkVersion(isMainnet))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create node logger: %v", err)
 	}

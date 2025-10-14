@@ -271,10 +271,7 @@ func (s *stakingManager) SetTargetRolls(address string, targetRolls int64) error
 	}
 
 	// Update database
-	currentNetwork := utils.NetworkMainnet
-	if !config.GlobalPluginInfo.GetIsMainnet() {
-		currentNetwork = utils.NetworkBuildnet
-	}
+	currentNetwork := config.GlobalPluginInfo.GetNetwork()
 
 	err := s.db.UpdateRollsTarget(address, targetRolls, currentNetwork)
 	if err != nil {
@@ -382,11 +379,18 @@ func (s *stakingManager) asyncTask(ctx context.Context) {
 	}
 }
 
+/* initStakingAddresses Retrieve data from the node and the db to initialize the staking addresses list in ram
+ */
 func (s *stakingManager) initStakingAddresses() error {
 	// get staking addresses from node. These are the ultimate source of truth.
 	stakingAddresses, err := s.clientDriver.GetStakingAddresses()
 	if err != nil {
 		return fmt.Errorf("failed to get staking addresses list from node: %w", err)
+	}
+
+	// clean addresses not in node but in db
+	if err := s.cleanAddressesNotInNodeButInDB(stakingAddresses); err != nil {
+		return fmt.Errorf("failed to clean addresses not in node but in db: %w", err)
 	}
 
 	if len(stakingAddresses) == 0 {
@@ -405,8 +409,38 @@ func (s *stakingManager) initStakingAddresses() error {
 	return nil
 }
 
+/*
+cleanAddressesNotInNodeButInDB cleans all addresses that are registered in db but not in the node if any
+This usualy happens when the plugins has been updated and some addresses are still registered in db but not in the new node
+*/
+func (s *stakingManager) cleanAddressesNotInNodeButInDB(addressesInNode []string) error {
+	currentNetwork := config.GlobalPluginInfo.GetNetwork()
+	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
+	if err != nil {
+		return fmt.Errorf("failed to get staking addresses registered in db: %w", err)
+	}
+
+	for _, dbAddr := range dbAddresses {
+		found := false
+		for _, stakingAddr := range addressesInNode {
+			if dbAddr.Address == stakingAddr {
+				found = true
+				break
+			}
+		}
+		if !found {
+			logger.Warnf("address %s is registered in db but not in node. Deleting it from db...", dbAddr.Address)
+			if err := s.db.DeleteRollsTarget(dbAddr.Address, currentNetwork); err != nil {
+				return fmt.Errorf("failed to delete address %s from db: %w", dbAddr.Address, err)
+			}
+			logger.Infof("address %s deleted from db", dbAddr.Address)
+		}
+	}
+
+	return nil
+}
+
 // getAddressesDataFromNode gets the addresses data from the node and convert it to the StakingAddress struct
-// It doesn't handle roll target. Returned stakingAddresses.TargetRolls is 0.
 func (s *stakingManager) getAddressesDataFromNode(addresses []string) ([]StakingAddress, error) {
 	js, err := s.nodeAPI.GetAddresses(addresses)
 	if err != nil {
@@ -469,10 +503,7 @@ func (s *stakingManager) convertToStakingAddress(addresses []getAddressesRespons
 
 // WithTargetRolls hydrates the addresses with the target rolls from the database
 func (s *stakingManager) WithTargetRolls(addresses []StakingAddress) ([]StakingAddress, error) {
-	currentNetwork := utils.NetworkMainnet
-	if !config.GlobalPluginInfo.GetIsMainnet() {
-		currentNetwork = utils.NetworkBuildnet
-	}
+	currentNetwork := config.GlobalPluginInfo.GetNetwork()
 	dbAddresses, err := s.db.GetRollsTarget(currentNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load rolul targets from database: %w", err)

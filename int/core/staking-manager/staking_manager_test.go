@@ -944,3 +944,110 @@ func TestWithTargetRolls(t *testing.T) {
 		})
 	}
 }
+
+func TestCleanAddressesNotInNodeButInDB(t *testing.T) {
+	cleanup := setupLog(t)
+	defer cleanup()
+
+	tests := []struct {
+		name            string
+		isMainnet       bool
+		addressesInNode []string
+		setupMocks      func(*dbPkg.MockDB)
+		expectError     string
+	}{
+		{
+			name:            "Deletes DB addresses not in node (mainnet)",
+			isMainnet:       true,
+			addressesInNode: []string{"addr1"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{Address: "addr1", RollTarget: 10, Network: string(utils.NetworkMainnet)},
+					{Address: "addr2", RollTarget: 5, Network: string(utils.NetworkMainnet)},
+				}, nil).Once()
+				mockDB.On("DeleteRollsTarget", "addr2", utils.NetworkMainnet).Return(nil).Once()
+			},
+		},
+		{
+			name:            "Deletes DB addresses not in node (buildnet)",
+			isMainnet:       false,
+			addressesInNode: []string{"build1", "build3"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkBuildnet).Return([]dbPkg.AddressInfo{
+					{Address: "build1", RollTarget: 1, Network: string(utils.NetworkBuildnet)},
+					{Address: "build2", RollTarget: 2, Network: string(utils.NetworkBuildnet)},
+				}, nil).Once()
+				mockDB.On("DeleteRollsTarget", "build2", utils.NetworkBuildnet).Return(nil).Once()
+			},
+		},
+		{
+			name:            "No deletion when all DB addresses exist in node",
+			isMainnet:       true,
+			addressesInNode: []string{"a", "b"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{Address: "a", RollTarget: 1, Network: string(utils.NetworkMainnet)},
+					{Address: "b", RollTarget: 2, Network: string(utils.NetworkMainnet)},
+				}, nil).Once()
+				// No DeleteRollsTarget expected
+			},
+		},
+		{
+			name:            "Returns error when GetRollsTarget fails",
+			isMainnet:       true,
+			addressesInNode: []string{"x"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return(nil, assert.AnError).Once()
+			},
+			expectError: "failed to get staking addresses registered in db",
+		},
+		{
+			name:            "Returns error when DeleteRollsTarget fails",
+			isMainnet:       true,
+			addressesInNode: []string{"keep"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{Address: "keep", RollTarget: 1, Network: string(utils.NetworkMainnet)},
+					{Address: "remove", RollTarget: 2, Network: string(utils.NetworkMainnet)},
+				}, nil).Once()
+				mockDB.On("DeleteRollsTarget", "remove", utils.NetworkMainnet).Return(assert.AnError).Once()
+			},
+			expectError: "failed to delete address remove from db",
+		},
+		{
+			name:            "No error when address in node but not in db",
+			isMainnet:       true,
+			addressesInNode: []string{"keep", "newNotInDB"},
+			setupMocks: func(mockDB *dbPkg.MockDB) {
+				mockDB.On("GetRollsTarget", utils.NetworkMainnet).Return([]dbPkg.AddressInfo{
+					{Address: "keep", RollTarget: 1, Network: string(utils.NetworkMainnet)},
+				}, nil).Once()
+				// No DeleteRollsTarget expected as "newNotInDB" is in node but not in db
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := dbPkg.NewMockDB(t)
+
+			// Configure network in global config
+			configPkg.GlobalPluginInfo.IsMainnet = tt.isMainnet
+
+			// Setup mocks per test case
+			tt.setupMocks(mockDB)
+
+			sm := &stakingManager{db: mockDB}
+			err := sm.cleanAddressesNotInNodeButInDB(tt.addressesInNode)
+
+			if tt.expectError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectError)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			mockDB.AssertExpectations(t)
+		})
+	}
+}
