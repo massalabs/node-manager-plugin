@@ -35,10 +35,26 @@ func NewNodeLogManager(config *config.PluginConfig) (*NodeLogManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NodeLogManager{
+	nodeLogManager := &NodeLogManager{
 		config: config,
 		re:     re,
-	}, nil
+	}
+	if err := nodeLogManager.cleanOldVersionsLogs(); err != nil {
+		return nil, err
+	}
+	return nodeLogManager, nil
+}
+
+func (nodeLog *NodeLogManager) cleanOldVersionsLogs() error {
+	if _, err := os.Stat(nodeLog.config.NodeLogPath); os.IsNotExist(err) {
+		return nil
+	}
+
+	if err := config.GlobalPluginInfo.RemoveOldNodeVersionsArtifacts(nodeLog.config.NodeLogPath); err != nil {
+		return fmt.Errorf("failed to remove logs of old node versions: %+w", err)
+	}
+
+	return nil
 }
 
 func (nodeLog *NodeLogManager) newLogger(logDirName string) (*lumberjack.Logger, error) {
