@@ -410,8 +410,8 @@ func (s *stakingManager) initStakingAddresses() error {
 }
 
 /*
-cleanAddressesNotInNodeButInDB cleans all addresses that are registered in db but not in the node if any
-This usually happens when the plugins has been updated and some addresses are still registered in db but not in the new node
+cleanAddressesNotInNodeButInDB cleans all addresses that are registered in the database but not in the node, if any.
+This usually happens when the plugin has been updated and some addresses remain in the database but are no longer present in the node.
 */
 func (s *stakingManager) cleanAddressesNotInNodeButInDB(addressesInNode []string) error {
 	currentNetwork := config.GlobalPluginInfo.GetNetwork()

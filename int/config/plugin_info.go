@@ -43,8 +43,8 @@ func (pi *PluginInfo) GetNetworkVersion(isMainnet bool) string {
 }
 
 /*
-RemoveOldNodeVersionsArtifacts cleans all artifacts folders related to nodes whose version is not the mainnet or buildnet current versions
-This usually happens when the plugins has been updated and some old node versions artifactst.TempDir  are still present
+RemoveOldNodeVersionsArtifacts RemoveOldNodeVersionsArtifacts removes node version artifact folders not matching the current
+mainnet or buildnet versions (e.g. after a plugin update).
 */
 func (pi *PluginInfo) RemoveOldNodeVersionsArtifacts(folderPath string) error {
 	entries, err := os.ReadDir(folderPath)

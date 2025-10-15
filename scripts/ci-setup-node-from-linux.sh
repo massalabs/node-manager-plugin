@@ -6,7 +6,7 @@
 # Downloads zip archives and extracts massa-node and massa-client from the massa/ folder
 # 
 # Usage: ./ci-setup-node-from-linux.sh <MAINNET_VERSION> <BUILDNET_VERSION> <NODE_MASSA_DIR>
-# Example: ./ci-setup-node-from-linux.sh "MAIN.3.0" "DEVN.28.3" "build/node-massa"
+# Example: ./ci-setup-node-from-linux.sh "MAIN.4.0" "DEVN.29.0" "build/node-massa"
 
 set -e  # Exit on any error
 
@@ -14,7 +14,7 @@ set -e  # Exit on any error
 if [ $# -ne 3 ]; then
     echo "Error: This script requires exactly 3 parameters"
     echo "Usage: $0 <MAINNET_VERSION> <BUILDNET_VERSION> <NODE_MASSA_DIR>"
-    echo "Example: $0 \"MAIN.3.0\" \"DEVN.28.3\" \"build/node-massa\""
+    echo "Example: $0 \"MAIN.4.0\" \"DEVN.29.0\" \"build/node-massa\""
     exit 1
 fi
 
