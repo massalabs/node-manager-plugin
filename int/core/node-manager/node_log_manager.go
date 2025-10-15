@@ -51,7 +51,7 @@ func (nodeLog *NodeLogManager) cleanOldVersionsLogs() error {
 	}
 
 	if err := config.GlobalPluginInfo.RemoveOldNodeVersionsArtifacts(nodeLog.config.NodeLogPath); err != nil {
-		return fmt.Errorf("failed to remove logs of old node versions: %v", err)
+		return fmt.Errorf("failed to remove logs of old node versions: %+w", err)
 	}
 
 	return nil

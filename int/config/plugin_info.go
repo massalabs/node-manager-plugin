@@ -55,7 +55,9 @@ func (pi *PluginInfo) RemoveOldNodeVersionsArtifacts(folderPath string) error {
 	for _, entry := range entries {
 		name := entry.Name()
 		if entry.IsDir() && name != pi.MainnetVersion && name != pi.BuildnetVersion {
-			os.RemoveAll(filepath.Join(folderPath, name))
+			if err := os.RemoveAll(filepath.Join(folderPath, name)); err != nil {
+				return fmt.Errorf("failed to remove directory %s: %v", filepath.Join(folderPath, name), err)
+			}
 		}
 	}
 

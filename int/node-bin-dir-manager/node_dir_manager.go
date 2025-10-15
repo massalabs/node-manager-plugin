@@ -105,7 +105,7 @@ func (ndm *nodeDirManager) init() error {
 
 	// clean old node versions if any
 	if err := config.GlobalPluginInfo.RemoveOldNodeVersionsArtifacts(ndm.nodeFolderPath); err != nil {
-		return fmt.Errorf("failed to remove old node versions bin folders: %v", err)
+		return fmt.Errorf("failed to remove old node versions bin folders: %+w", err)
 	}
 
 	return nil
