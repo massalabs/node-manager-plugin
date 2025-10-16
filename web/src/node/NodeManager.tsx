@@ -21,9 +21,8 @@ export const NodeManager: React.FC = () => {
   const { autoRestart, handleToggleChange } = useAutoRestart();
   const status = useNodeStore((state) => state.status);
 
-  const host = window.location.hostname;
-  const jsonRpcUrl = `http://${host}:${DEFAULT_JSON_RPC_PORT}`;
-  const grpcUrl = `grpc://${host}:${DEFAULT_GRPC_PORT}`;
+  const jsonRpcUrl = `http://localhost:${DEFAULT_JSON_RPC_PORT}`;
+  const grpcUrl = `http://localhost:${DEFAULT_GRPC_PORT}`;
 
   return (
     <div className="bg-secondary rounded-2xl p-8 w-full h-full relative border border-gray-700 flex flex-col">
