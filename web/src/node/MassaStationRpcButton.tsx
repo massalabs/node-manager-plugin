@@ -9,8 +9,7 @@ import Intl from '@/i18n/i18n';
 
 export const MassaStationRpcButton: React.FC = () => {
   const handleClick = () => {
-    const host = window.location.hostname;
-    const jsonRpcUrl = `http://${host}:${DEFAULT_JSON_RPC_PORT}`;
+    const jsonRpcUrl = `http://localhost:${DEFAULT_JSON_RPC_PORT}`;
     const nodeUrl = encodeURIComponent(jsonRpcUrl);
     const name = encodeURIComponent(DEFAULT_RPC_NAME);
     const configUrl = `${getMassaStationUrl()}web/config?name=${name}&url=${nodeUrl}`;
