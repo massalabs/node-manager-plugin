@@ -12,7 +12,7 @@ require (
 	github.com/go-openapi/swag v0.23.1
 	github.com/go-openapi/validate v0.24.0
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/massalabs/station v0.6.9
+	github.com/massalabs/station v0.8.2
 	github.com/massalabs/station-massa-wallet v0.5.1
 	github.com/massalabs/station/plugin-kit v0.1.1
 	github.com/ncruces/go-sqlite3 v0.27.1
@@ -54,3 +54,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
+
+//replace github.com/massalabs/station => /home/andrei/Projects/station-ecosystem/station
