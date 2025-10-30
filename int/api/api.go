@@ -126,8 +126,6 @@ func (a *API) Start() {
 	a.registerHandlers()
 	a.apiServer.ConfigureAPI()
 
-	a.apiServer.SetHandler(a.api.Serve(nil))
-
 	logger.Infof("Starting node manager plugin API on port %d", a.apiServer.Port)
 
 	// launch the plugin API
