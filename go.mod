@@ -16,7 +16,7 @@ require (
 	github.com/massalabs/station-massa-wallet v0.5.1
 	github.com/massalabs/station/plugin-kit v0.1.1
 	github.com/ncruces/go-sqlite3 v0.27.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.41.0
 	golang.org/x/sys v0.34.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -54,4 +54,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
-
