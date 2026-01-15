@@ -12,13 +12,13 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 
 	// Prepare plugin info with current versions
 	pi := &PluginInfo{
-		MainnetVersion:  "MAIN.4.0",
-		BuildnetVersion: "DEVN.29.0",
+		MainnetVersion:  "MAIN.4.1",
+		BuildnetVersion: "DEVN.29.1",
 	}
 
 	// Create directories representing versions
-	mustMkdir(t, filepath.Join(root, "MAIN.4.0"))     // should stay
-	mustMkdir(t, filepath.Join(root, "DEVN.29.0"))    // should stay
+	mustMkdir(t, filepath.Join(root, "MAIN.4.1"))     // should stay
+	mustMkdir(t, filepath.Join(root, "DEVN.29.1"))    // should stay
 	mustMkdir(t, filepath.Join(root, "MAIN.3.0"))     // should be removed
 	mustMkdir(t, filepath.Join(root, "DEVN.28.16"))   // should be removed
 	mustMkdir(t, filepath.Join(root, "random-other")) // should be removed
@@ -34,8 +34,8 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 	}
 
 	// Assert expected directories
-	assertExists(t, filepath.Join(root, "MAIN.4.0"), true)
-	assertExists(t, filepath.Join(root, "DEVN.29.0"), true)
+	assertExists(t, filepath.Join(root, "MAIN.4.1"), true)
+	assertExists(t, filepath.Join(root, "DEVN.29.1"), true)
 	assertExists(t, filepath.Join(root, "MAIN.3.0"), false)
 	assertExists(t, filepath.Join(root, "DEVN.28.16"), false)
 	assertExists(t, filepath.Join(root, "random-other"), false)

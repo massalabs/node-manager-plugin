@@ -5,7 +5,7 @@
 # Should be called by taskfile.
 # 
 # Usage: ./setup-node-unix.sh <MAINNET_VERSION> <BUILDNET_VERSION> <MAINNET_NODEBIN> <BUILDNET_NODEBIN> <NODE_MASSA_DIR>
-# Example: ./setup-node-unix.sh "MAIN.4.0" "DEVN.29.0" "massa_MAIN.4.0_release_linux.tar.gz" "massa_DEVN.29.0_release_linux.tar.gz" "build/node-massa"
+# Example: ./setup-node-unix.sh "MAIN.4.1" "DEVN.29.1" "massa_MAIN.4.1_release_linux.tar.gz" "massa_DEVN.29.1_release_linux.tar.gz" "build/node-massa"
 
 set -e  # Exit on any error
 
@@ -13,7 +13,7 @@ set -e  # Exit on any error
 if [ $# -ne 5 ]; then
     echo "Error: This script requires exactly 5 parameters"
     echo "Usage: $0 <MAINNET_VERSION> <BUILDNET_VERSION> <MAINNET_NODEBIN> <BUILDNET_NODEBIN> <NODE_MASSA_DIR>"
-    echo "Example: $0 \"MAIN.4.0\" \"DEVN.29.0\" \"massa_MAIN.4.0_release_linux.tar.gz\" \"massa_DEVN.29.0_release_linux.tar.gz\" \"build/node-massa\""
+    echo "Example: $0 \"MAIN.4.1\" \"DEVN.29.1\" \"massa_MAIN.4.1_release_linux.tar.gz\" \"massa_DEVN.29.1_release_linux.tar.gz\" \"build/node-massa\""
     exit 1
 fi
 
