@@ -31,12 +31,12 @@ jobs:
             target: linux
 
           # The third combination is macOS running on an AMD64 processor, building for Darwin (macOS).
-          - os: macos-13
+          - os: macos-15
             arch: amd64
             target: darwin
 
           # The fourth combination is macOS running on an ARM64 processor, building for Darwin (macOS).
-          - os: macos-13
+          - os: macos-15
             arch: arm64
             target: darwin
 
