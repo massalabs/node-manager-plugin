@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Version to produce"
+        description: "Version to produce. Should start with 'v'"
         required: true
       draft:
         description: "Draft"
@@ -28,6 +28,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
+      - name: Validate tag name format
+        if: ${{ inputs.tag_name != '' }}
+        run: |
+          tag_name=${{ inputs.tag_name }}
+          if [[ ! $tag_name =~ ^v ]]; then
+            echo "Error: tag_name must start with 'v'"
+            exit 1
+          fi
       - name: Check the manifest version
         if: ${{ inputs.tag_name != '' }}
         run: |
