@@ -42,14 +42,16 @@ func TestNodeLogger(t *testing.T) {
 		require.NoError(t, err)
 
 		version := "test-version"
-		lumberjackLogger, err := logger.newLogger(version)
+		wc, err := logger.newLogger(version)
 		require.NoError(t, err)
 
+		tw := wc
+
 		// Check if the logger was created with correct settings
-		assert.NotNil(t, lumberjackLogger)
-		assert.Equal(t, filepath.Join(tempDir, version, NodeLogFileBaseName+NodeLogFileExtension), lumberjackLogger.Filename)
-		assert.Equal(t, testConfig.NodeLogMaxSize, lumberjackLogger.MaxSize)
-		assert.Equal(t, testConfig.MaxLogBackups, lumberjackLogger.MaxBackups)
+		assert.NotNil(t, tw)
+		assert.Equal(t, filepath.Join(tempDir, version, NodeLogFileBaseName+NodeLogFileExtension), tw.inner.Filename)
+		assert.Equal(t, testConfig.NodeLogMaxSize, tw.inner.MaxSize)
+		assert.Equal(t, testConfig.MaxLogBackups, tw.inner.MaxBackups)
 
 		// Check if directory was created
 		expectedLogPath := filepath.Join(tempDir, version)
@@ -57,7 +59,7 @@ func TestNodeLogger(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Write some test content
-		_, err = lumberjackLogger.Write([]byte("test log content\n"))
+		_, err = wc.Write([]byte("test log content\n"))
 		assert.NoError(t, err)
 
 		// Check if log file was created

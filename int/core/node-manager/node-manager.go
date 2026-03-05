@@ -224,9 +224,16 @@ func (nodeMana *NodeManager) handleNodeStopped() {
 	result := <-nodeMana.processExitedChan // Wait for the command to exit
 	status := nodeStatusPkg.NodeStatusOff
 
-	if result.Err != nil && !isUserInterrupted(result.Err) {
+	currentStatus := nodeMana.GetStatus()
+	logger.Infof("Current status: %s", currentStatus)
+
+	// check whether the node was closed by the user or by a process error
+	if result.Err != nil && currentStatus != nodeStatusPkg.NodeStatusStopping {
 		logger.Errorf("massa node process exited with error: %v", result.Err)
 		status = nodeStatusPkg.NodeStatusCrashed
+
+		logger.Info("Cancelling async tasks")
+		nodeMana.cancelAsyncTask()
 
 		// if auto-restart option is enabled, restart the node
 		if config.GlobalPluginInfo.GetAutoRestart() {
