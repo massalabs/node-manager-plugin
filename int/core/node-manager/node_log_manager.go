@@ -1,6 +1,7 @@
 package nodeManager
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,6 +23,90 @@ type NodeLogManager struct {
 type logFile struct {
 	path      string
 	timestamp *time.Time // nil for the current file
+}
+
+var ansiColorRegexp = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// utcFixWrapperLogger wraps a lumberjack.Logger and rewrites the
+// timestamp at the beginning of each log line to the current time in
+// RFC3339Nano format.
+type utcFixWrapperLogger struct {
+	inner *lumberjack.Logger
+	buf   bytes.Buffer
+}
+
+func (w *utcFixWrapperLogger) Close() error {
+	// Flush any remaining buffered data as a final line.
+	if w.buf.Len() > 0 {
+		line := w.buf.String()
+		w.buf.Reset()
+		if err := w.writeLine(line); err != nil {
+			return err
+		}
+	}
+	return w.inner.Close()
+}
+
+func (w *utcFixWrapperLogger) Write(p []byte) (int, error) {
+	total := 0
+
+	for len(p) > 0 {
+		idx := bytes.IndexByte(p, '\n')
+		if idx == -1 {
+			// No complete line in this chunk, buffer it.
+			n, _ := w.buf.Write(p)
+			total += n
+			return total, nil
+		}
+
+		// Buffer up to the newline (excluding it).
+		if idx > 0 {
+			_, _ = w.buf.Write(p[:idx])
+		}
+
+		line := w.buf.String()
+		w.buf.Reset()
+
+		if err := w.writeLine(line); err != nil {
+			// We consumed idx+1 bytes from p before failing.
+			total += idx + 1
+			return total, err
+		}
+
+		// Skip over the newline we just handled.
+		p = p[idx+1:]
+		total += idx + 1
+	}
+
+	return total, nil
+}
+
+func (w *utcFixWrapperLogger) writeLine(line string) error {
+	// Handle Windows-style CRLF: strip trailing '\r' before processing.
+	line = strings.TrimSuffix(line, "\r")
+
+	// If the line is empty, just forward a newline.
+	if line == "" {
+		_, err := w.inner.Write([]byte("\n"))
+		return err
+	}
+
+	now := time.Now().Local().Format(time.RFC3339Nano)
+
+	processed := line
+	if spaceIdx := strings.IndexByte(line, ' '); spaceIdx > 0 {
+		candidate := line[:spaceIdx]
+		// Some loggers wrap the timestamp in ANSI color codes; strip them
+		// before attempting to parse as RFC3339Nano.
+		cleanCandidate := ansiColorRegexp.ReplaceAllString(candidate, "")
+		if _, err := time.Parse(time.RFC3339Nano, cleanCandidate); err == nil {
+			// Replace the existing timestamp (possibly colorized) with the current one.
+			processed = now + line[spaceIdx:]
+		}
+	}
+
+	_, err := w.inner.Write([]byte(processed + "\n"))
+	return err
 }
 
 const (
@@ -57,7 +142,7 @@ func (nodeLog *NodeLogManager) cleanOldVersionsLogs() error {
 	return nil
 }
 
-func (nodeLog *NodeLogManager) newLogger(logDirName string) (*lumberjack.Logger, error) {
+func (nodeLog *NodeLogManager) newLogger(logDirName string) (*utcFixWrapperLogger, error) {
 	logFilesFolderPath := filepath.Join(nodeLog.config.NodeLogPath, logDirName)
 
 	// Create the log files folder for the given logDirName if it doesn't exist
@@ -67,10 +152,15 @@ func (nodeLog *NodeLogManager) newLogger(logDirName string) (*lumberjack.Logger,
 		}
 	}
 
-	return &lumberjack.Logger{
+	l := &lumberjack.Logger{
 		Filename:   filepath.Join(logFilesFolderPath, NodeLogFileBaseName+NodeLogFileExtension),
 		MaxSize:    nodeLog.config.NodeLogMaxSize, // megabytes
 		MaxBackups: nodeLog.config.MaxLogBackups,
+		LocalTime:  true,
+	}
+
+	return &utcFixWrapperLogger{
+		inner: l,
 	}, nil
 }
 
