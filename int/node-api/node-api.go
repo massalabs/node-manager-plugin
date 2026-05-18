@@ -32,7 +32,8 @@ func (n *nodeAPI) GetAddresses(addresses []string) ([]byte, error) {
 	RPCresponse, err := n.nodeClient.RPCClient.Call(
 		context.Background(),
 		"get_addresses",
-		[1][]string{addresses})
+		[1][]string{addresses},
+	)
 	if err != nil {
 		return nil, err
 	}
