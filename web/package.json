@@ -22,7 +22,7 @@
     "@massalabs/react-ui-kit": "^1.0.3-dev",
     "@tanstack/react-query": "^4.29.5",
     "axios": "^1.6.0",
-    "esbuild": "0.17.19",
+    "esbuild": "0.28.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.10.0",
@@ -41,7 +41,7 @@
     "@types/react-test-renderer": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
-    "@vitejs/plugin-react": "^4.0.0-beta.0",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.14",
     "babel-jest": "^29.5.0",
     "eslint": "^8.38.0",
@@ -64,7 +64,7 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.0.2",
-    "vite": "^4.5.2"
+    "vite": "^8.3.5"
   },
   "darwinDependencies": {
     "devDependencies": {
