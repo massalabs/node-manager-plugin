@@ -11,7 +11,8 @@ tasks:
   install:
     desc: Install development dependencies (swagger, mockery, gofumpt, golangci-lint)
     cmds:
-      - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@latest
+      # v0.34+ generates code for the split go-openapi/swag modules, incompatible with swag v0.23 in go.mod
+      - cmd: go install github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
       - cmd: go install github.com/vektra/mockery/v3@v3.5.0
       - cmd: go install mvdan.cc/gofumpt@v0.8.0
       - cmd: go install github.com/daixiang0/gci@v0.13.4 
