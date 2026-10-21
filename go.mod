@@ -14,7 +14,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/massalabs/station v0.8.2
 	github.com/massalabs/station-massa-wallet v0.5.1
-	github.com/massalabs/station/plugin-kit v0.1.1
+	github.com/massalabs/station/plugin-kit v0.1.2
 	github.com/ncruces/go-sqlite3 v0.27.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.41.0

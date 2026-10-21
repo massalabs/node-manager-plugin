@@ -71,6 +71,8 @@ github.com/massalabs/station-massa-wallet v0.5.1 h1:tF4sX7Qt3mcFyLqlqbBj6uUqQgDM
 github.com/massalabs/station-massa-wallet v0.5.1/go.mod h1:36O0NV1arEDy8NXPGj+vtlTftAgJ/QgG+keIOatZOnw=
 github.com/massalabs/station/plugin-kit v0.1.1 h1:KIzEjQX1ukgSSmmnD3EVADN9N7h3kTbFzHI3lal9+Po=
 github.com/massalabs/station/plugin-kit v0.1.1/go.mod h1:ua8P3mEso/AJSyuAL1cqy4JRu7tn/zzSEZsW3FJLIew=
+github.com/massalabs/station/plugin-kit v0.1.2 h1:erPVq1yQO5s+6ZNgfzwfqaofCcLB/iclWJ2VklxB6G4=
+github.com/massalabs/station/plugin-kit v0.1.2/go.mod h1:ua8P3mEso/AJSyuAL1cqy4JRu7tn/zzSEZsW3FJLIew=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/ncruces/go-sqlite3 v0.27.1 h1:suqlM7xhSyDVMV9RgX99MCPqt9mB6YOCzHZuiI36K34=
