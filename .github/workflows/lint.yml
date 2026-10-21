@@ -15,12 +15,12 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
         
       - name: run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.64.2
+          version: v2.15.0
           args: --timeout=30s
       - name: install gofumpt
-        run: go install mvdan.cc/gofumpt@v0.8.0
+        run: go install mvdan.cc/gofumpt@v0.12.0
       - name: run gofumpt
         run: |
           ERRORS=$(gofumpt -l . | wc -l)

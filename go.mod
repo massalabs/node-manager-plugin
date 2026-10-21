@@ -1,6 +1,6 @@
 module github.com/massalabs/node-manager-plugin
 
-go 1.24.6
+go 1.27.3
 
 require (
 	github.com/awnumar/memguard v0.22.3
