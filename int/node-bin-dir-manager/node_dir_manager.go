@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/massalabs/node-manager-plugin/int/config"
+	"github.com/massalabs/station/pkg/logger"
 )
 
 const (
@@ -103,7 +104,14 @@ func (ndm *nodeDirManager) init() error {
 		ndm.extension = ".exe"
 	}
 
-	// clean old node versions if any
+	// keep the staking keys and the client wallet of the previous node versions, then clean them if any.
+	// If the migration fails, the previous version folders are kept so that the keys are not lost:
+	// it is attempted again at the next start.
+	if err := config.GlobalPluginInfo.MigrateNodeVersionsData(ndm.nodeFolderPath); err != nil {
+		logger.Errorf("failed to migrate the wallets of the previous node versions, keeping their folders: %v", err)
+		return nil
+	}
+
 	if err := config.GlobalPluginInfo.RemoveOldNodeVersionsArtifacts(ndm.nodeFolderPath); err != nil {
 		return fmt.Errorf("failed to remove old node versions bin folders: %+w", err)
 	}
