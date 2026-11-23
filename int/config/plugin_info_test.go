@@ -12,13 +12,13 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 
 	// Prepare plugin info with current versions
 	pi := &PluginInfo{
-		MainnetVersion:  "MAIN.5.1",
-		BuildnetVersion: "DEVN.30.2",
+		MainnetVersion:  "MAIN.6.0",
+		BuildnetVersion: "DEVN.31.0",
 	}
 
 	// Create directories representing versions
-	mustMkdir(t, filepath.Join(root, "MAIN.5.1"))     // should stay
-	mustMkdir(t, filepath.Join(root, "DEVN.30.2"))    // should stay
+	mustMkdir(t, filepath.Join(root, "MAIN.6.0"))     // should stay
+	mustMkdir(t, filepath.Join(root, "DEVN.31.0"))    // should stay
 	mustMkdir(t, filepath.Join(root, "MAIN.3.0"))     // should be removed
 	mustMkdir(t, filepath.Join(root, "DEVN.28.16"))   // should be removed
 	mustMkdir(t, filepath.Join(root, "random-other")) // should be removed
@@ -34,8 +34,8 @@ func TestRemoveOldNodeVersionsArtifacts(t *testing.T) {
 	}
 
 	// Assert expected directories
-	assertExists(t, filepath.Join(root, "MAIN.5.1"), true)
-	assertExists(t, filepath.Join(root, "DEVN.30.2"), true)
+	assertExists(t, filepath.Join(root, "MAIN.6.0"), true)
+	assertExists(t, filepath.Join(root, "DEVN.31.0"), true)
 	assertExists(t, filepath.Join(root, "MAIN.3.0"), false)
 	assertExists(t, filepath.Join(root, "DEVN.28.16"), false)
 	assertExists(t, filepath.Join(root, "random-other"), false)
@@ -54,8 +54,8 @@ func TestMigrateNodeVersionsData(t *testing.T) {
 	root := t.TempDir()
 
 	pi := &PluginInfo{
-		MainnetVersion:  "MAIN.5.1",
-		BuildnetVersion: "DEVN.30.2",
+		MainnetVersion:  "MAIN.6.0",
+		BuildnetVersion: "DEVN.31.0",
 	}
 
 	stakingWallets := filepath.Join("massa-node", "config", "staking_wallets")
@@ -70,53 +70,53 @@ func TestMigrateNodeVersionsData(t *testing.T) {
 	mustWriteFile(t, filepath.Join(root, "MAIN.5.0", clientWallets, "wallet_AU1client.yaml"), []byte("client"))
 
 	// the new version is shipped with empty config folders
-	mustMkdir(t, filepath.Join(root, "MAIN.5.1", "massa-node", "config"))
-	mustMkdir(t, filepath.Join(root, "MAIN.5.1", clientWallets))
+	mustMkdir(t, filepath.Join(root, "MAIN.6.0", "massa-node", "config"))
+	mustMkdir(t, filepath.Join(root, "MAIN.6.0", clientWallets))
 
 	// previous buildnet version: the new version already has a client wallet, which must not be replaced
-	mustMkdir(t, filepath.Join(root, "DEVN.30.0", stakingWallets))
-	mustWriteFile(t, filepath.Join(root, "DEVN.30.0", stakingWallets, "wallet_AU1build.yaml"), []byte("build"))
-	mustMkdir(t, filepath.Join(root, "DEVN.30.0", clientWallets))
-	mustWriteFile(t, filepath.Join(root, "DEVN.30.0", clientWallets, "wallet_AU1oldclient.yaml"), []byte("old"))
+	mustMkdir(t, filepath.Join(root, "DEVN.30.2", stakingWallets))
+	mustWriteFile(t, filepath.Join(root, "DEVN.30.2", stakingWallets, "wallet_AU1build.yaml"), []byte("build"))
 	mustMkdir(t, filepath.Join(root, "DEVN.30.2", clientWallets))
-	mustWriteFile(t, filepath.Join(root, "DEVN.30.2", clientWallets, "wallet_AU1newclient.yaml"), []byte("new"))
+	mustWriteFile(t, filepath.Join(root, "DEVN.30.2", clientWallets, "wallet_AU1oldclient.yaml"), []byte("old"))
+	mustMkdir(t, filepath.Join(root, "DEVN.31.0", clientWallets))
+	mustWriteFile(t, filepath.Join(root, "DEVN.31.0", clientWallets, "wallet_AU1newclient.yaml"), []byte("new"))
 
 	if err := pi.MigrateNodeVersionsData(root); err != nil {
 		t.Fatalf("MigrateNodeVersionsData returned error: %v", err)
 	}
 
-	assertContent(t, filepath.Join(root, "MAIN.5.1", stakingWallets, "wallet_AU1staker.yaml"), "staker")
-	assertExists(t, filepath.Join(root, "MAIN.5.1", stakingWallets, "wallet_AU1old.yaml"), false)
-	assertContent(t, filepath.Join(root, "MAIN.5.1", clientWallets, "wallet_AU1client.yaml"), "client")
+	assertContent(t, filepath.Join(root, "MAIN.6.0", stakingWallets, "wallet_AU1staker.yaml"), "staker")
+	assertExists(t, filepath.Join(root, "MAIN.6.0", stakingWallets, "wallet_AU1old.yaml"), false)
+	assertContent(t, filepath.Join(root, "MAIN.6.0", clientWallets, "wallet_AU1client.yaml"), "client")
 
-	assertContent(t, filepath.Join(root, "DEVN.30.2", stakingWallets, "wallet_AU1build.yaml"), "build")
-	assertContent(t, filepath.Join(root, "DEVN.30.2", clientWallets, "wallet_AU1newclient.yaml"), "new")
-	assertExists(t, filepath.Join(root, "DEVN.30.2", clientWallets, "wallet_AU1oldclient.yaml"), false)
+	assertContent(t, filepath.Join(root, "DEVN.31.0", stakingWallets, "wallet_AU1build.yaml"), "build")
+	assertContent(t, filepath.Join(root, "DEVN.31.0", clientWallets, "wallet_AU1newclient.yaml"), "new")
+	assertExists(t, filepath.Join(root, "DEVN.31.0", clientWallets, "wallet_AU1oldclient.yaml"), false)
 
 	// a second run (next plugin start) changes nothing
 	if err := pi.MigrateNodeVersionsData(root); err != nil {
 		t.Fatalf("second MigrateNodeVersionsData returned error: %v", err)
 	}
-	assertContent(t, filepath.Join(root, "MAIN.5.1", stakingWallets, "wallet_AU1staker.yaml"), "staker")
+	assertContent(t, filepath.Join(root, "MAIN.6.0", stakingWallets, "wallet_AU1staker.yaml"), "staker")
 
 	// then the previous versions are removed, the keys stay in the current ones
 	if err := pi.RemoveOldNodeVersionsArtifacts(root); err != nil {
 		t.Fatalf("RemoveOldNodeVersionsArtifacts returned error: %v", err)
 	}
 	assertExists(t, filepath.Join(root, "MAIN.5.0"), false)
-	assertContent(t, filepath.Join(root, "MAIN.5.1", stakingWallets, "wallet_AU1staker.yaml"), "staker")
+	assertContent(t, filepath.Join(root, "MAIN.6.0", stakingWallets, "wallet_AU1staker.yaml"), "staker")
 }
 
 func TestMigrateNodeVersionsData_NoPreviousVersion(t *testing.T) {
 	root := t.TempDir()
-	pi := &PluginInfo{MainnetVersion: "MAIN.5.1", BuildnetVersion: "DEVN.30.2"}
+	pi := &PluginInfo{MainnetVersion: "MAIN.6.0", BuildnetVersion: "DEVN.31.0"}
 
-	mustMkdir(t, filepath.Join(root, "MAIN.5.1", "massa-client"))
+	mustMkdir(t, filepath.Join(root, "MAIN.6.0", "massa-client"))
 
 	if err := pi.MigrateNodeVersionsData(root); err != nil {
 		t.Fatalf("MigrateNodeVersionsData returned error: %v", err)
 	}
-	assertExists(t, filepath.Join(root, "MAIN.5.1", "massa-client", "wallets"), false)
+	assertExists(t, filepath.Join(root, "MAIN.6.0", "massa-client", "wallets"), false)
 }
 
 func TestCompareVersions(t *testing.T) {
@@ -126,7 +126,7 @@ func TestCompareVersions(t *testing.T) {
 	}{
 		{"MAIN.5.0", "MAIN.4.2", 1},
 		{"MAIN.4.10", "MAIN.4.2", 1},
-		{"DEVN.29.2", "DEVN.30.0", -1},
+		{"DEVN.29.2", "DEVN.31.0", -1},
 		{"MAIN.5.0", "MAIN.5.0", 0},
 	}
 

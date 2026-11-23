@@ -33,8 +33,8 @@ func init() {
 		PwdBuildnet:     "",
 		AutoRestart:     false,
 		IsMainnet:       true,
-		MainnetVersion:  "MAIN.5.1",
-		BuildnetVersion: "DEVN.30.2",
+		MainnetVersion:  "MAIN.6.0",
+		BuildnetVersion: "DEVN.31.0",
 	}
 }
 
